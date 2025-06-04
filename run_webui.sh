@@ -22,6 +22,15 @@ else
     pip install -r requirements_mac.txt
 fi
 
+# 检查预训练模型是否存在
+if [ ! -d "./pretrained_models/CosyVoice2-0.5B" ]; then
+    echo "预训练模型不存在，开始下载..."
+    modelscope download --model iic/CosyVoice2-0.5B --local_dir ./pretrained_models/CosyVoice2-0.5B
+    echo "模型下载完成"
+else
+    echo "预训练模型已存在"
+fi
+
 # 启动WebUI
 echo "启动WebUI..."
 python webui_cosyvoice2.py
