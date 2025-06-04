@@ -39,11 +39,19 @@ for folder in "cosyvoice" "third_party"; do
 done
 
 # 打包项目文件
-echo "正在压缩 cosyvoice, pretrained_models, third_party..."
+echo "正在压缩 cosyvoice, pretrained_models, third_party, webui_cosyvoice2.py, run_webui.sh..."
 PROJECT_ARCHIVE="$TEMP_DIR/lighttts_project.zip"
 
+# 检查必要的文件是否存在
+for file in "webui_cosyvoice2.py" "run_webui.sh"; do
+    if [ ! -f "$file" ]; then
+        echo "❌ 错误: 找不到文件 $file"
+        exit 1
+    fi
+done
+
 # 创建临时文件列表
-FILES_TO_ZIP="cosyvoice third_party"
+FILES_TO_ZIP="cosyvoice third_party webui_cosyvoice2.py run_webui.sh"
 if [ -d "pretrained_models" ]; then
     FILES_TO_ZIP="$FILES_TO_ZIP pretrained_models"
 fi
@@ -151,11 +159,20 @@ echo "🐍 激活LightTTS环境..."
 source "$SCRIPT_DIR/lighttts_env/bin/activate"
 
 # 设置PYTHONPATH
-export PYTHONPATH="$SCRIPT_DIR:$PYTHONPATH"
+export PYTHONPATH="$SCRIPT_DIR/third_party/Matcha-TTS:$SCRIPT_DIR:$PYTHONPATH"
 
 # 启动WebUI
 echo "🌐 启动LightTTS WebUI..."
 cd "$SCRIPT_DIR"
+# 检查预训练模型是否存在
+if [ ! -d "./pretrained_models/CosyVoice2-0.5B" ]; then
+    echo "预训练模型不存在，开始下载..."
+    modelscope download --model iic/CosyVoice2-0.5B --local_dir ./pretrained_models/CosyVoice2-0.5B
+    echo "模型下载完成"
+else
+    echo "预训练模型已存在"
+fi
+
 python webui_cosyvoice2.py
 STARTEOF
 
@@ -168,6 +185,8 @@ echo "\n📁 项目结构:"
 echo "   ├── cosyvoice/          # 核心代码"
 echo "   ├── pretrained_models/  # 预训练模型 (如果存在)"
 echo "   ├── third_party/        # 第三方依赖"
+echo "   ├── webui_cosyvoice2.py # WebUI主程序"
+echo "   ├── run_webui.sh        # 原始启动脚本"
 echo "   ├── lighttts_env/       # Python环境"
 echo "   └── start_lighttts.sh   # 启动脚本"
 EOF
@@ -224,6 +243,8 @@ cat > "$README_FILE" << 'EOF'
 ├── cosyvoice/          # 核心代码
 ├── pretrained_models/  # 预训练模型
 ├── third_party/        # 第三方依赖
+├── webui_cosyvoice2.py # WebUI主程序
+├── run_webui.sh        # 原始启动脚本
 ├── lighttts_env/       # Python环境
 └── start_lighttts.sh   # 启动脚本
 ```
@@ -249,7 +270,7 @@ rm -rf "$TEMP_DIR"
 echo "\n🎉 打包完成!"
 echo "📦 部署包位置: $FINAL_PACKAGE"
 echo "📋 部署包内容:"
-echo "   ├── lighttts_project.zip     # 项目文件"
+echo "   ├── lighttts_project.zip     # 项目文件 (包含cosyvoice, third_party, webui_cosyvoice2.py, run_webui.sh等)"
 echo "   ├── lighttts_env.zip         # conda环境"
 echo "   ├── deploy.sh                # 部署脚本"
 echo "   └── README.md                # 说明文档"
