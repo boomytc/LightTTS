@@ -2,3 +2,5 @@
 .DS_Store
 /pretrained_models
 .gradio/certificate.pem
+/BatchGenerate/clone_src_wav/*
+/BatchGenerate/texts/*

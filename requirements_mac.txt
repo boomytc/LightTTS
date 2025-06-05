@@ -20,4 +20,5 @@ torch
 torchaudio
 transformers
 wget
+pyside6
 WeTextProcessing==1.0.3
