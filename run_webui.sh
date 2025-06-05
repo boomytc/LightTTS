@@ -13,13 +13,21 @@ eval "$(conda shell.bash hook)"
 if conda env list | grep -q "LightTTS"; then
     echo "LightTTS 虚拟环境已存在"
     conda activate LightTTS
-    pip install -r requirements_mac.txt
+    if [ $(uname) = "Darwin" ]; then
+        pip install -r requirements_mac.txt
+    else
+        pip install -r requirements_linux.txt
+    fi
 else
     echo "创建LightTTS虚拟环境"
     conda create -n LightTTS python=3.10 -y
     conda activate LightTTS
     conda install -y -c conda-forge pynini==2.1.5
-    pip install -r requirements_mac.txt
+    if [ $(uname) = "Darwin" ]; then
+        pip install -r requirements_mac.txt
+    else
+        pip install -r requirements_linux.txt
+    fi
 fi
 
 # 检查预训练模型是否存在
