@@ -20,4 +20,5 @@ torch
 torchaudio
 transformers
 wget
+peft
 WeTextProcessing==1.0.3
