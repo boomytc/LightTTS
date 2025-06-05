@@ -29,6 +29,11 @@ git clone https://github.com/boomytc/LightTTS.git
 cd LightTTS
 ```
 
+# 如果使用ubuntu，请运行
+```bash
+sudo apt-get install sox libsox-dev
+```
+
 ### 2. 创建虚拟环境
 
 ```bash
@@ -43,7 +48,21 @@ conda activate LightTTS
 conda install -y -c conda-forge pynini==2.1.5
 
 # 安装 Python 依赖包
+# 如使用 ubuntu，请运行
+pip install -r requirements_linux.txt
+# 如使用 mac，请运行
 pip install -r requirements_mac.txt
+```
+
+# 如果是在ubuntu上，可以选择使用ttsfrd来替代WeTextProcessing
+```bash
+modelscope download --model iic/CosyVoice-ttsfrd --local_dir ./pretrained_models/CosyVoice-ttsfrd
+
+cd pretrained_models/CosyVoice-ttsfrd/
+
+unzip resource.zip -d .
+pip install ttsfrd_dependency-0.1-py3-none-any.whl
+pip install ttsfrd-0.4.2-cp310-cp310-linux_x86_64.whl
 ```
 
 ### 4. 下载预训练模型

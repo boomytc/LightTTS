@@ -103,7 +103,7 @@ def main():
                               outputs=[audio_output])
     
     demo.queue(max_size=4, default_concurrency_limit=2)
-    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port)
+    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
