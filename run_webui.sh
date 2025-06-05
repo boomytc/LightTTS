@@ -4,7 +4,7 @@
 set -e
 
 # 设置PYTHONPATH
-export PYTHONPATH=third_party/Matcha-TTS
+export PYTHONPATH=Matcha-TTS
 
 # 初始化conda（确保conda命令可用）
 eval "$(conda shell.bash hook)"
