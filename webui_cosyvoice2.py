@@ -134,7 +134,7 @@ def main():
         mode_checkbox_group.change(update_description, inputs=mode_checkbox_group, outputs=mode_description_display)
     
     demo.queue(max_size=18, default_concurrency_limit=6)
-    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=True)
+    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
