@@ -22,3 +22,4 @@ transformers
 wget
 pyside6
 WeTextProcessing==1.0.3
+https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl
