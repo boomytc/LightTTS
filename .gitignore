@@ -1,5 +1,5 @@
-*.pyc
 .DS_Store
+__pycache__
 /pretrained_models
 .gradio/certificate.pem
 /BatchGenerate/clone_src_wav/*
