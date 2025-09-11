@@ -1,3 +1,7 @@
+torch
+torchaudio
+cython
+transformers
 conformer
 diffusers
 gdown
@@ -16,9 +20,6 @@ openai-whisper
 pyarrow
 pyworld
 soundfile
-torch
-torchaudio
-transformers
 wget
 peft
 pyside6
