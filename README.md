@@ -11,14 +11,14 @@ LightTTS 是一个基于 CosyVoice 的轻量级语音合成系统，提供高质
 - 🎯 基于 CosyVoice2-0.5B 模型
 - 🚀 简化的部署流程
 - 🌐 Web UI 界面
-- 🔧 支持 macOS 和 Linux
+- 🔧 支持 macOS、Linux、Windows
 - 📦 轻量化设计
 
 ## 🛠️ 系统要求
 
-- Python 3.10+
+- Python 3.10
 - Conda 环境管理器
-- macOS 或 Linux 操作系统
+- macOS、Linux、Windows 操作系统
 
 ## 📦 安装说明
 
@@ -31,7 +31,7 @@ cd LightTTS
 
 # 如果使用ubuntu，请运行
 ```bash
-sudo apt-get install sox libsox-dev
+sudo apt install sox libsox-dev
 ```
 
 ### 2. 创建虚拟环境
@@ -43,11 +43,14 @@ conda activate LightTTS
 
 ### 3. 安装依赖
 
+# 查看torch和torchaudio的安装命令请访问查看：[PyTorch官网](https://pytorch.org/get-started/locally/)
 ```bash
-# 安装 pynini（必需的语音处理库）
-conda install -y -c conda-forge pynini==2.1.5
+# 安装 torch torchaudio 基本命令如下：
+pip install torch torchaudio
 
 # 安装 Python 依赖包
+# 如使用 Windows，请运行
+pip install -r requirements_win.txt
 # 如使用 ubuntu，请运行
 pip install -r requirements_linux.txt
 # 如使用 mac，请运行
