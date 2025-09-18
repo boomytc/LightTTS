@@ -71,7 +71,7 @@ pip install ttsfrd-0.4.2-cp310-cp310-linux_x86_64.whl
 ### 4. 下载预训练模型
 
 ```bash
-modelscope download --model iic/CosyVoice2-0.5B --local_dir ./pretrained_models/CosyVoice2-0.5B
+modelscope download --model iic/CosyVoice2-0.5B --local_dir ./models/CosyVoice2-0.5B
 ```
 
 ## 🚀 快速开始

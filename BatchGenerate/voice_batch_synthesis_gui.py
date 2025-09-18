@@ -295,7 +295,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         model_layout = QGridLayout(model_group)
         
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
-        self.model_dir_edit = QLineEdit("pretrained_models/CosyVoice2-0.5B")
+        self.model_dir_edit = QLineEdit("models/CosyVoice2-0.5B")
         model_layout.addWidget(self.model_dir_edit, 0, 1)
         model_dir_btn = QPushButton("浏览")
         model_dir_btn.clicked.connect(self.select_model_dir)
