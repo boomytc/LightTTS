@@ -29,12 +29,14 @@ from pydantic import BaseModel
 from tqdm import tqdm
 from transformers import LlamaTokenizerFast
 
-from ..modules.audiovae import AudioVAE
-from ..modules.layers import ScalarQuantizationLayer
-from ..modules.locdit import CfmConfig, UnifiedCFM, VoxCPMLocDiT
-from ..modules.locenc import VoxCPMLocEnc
-from ..modules.minicpm4 import MiniCPM4Config, MiniCPMModel
-from .utils import get_dtype, mask_multichar_chinese_tokens
+from voxcpm.modules.audiovae.audio_vae import AudioVAE
+from voxcpm.modules.layers.scalar_quantization_layer import ScalarQuantizationLayer
+from voxcpm.modules.locdit.unified_cfm import CfmConfig, UnifiedCFM
+from voxcpm.modules.locdit.local_dit import VoxCPMLocDiT
+from voxcpm.modules.locenc.local_encoder import VoxCPMLocEnc
+from voxcpm.modules.minicpm4.config import MiniCPM4Config
+from voxcpm.modules.minicpm4.model import MiniCPMModel
+from voxcpm.model.utils import get_dtype, mask_multichar_chinese_tokens
 
 
 class VoxCPMEncoderConfig(BaseModel):

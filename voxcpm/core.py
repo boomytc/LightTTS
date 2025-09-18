@@ -4,7 +4,7 @@ import os
 import re
 import tempfile
 from huggingface_hub import snapshot_download
-from .model.voxcpm import VoxCPMModel
+from voxcpm.model.voxcpm import VoxCPMModel
 
 class VoxCPM:
     def __init__(self,
@@ -26,7 +26,7 @@ class VoxCPM:
         self.tts_model = VoxCPMModel.from_local(voxcpm_model_path)
         self.text_normalizer = None
         if enable_denoiser and zipenhancer_model_path is not None:
-            from .zipenhancer import ZipEnhancer
+            from voxcpm.zipenhancer import ZipEnhancer
             self.denoiser = ZipEnhancer(zipenhancer_model_path)
         else:
             self.denoiser = None
@@ -151,7 +151,7 @@ class VoxCPM:
             
             if normalize:
                 if self.text_normalizer is None:
-                    from .utils.text_normalize import TextNormalizer
+                    from voxcpm.utils.text_normalize import TextNormalizer
                     self.text_normalizer = TextNormalizer()
                 text = self.text_normalizer.normalize(text)
             

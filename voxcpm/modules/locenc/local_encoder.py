@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-from ..minicpm4 import MiniCPMModel, MiniCPM4Config
+from voxcpm.modules.minicpm4.model import MiniCPMModel
+from voxcpm.modules.minicpm4.config import MiniCPM4Config
 from einops import rearrange
 
 

@@ -1,9 +1,9 @@
-from .config import MiniCPM4Config
+from voxcpm.modules.minicpm4.config import MiniCPM4Config
 import torch
 import torch.nn as nn
 from typing import List, Tuple
 import math
-from .cache import StaticKVCache
+from voxcpm.modules.minicpm4.cache import StaticKVCache
 
 
 def rms_layernorm(hidden: torch.Tensor, weight: torch.Tensor, eps: float):

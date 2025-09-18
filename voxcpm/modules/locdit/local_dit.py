@@ -1,5 +1,6 @@
 import torch
-from ..minicpm4 import MiniCPMModel, MiniCPM4Config
+from voxcpm.modules.minicpm4.model import MiniCPMModel
+from voxcpm.modules.minicpm4.config import MiniCPM4Config
 import torch.nn as nn
 import math
 

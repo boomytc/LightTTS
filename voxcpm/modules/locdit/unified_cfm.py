@@ -1,6 +1,6 @@
 import torch
 from typing import List
-from .local_dit import VoxCPMLocDiT
+from voxcpm.modules.locdit.local_dit import VoxCPMLocDiT
 import math
 from pydantic import BaseModel
 
