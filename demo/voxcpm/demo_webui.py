@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import gradio as gr  
 from typing import Optional, Tuple
-from pathlib import Path
 
 current_dir = os.path.dirname(__file__)
 project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -83,8 +82,6 @@ class VoxCPMDemo:
 
 def create_demo_interface(demo: VoxCPMDemo):
     """构建 VoxCPM 演示的 Gradio UI 界面。"""
-    # 静态资源（logo 路径）
-    gr.set_static_paths(paths=[Path.cwd().absolute()/"assets"])
 
     with gr.Blocks(
         theme=gr.themes.Soft(
@@ -94,16 +91,6 @@ def create_demo_interface(demo: VoxCPMDemo):
             font=[gr.themes.GoogleFont("Inter"), "Arial", "sans-serif"]
         ),
         css="""
-        .logo-container {
-            text-align: center;
-            margin: 0.5rem 0 1rem 0;
-        }
-        .logo-container img {
-            height: 80px;
-            width: auto;
-            max-width: 200px;
-            display: inline-block;
-        }
         /* Bold accordion labels */
         #acc_quick details > summary,
         #acc_tips details > summary {
@@ -119,8 +106,6 @@ def create_demo_interface(demo: VoxCPMDemo):
         }
         """
     ) as interface:
-        # 页头 logo
-        gr.HTML('<div class="logo-container"><img src="/gradio_api/file=assets/voxcpm_logo.png" alt="VoxCPM Logo"></div>')
 
         # 快速入门
         with gr.Accordion("📋 快速入门", open=False, elem_id="acc_quick"):
@@ -159,7 +144,7 @@ def create_demo_interface(demo: VoxCPMDemo):
                     sources=["upload", 'microphone'],
                     type="filepath",
                     label="参考语音（可选，或让 VoxCPM 自由发挥）",
-                    value="./examples/example.wav",
+                    value="asset/zero_shot_prompt.wav",
                 )
                 DoDenoisePromptAudio = gr.Checkbox(
                     value=False,
@@ -169,7 +154,7 @@ def create_demo_interface(demo: VoxCPMDemo):
                 )
                 with gr.Row():
                     prompt_text = gr.Textbox(
-                        value="每天只需听几分钟，你就能通过调节心态来消除负面想法，让思维变得更积极。",
+                        value="希望你以后能够做得比我还好哟。",
                         label="参考文本",
                         placeholder="请输入参考文本。支持自动识别，您可以自行修正结果..."
                     )
