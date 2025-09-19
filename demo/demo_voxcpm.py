@@ -7,23 +7,25 @@ sys.path.append(project_root)
 
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
-
 import soundfile as sf
 from voxcpm.core import VoxCPM
 
-
-tts_model_path = "models/VoxCPM-0.5B"
-se_model_path = "models/speech_zipenhancer_ans_multiloss_16k_base"
+# 全局变量
+TTS_MODEL_PATH = "models/VoxCPM-0.5B"
+SE_MODEL_PATH = "models/speech_zipenhancer_ans_multiloss_16k_base"
+OUTPUT_FILE = "output.wav"
+TEST_TEXT = "八百标兵奔北坡，炮兵并排北边跑。"
 
 with redirect_stderr(StringIO()), redirect_stdout(StringIO()):
     model = VoxCPM.from_pretrained(
-        tts_model_path,
-        zipenhancer_model_id= se_model_path,
+        TTS_MODEL_PATH,
+        zipenhancer_model_id=SE_MODEL_PATH,
         local_files_only=True,
+        device="cuda",
     )
 
 wav = model.generate(
-    text="八百标兵奔北坡，炮兵并排北边跑。",
+    text=TEST_TEXT,
     prompt_wav_path=None,      # 可选：用于声音克隆的提示音频路径
     prompt_text=None,          # 可选：参考文本
     cfg_value=2.0,             # LocDiT上的LM引导，值越高对提示的遵循越好，但质量可能较差
@@ -35,5 +37,5 @@ wav = model.generate(
     retry_badcase_ratio_threshold=6.0, # 糟糕情况检测的最大长度限制（简单但有效），可以为慢语速语音调整
 )
 
-sf.write("output.wav", wav, 16000)
-print("saved: output.wav")
+sf.write(OUTPUT_FILE, wav, 16000)
+print(f"saved: {OUTPUT_FILE}")
