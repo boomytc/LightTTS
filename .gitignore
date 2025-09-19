@@ -5,3 +5,4 @@ __pycache__
 /BatchGenerate/clone_src_wav/*
 /BatchGenerate/texts/*
 .qoder
+.github
