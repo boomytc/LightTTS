@@ -1,18 +1,16 @@
-# some functions are copied from https://github.com/FunAudioLLM/CosyVoice/blob/main/cosyvoice/utils/frontend_utils.py
 import re
 import regex
 import inflect
-from functools import partial
 from wetext import Normalizer
 
 chinese_char_pattern = re.compile(r'[\u4e00-\u9fff]+')
 
-# whether contain chinese character
+# 是否包含中文字符
 def contains_chinese(text):
     return bool(chinese_char_pattern.search(text))
 
 
-# replace special symbol
+# 替换特殊符号
 def replace_corner_mark(text):
     text = text.replace('²', '平方')
     text = text.replace('³', '立方')
@@ -22,7 +20,7 @@ def replace_corner_mark(text):
     return text
 
 
-# remove meaningless symbol
+# 移除无意义符号
 def remove_bracket(text):
     text = text.replace('（', ' ').replace('）', ' ')
     text = text.replace('【', ' ').replace('】', ' ')
@@ -31,7 +29,7 @@ def remove_bracket(text):
     return text
 
 
-# spell Arabic numerals
+# 拼写阿拉伯数字
 def spell_out_number(text: str, inflect_parser):
     new_text = []
     st = None
@@ -51,10 +49,10 @@ def spell_out_number(text: str, inflect_parser):
     return ''.join(new_text)
 
 
-# split paragrah logic：
-# 1. per sentence max len token_max_n, min len token_min_n, merge if last sentence len less than merge_len
-# 2. cal sentence len according to lang
-# 3. split sentence according to puncatation
+# 分割段落逻辑：
+# 1. 每句最大长度 token_max_n，最小长度 token_min_n，如果最后一句长度小于 merge_len 则合并
+# 2. 根据语言计算句子长度
+# 3. 根据标点分割句子
 def split_paragraph(text: str, tokenize, lang="zh", token_max_n=80, token_min_n=60, merge_len=20, comma_split=False):
     def calc_utt_length(_text: str):
         if lang == "zh":
@@ -107,7 +105,7 @@ def split_paragraph(text: str, tokenize, lang="zh", token_max_n=80, token_min_n=
     return final_utts
 
 
-# remove blank between chinese character
+# 移除中文字符之间的空白
 def replace_blank(text: str):
     out_str = []
     for i, c in enumerate(text):
