@@ -1,25 +1,12 @@
 """
-VoxCPM: A Tokenizer-free speech generation model
+VoxCPM：一种无分词器的语音生成模型
 
-This module contains the main VoxCPM model implementation, including configuration classes
-and the core VoxCPMModel for text-to-speech generation.
-
-Copyright 2025 OpenBMB
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+本模块包含主要的 VoxCPM 模型实现，包括配置类
+以及用于文本转语音生成的核心 VoxCPMModel。
 """
 
 import os
-from typing import Dict, Optional, Tuple, Union
+from typing import Tuple
 
 import torch
 import torch.nn as nn
@@ -88,7 +75,7 @@ class VoxCPMModel(nn.Module):
         if not torch.cuda.is_available():
             self.device = "cpu"
 
-        # Text-Semantic LM
+        # 文本语义语言模型
         self.base_lm = MiniCPMModel(config.lm_config)
         self.base_lm.setup_cache(1, config.max_length, self.device, get_dtype(config.dtype))
 
@@ -96,14 +83,14 @@ class VoxCPMModel(nn.Module):
         self.audio_start_token = 101
         self.audio_end_token = 102
 
-        # Residual Acoustic LM
+        # 残差声学语言模型
         residual_lm_config = config.lm_config.model_copy(deep=True)
         residual_lm_config.num_hidden_layers = config.residual_lm_num_layers
         residual_lm_config.vocab_size = 0
         self.residual_lm = MiniCPMModel(residual_lm_config)
         self.residual_lm.setup_cache(1, config.max_length, self.device, get_dtype(config.dtype))
 
-        # Local Encoder
+        # 本地编码器
         encoder_config = config.lm_config.model_copy(deep=True)
         encoder_config.hidden_size = config.encoder_config.hidden_dim
         encoder_config.intermediate_size = config.encoder_config.ffn_dim
@@ -113,7 +100,7 @@ class VoxCPMModel(nn.Module):
         encoder_config.vocab_size = 0
         self.feat_encoder = VoxCPMLocEnc(encoder_config, input_dim=config.feat_dim)
 
-        # Local DiT
+        # 本地 DiT
         decoder_config = config.lm_config.model_copy(deep=True)
         decoder_config.hidden_size = config.dit_config.hidden_dim
         decoder_config.intermediate_size = config.dit_config.ffn_dim
@@ -127,28 +114,27 @@ class VoxCPMModel(nn.Module):
             estimator=VoxCPMLocDiT(decoder_config, in_channels=config.feat_dim),
         )
 
-        # Projection layers
+        # 投影层
         self.fsq_layer = ScalarQuantizationLayer(
-            config.lm_config.hidden_size, 
-            config.lm_config.hidden_size, 
-            config.scalar_quantization_latent_dim, 
+            config.lm_config.hidden_size,
+            config.lm_config.hidden_size,
+            config.scalar_quantization_latent_dim,
             config.scalar_quantization_scale
-        ) 
+        )
         self.enc_to_lm_proj = nn.Linear(config.encoder_config.hidden_dim, config.lm_config.hidden_size)
         self.lm_to_dit_proj = nn.Linear(config.lm_config.hidden_size, config.dit_config.hidden_dim)
         self.res_to_dit_proj = nn.Linear(config.lm_config.hidden_size, config.dit_config.hidden_dim)
 
-        # Stop Predictor
+        # 停止预测器
         self.stop_proj = nn.Linear(config.lm_config.hidden_size, config.lm_config.hidden_size)
         self.stop_actn = nn.SiLU()
         self.stop_head = nn.Linear(config.lm_config.hidden_size, 2, bias=False)
 
-        # Audio VAE
+        # 音频 VAE
         self.audio_vae = audio_vae
         self.chunk_size = audio_vae.chunk_size
         self.sample_rate = audio_vae.sample_rate
 
-    
     def optimize(self):
         try:
             if self.device != "cuda":
@@ -170,7 +156,6 @@ class VoxCPMModel(nn.Module):
             self.feat_decoder.estimator = self.feat_decoder.estimator
         return self
 
-
     @torch.inference_mode()
     def generate(
         self,
@@ -183,7 +168,7 @@ class VoxCPMModel(nn.Module):
         cfg_value: float = 2.0,
         retry_badcase: bool = False,
         retry_badcase_max_times: int = 3,
-        retry_badcase_ratio_threshold: float = 6.0, # setting acceptable ratio of audio length to text length (for badcase detection)
+        retry_badcase_ratio_threshold: float = 6.0,  # 设置可接受的音频长度与文本长度比例（用于坏案例检测）
     ):
         if len(prompt_wav_path) == 0:
             text = target_text
@@ -224,7 +209,7 @@ class VoxCPMModel(nn.Module):
             audio, sr = torchaudio.load(prompt_wav_path)
             if audio.size(0) > 1:
                 audio = audio.mean(dim=0, keepdim=True)
-                
+
             if sr != self.sample_rate:
                 audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
 
@@ -241,7 +226,7 @@ class VoxCPMModel(nn.Module):
                 -1,
                 self.patch_size,
             ).permute(1, 2, 0)
-            audio_feat = audio_feat[:-1, ...] # trick: remove the last padding token
+            audio_feat = audio_feat[:-1, ...]  # 小技巧：移除最后的填充标记
             audio_length = audio_feat.size(0)
             text_pad_token = torch.zeros(audio_length, dtype=torch.int32, device=text_token.device)
             text_token = torch.cat([text_token, text_pad_token])
@@ -264,7 +249,7 @@ class VoxCPMModel(nn.Module):
         audio_mask = audio_mask.unsqueeze(0).to(self.device)
 
         target_text_length = len(self.text_tokenizer(target_text))
-        
+
         retry_badcase_times = 0
         while retry_badcase_times < retry_badcase_max_times:
             latent_pred, pred_audio_feat = self.inference(
@@ -285,12 +270,12 @@ class VoxCPMModel(nn.Module):
                 else:
                     break
             else:
-                break   
-                
-        decode_audio = self.audio_vae.decode(latent_pred.to(torch.float32)).squeeze(1).cpu()  
-        decode_audio = decode_audio[..., 640:-640] # trick: trim the start and end of the audio
-        return decode_audio        
-    
+                break
+
+        decode_audio = self.audio_vae.decode(latent_pred.to(torch.float32)).squeeze(1).cpu()
+        decode_audio = decode_audio[..., 640:-640]  # 小技巧：裁剪音频的开头和结尾
+        return decode_audio
+
     @torch.inference_mode()
     def build_prompt_cache(
         self,
@@ -298,26 +283,26 @@ class VoxCPMModel(nn.Module):
         prompt_wav_path: str,
     ):
         """
-        Build prompt cache for subsequent fast generation.
-        
-        Args:
-            prompt_text: prompt text (required)
-            prompt_wav_path: prompt audio path (required)
-            
-        Returns:
-            prompt_cache: dict with text tokens and audio features
+        为后续快速生成构建提示缓存。
+
+        参数:
+            prompt_text: 提示文本（必填）
+            prompt_wav_path: 提示音频路径（必填）
+
+        返回:
+            prompt_cache: 包含文本标记和音频特征的字典
         """
         if not prompt_text or not prompt_wav_path:
-            raise ValueError("prompt_text and prompt_wav_path are required")
-        
-        # build text tokens
+            raise ValueError("prompt_text 和 prompt_wav_path 为必填项")
+
+        # 构建文本标记
         text_token = torch.LongTensor(self.text_tokenizer(prompt_text))
 
-        # load audio
+        # 加载音频
         audio, sr = torchaudio.load(prompt_wav_path)
         if audio.size(0) > 1:
             audio = audio.mean(dim=0, keepdim=True)
-            
+
         if sr != self.sample_rate:
             audio = torchaudio.functional.resample(audio, sr, self.sample_rate)
 
@@ -326,24 +311,23 @@ class VoxCPMModel(nn.Module):
         if audio.size(1) % patch_len != 0:
             audio = torch.nn.functional.pad(audio, (0, patch_len - audio.size(1) % patch_len))
 
-        # extract audio features
+        # 提取音频特征
         audio_feat = self.audio_vae.encode(audio.to(self.device), self.sample_rate).cpu()
 
         audio_feat = audio_feat.view(
             self.audio_vae.latent_dim,
             -1,
             self.patch_size,
-        ).permute(1, 2, 0) # (D, T, P)
-        audio_feat = audio_feat[:-1, ...] # trick: remove the last padding token
-        # build prompt cache
+        ).permute(1, 2, 0)  # (D, T, P)
+        audio_feat = audio_feat[:-1, ...]  # 小技巧：移除最后的填充标记
+        # 构建提示缓存
         prompt_cache = {
             "text_token": text_token,
             "audio_feat": audio_feat,
         }
-        
+
         return prompt_cache
 
-    
     def merge_prompt_cache(
         self,
         original_cache: dict,
@@ -351,15 +335,15 @@ class VoxCPMModel(nn.Module):
         new_audio_feat: torch.Tensor,
     ):
         """
-        Merge original prompt cache with newly generated content to stabilize voice.
-        
-        Args:
-            original_cache: original prompt cache
-            new_text_token: newly generated text tokens
-            new_audio_feat: newly generated audio features
-            
-        Returns:
-            merged_cache: merged cache
+        将原始提示缓存与新生成内容合并以稳定语音。
+
+        参数:
+            original_cache: 原始提示缓存
+            new_text_token: 新生成的文本标记
+            new_audio_feat: 新生成的音频特征
+
+        返回:
+            merged_cache: 合并后的缓存
         """
         if original_cache is None:
             return {
@@ -371,14 +355,14 @@ class VoxCPMModel(nn.Module):
         merged_text_token = torch.cat([original_text_token, new_text_token], dim=0)
         merged_audio_feat = torch.cat([original_audio_feat, new_audio_feat], dim=0)
 
-        # build new cache
+        # 构建新缓存
         merged_cache = {
             "text_token": merged_text_token,
             "audio_feat": merged_audio_feat,
         }
-        
+
         return merged_cache
-    
+
     @torch.inference_mode()
     def generate_with_prompt_cache(
         self,
@@ -393,30 +377,30 @@ class VoxCPMModel(nn.Module):
         retry_badcase_ratio_threshold: float = 6.0,
     ):
         """
-        Generate audio using pre-built prompt cache.
-        
-        Args:
-            target_text: Text to convert to speech
-            prompt_cache: Cache built by build_prompt_cache (can be None)
-            min_len: Minimum audio length to avoid very short audio
-            max_len: Maximum audio length
-            inference_timesteps: Number of diffusion sampling steps
-            cfg_value: Classifier-free guidance value
-            retry_badcase: Whether to retry on bad cases
-            retry_badcase_max_times: Maximum retry attempts
-            retry_badcase_ratio_threshold: Threshold for audio-to-text ratio
-            
-        Returns:
-            tuple: (decoded audio tensor, new text tokens, new audio features)
+        使用预构建的提示缓存生成音频。
+
+        参数:
+            target_text: 要转换为语音的文本
+            prompt_cache: 由 build_prompt_cache 构建的缓存（可为 None）
+            min_len: 防止生成过短音频的最小长度
+            max_len: 最大音频长度
+            inference_timesteps: 扩散采样步数
+            cfg_value: 分类自由引导值
+            retry_badcase: 是否在坏案例时重试
+            retry_badcase_max_times: 最大重试次数
+            retry_badcase_ratio_threshold: 音频与文本比例阈值
+
+        返回:
+            tuple: (解码后的音频张量, 新的文本标记, 新的音频特征)
         """
-        # get prompt from cache
+        # 从缓存获取提示
         if prompt_cache is None:
             prompt_text_token = torch.empty(0, dtype=torch.int32)
             prompt_audio_feat = torch.empty((0, self.patch_size, self.audio_vae.latent_dim), dtype=torch.float32)
         else:
             prompt_text_token = prompt_cache["text_token"]
             prompt_audio_feat = prompt_cache["audio_feat"]
-        # build target text tokens
+        # 构建目标文本标记
         target_text_token = torch.LongTensor(self.text_tokenizer(target_text))
         text_token = torch.cat([prompt_text_token, target_text_token], dim=0)
         text_token = torch.cat(
@@ -448,8 +432,8 @@ class VoxCPMModel(nn.Module):
         text_mask = text_mask.unsqueeze(0).to(self.device)
         audio_feat = audio_feat.unsqueeze(0).to(self.device).to(torch.bfloat16)
         audio_mask = audio_mask.unsqueeze(0).to(self.device)
-    
-        # run inference
+
+        # 运行推理
         target_text_length = len(self.text_tokenizer(target_text))
         retry_badcase_times = 0
         while retry_badcase_times < retry_badcase_max_times:
@@ -473,7 +457,7 @@ class VoxCPMModel(nn.Module):
             else:
                 break
         decode_audio = self.audio_vae.decode(latent_pred.to(torch.float32)).squeeze(1).cpu()
-        decode_audio = decode_audio[..., 640:-640] # trick: trim the start and end of the audio
+        decode_audio = decode_audio[..., 640:-640]  # 小技巧：裁剪音频的开头和结尾
 
         return (
             decode_audio,
@@ -493,36 +477,35 @@ class VoxCPMModel(nn.Module):
         inference_timesteps: int = 10,
         cfg_value: float = 2.0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Core inference method for audio generation.
-        
-        This is the main inference loop that generates audio features
-        using the language model and diffusion transformer.
-        
-        Args:
-            text: Input text tokens
-            text_mask: Mask for text tokens
-            feat: Input audio features
-            feat_mask: Mask for audio features
-            min_len: Minimum generation length
-            max_len: Maximum generation length
-            inference_timesteps: Number of diffusion steps
-            cfg_value: Classifier-free guidance value
-            
-        Returns:
-            Tuple containing:
-                - Predicted latent features
-                - Predicted audio feature sequence
+        """音频生成的核心推理方法。
+
+        该循环使用语言模型和扩散变压器生成音频特征。
+
+        参数:
+            text: 输入文本标记
+            text_mask: 文本标记的掩码
+            feat: 输入音频特征
+            feat_mask: 音频特征的掩码
+            min_len: 最小生成长度
+            max_len: 最大生成长度
+            inference_timesteps: 扩散步数
+            cfg_value: 分类自由引导值
+
+        返回:
+            Tuple 包含:
+                - 预测的潜在特征
+                - 预测的音频特征序列
         """
         B, T, P, D = feat.shape
 
         feat_embed = self.feat_encoder(feat)  # [b, t, h_feat]
         feat_embed = self.enc_to_lm_proj(feat_embed)
-        
+
         if self.config.lm_config.use_mup:
             scale_emb = self.config.lm_config.scale_emb
         else:
             scale_emb = 1.0
-       
+
         text_embed = self.base_lm.embed_tokens(text) * scale_emb
         combined_embed = text_mask.unsqueeze(-1) * text_embed + feat_mask.unsqueeze(-1) * feat_embed
 
@@ -535,18 +518,16 @@ class VoxCPMModel(nn.Module):
             is_causal=True,
         )
         self.base_lm.kv_cache.fill_caches(kv_cache_tuple)
-        
+
         enc_outputs = self.fsq_layer(enc_outputs) * feat_mask.unsqueeze(-1) + enc_outputs * text_mask.unsqueeze(-1)
         lm_hidden = enc_outputs[:, -1, :]
 
-         
         residual_enc_outputs, residual_kv_cache_tuple = self.residual_lm(
             inputs_embeds=enc_outputs + feat_mask.unsqueeze(-1) * feat_embed,
             is_causal=True,
         )
         self.residual_lm.kv_cache.fill_caches(residual_kv_cache_tuple)
         residual_hidden = residual_enc_outputs[:, -1, :]
-
 
         for i in tqdm(range(max_len)):
             dit_hidden_1 = self.lm_to_dit_proj(lm_hidden)  # [b, h_dit]
@@ -562,27 +543,26 @@ class VoxCPMModel(nn.Module):
             ).transpose(
                 1, 2
             )  # [b, p, d]
-            
+
             curr_embed = self.feat_encoder_step(pred_feat.unsqueeze(1))  # b, 1, c
             curr_embed = self.enc_to_lm_proj(curr_embed)
-            
+
             pred_feat_seq.append(pred_feat.unsqueeze(1))  # b, 1, p, d
             prefix_feat_cond = pred_feat
-            
+
             stop_flag = self.stop_head(self.stop_actn(self.stop_proj(lm_hidden))).argmax(dim=-1)[0].cpu().item()
             if i > min_len and stop_flag == 1:
                 break
-    
+
             lm_hidden = self.base_lm.forward_step(
                 curr_embed[:, 0, :], torch.tensor([self.base_lm.kv_cache.step()], device=curr_embed.device)
             ).clone()
-           
 
             lm_hidden = self.fsq_layer(lm_hidden)
             residual_hidden = self.residual_lm.forward_step(
                 lm_hidden + curr_embed[:, 0, :], torch.tensor([self.residual_lm.kv_cache.step()], device=curr_embed.device)
             ).clone()
-                
+
         pred_feat_seq = torch.cat(pred_feat_seq, dim=1)  # b, t, p, d
 
         feat_pred = rearrange(pred_feat_seq, "b t p d -> b d (t p)", b=B, p=self.patch_size)
