@@ -26,7 +26,7 @@ class UnifiedCFM(torch.nn.Module):
         self.in_channels = in_channels
         self.mean_mode = mean_mode
 
-        # Just change the architecture of the estimator here
+        # 仅在此更改估计器的架构
         self.estimator = estimator
 
     @torch.inference_mode()
@@ -41,17 +41,17 @@ class UnifiedCFM(torch.nn.Module):
         sway_sampling_coef: float = 1.0, 
         use_cfg_zero_star: bool = True,
     ):
-        """Forward diffusion
+        """前向扩散
 
-        Args:
-            mu (torch.Tensor): output of encoder
+        参数:
+            mu (torch.Tensor): 编码器的输出
                 shape: (batch_size, n_feats)
-            n_timesteps (int): number of diffusion steps
-            cond: Not used but kept for future purposes
-            temperature (float, optional): temperature for scaling noise. Defaults to 1.0.
+            n_timesteps (int): 扩散步数
+            cond: 未使用，保留以备将来使用
+            temperature (float, optional): 用于缩放噪声的温度。默认值为 1.0。
 
-        Returns:
-            sample: generated mel-spectrogram
+        返回:
+            sample: 生成的 mel-spectrogram
                 shape: (batch_size, n_feats, mel_timesteps)
         """
         b, c = mu.shape
@@ -59,7 +59,7 @@ class UnifiedCFM(torch.nn.Module):
         z = torch.randn((b, self.in_channels, t), device=mu.device, dtype=mu.dtype) * temperature
 
         t_span = torch.linspace(1, 0, n_timesteps + 1, device=mu.device, dtype=mu.dtype)
-        # Sway sampling strategy
+        # 摆动采样策略
         t_span = t_span + sway_sampling_coef * (torch.cos(torch.pi / 2 * t_span) - 1 + t_span)
 
         return self.solve_euler(z, t_span=t_span, mu=mu, cond=cond, cfg_value=cfg_value, use_cfg_zero_star=use_cfg_zero_star)
@@ -81,15 +81,15 @@ class UnifiedCFM(torch.nn.Module):
         use_cfg_zero_star: bool = True,
     ):
         """
-        Fixed euler solver for ODEs.
-        Args:
-            x (torch.Tensor): random noise
-            t_span (torch.Tensor): n_timesteps interpolated
+        固定的欧拉求解器用于 ODE。
+        参数:
+            x (torch.Tensor): 随机噪声
+            t_span (torch.Tensor): n_timesteps 插值
                 shape: (n_timesteps + 1,)
-            mu (torch.Tensor): output of encoder
+            mu (torch.Tensor): 编码器的输出
                 shape: (batch_size, n_feats)
-            cond: condition -- prefix prompt
-            cfg_value (float, optional): cfg value for guidance. Defaults to 1.0.
+            cond: 条件 —— 前缀提示
+            cfg_value (float, optional): 引导的 cfg 值。默认值为 1.0。
         """
         t, _, dt = t_span[0], t_span[-1], t_span[0] - t_span[1]
 
@@ -99,7 +99,7 @@ class UnifiedCFM(torch.nn.Module):
             if use_cfg_zero_star and step <= zero_init_steps:
                 dphi_dt = 0.
             else:
-                # Classifier-Free Guidance inference introduced in VoiceBox
+                # 在 VoiceBox 中引入的 Classifier-Free Guidance 推理
                 b = x.size(0)
                 x_in = torch.zeros([2 * b, self.in_channels, x.size(2)], device=x.device, dtype=x.dtype)
                 mu_in = torch.zeros([2 * b, mu.size(1)], device=x.device, dtype=x.dtype)
@@ -110,7 +110,7 @@ class UnifiedCFM(torch.nn.Module):
                 mu_in[:b] = mu
                 t_in[:b], t_in[b:] = t.unsqueeze(0), t.unsqueeze(0)
                 dt_in[:b], dt_in[b:] = dt.unsqueeze(0), dt.unsqueeze(0)
-                # not used now
+                # 目前未使用
                 if not self.mean_mode:
                     dt_in = torch.zeros_like(dt_in)
                 cond_in[:b], cond_in[b:] = cond, cond
