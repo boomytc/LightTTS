@@ -2,7 +2,7 @@ import os
 import sys
 
 current_dir = os.path.dirname(__file__)
-project_root = os.path.dirname(current_dir)
+project_root = os.path.dirname(os.path.dirname(current_dir))
 sys.path.append(project_root)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
