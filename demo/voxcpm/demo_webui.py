@@ -19,26 +19,26 @@ class VoxCPMDemo:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"🚀 Running on device: {self.device}")
 
-        # TTS model (lazy init)
+        # TTS 模型（延迟初始化）
         self.voxcpm_model: Optional[VoxCPM] = None
         self.tts_model_path = "models/VoxCPM-0.5B"
 
-    # ---------- Model helpers ----------
+    # ---------- 模型辅助方法 ----------
 
     def get_or_load_voxcpm(self) -> VoxCPM:
         if self.voxcpm_model is not None:
             return self.voxcpm_model
-        print("Model not loaded, initializing...")
-        print(f"Using model path: {self.tts_model_path}")
+        print("模型未加载，正在初始化...")
+        print(f"使用模型路径: {self.tts_model_path}")
         self.voxcpm_model = VoxCPM.from_pretrained(
             self.tts_model_path,
             local_files_only=True,
             device=self.device,
         )
-        print("Model loaded successfully.")
+        print("模型加载成功。")
         return self.voxcpm_model
 
-    # ---------- Functional endpoints ----------
+    # ---------- 功能接口 ----------
     def prompt_wav_recognition(self, prompt_wav: Optional[str]) -> str:
         # 移除自动识别功能，返回空字符串
         return ""
@@ -54,19 +54,19 @@ class VoxCPMDemo:
         denoise: bool = True,
     ) -> Tuple[int, np.ndarray]:
         """
-        Generate speech from text using VoxCPM; optional reference audio for voice style guidance.
-        Returns (sample_rate, waveform_numpy)
+        使用 VoxCPM 从文本生成语音；可选参考音频用于语音风格指导。
+        返回 (采样率, 波形数组)
         """
         current_model = self.get_or_load_voxcpm()
 
         text = (text_input or "").strip()
         if len(text) == 0:
-            raise ValueError("Please input text to synthesize.")
+            raise ValueError("请输入要合成的文本。")
 
         prompt_wav_path = prompt_wav_path_input if prompt_wav_path_input else None
         prompt_text = prompt_text_input if prompt_text_input else None
 
-        print(f"Generating audio for text: '{text[:60]}...'")
+        print(f"正在为文本生成音频: '{text[:60]}...'")
         wav = current_model.generate(
             text=text,
             prompt_text=prompt_text,
@@ -79,11 +79,11 @@ class VoxCPMDemo:
         return (16000, wav)
 
 
-# ---------- UI Builders ----------
+# ---------- UI 构建器 ----------
 
 def create_demo_interface(demo: VoxCPMDemo):
-    """Build the Gradio UI for VoxCPM demo."""
-    # static assets (logo path)
+    """构建 VoxCPM 演示的 Gradio UI 界面。"""
+    # 静态资源（logo 路径）
     gr.set_static_paths(paths=[Path.cwd().absolute()/"assets"])
 
     with gr.Blocks(
@@ -119,7 +119,7 @@ def create_demo_interface(demo: VoxCPMDemo):
         }
         """
     ) as interface:
-        # Header logo
+        # 页头 logo
         gr.HTML('<div class="logo-container"><img src="/gradio_api/file=assets/voxcpm_logo.png" alt="VoxCPM Logo"></div>')
 
         # Quick Start
@@ -170,23 +170,23 @@ def create_demo_interface(demo: VoxCPMDemo):
                 prompt_wav = gr.Audio(
                     sources=["upload", 'microphone'],
                     type="filepath",
-                    label="Prompt Speech (Optional, or let VoxCPM improvise)",
+                    label="参考语音（可选，或让 VoxCPM 自由发挥）",
                     value="./examples/example.wav",
                 )
                 DoDenoisePromptAudio = gr.Checkbox(
                     value=False,
-                    label="Prompt Speech Enhancement",
+                    label="参考语音增强",
                     elem_id="chk_denoise",
-                    info="We use ZipEnhancer model to denoise the prompt audio."
+                    info="我们使用 ZipEnhancer 模型对参考音频进行降噪。"
                 )
                 with gr.Row():
                     prompt_text = gr.Textbox(
                         value="Just by listening a few minutes a day, you'll be able to eliminate negative thoughts by conditioning your mind to be more positive.",
-                        label="Prompt Text",
-                        placeholder="Please enter the prompt text. Automatic recognition is supported, and you can correct the results yourself..."
+                        label="参考文本",
+                        placeholder="请输入参考文本。支持自动识别，您可以自行修正结果..."
                     )
-                run_btn = gr.Button("Generate Speech", variant="primary")
-                gr.Markdown("**Note**: Automatic speech recognition has been disabled. Please manually enter the prompt text corresponding to your audio.")
+                run_btn = gr.Button("生成语音", variant="primary")
+                gr.Markdown("**注意**: 自动语音识别已被禁用。请手动输入与您的音频对应的参考文本。")
 
             with gr.Column():
                 cfg_value = gr.Slider(
@@ -194,32 +194,32 @@ def create_demo_interface(demo: VoxCPMDemo):
                     maximum=3.0,
                     value=2.0,
                     step=0.1,
-                    label="CFG Value (Guidance Scale)",
-                    info="Higher values increase adherence to prompt, lower values allow more creativity"
+                    label="CFG 值（引导尺度）",
+                    info="较高的值增加对提示的遵循，较低的值允许更多创造性"
                 )
                 inference_timesteps = gr.Slider(
                     minimum=4,
                     maximum=30,
                     value=10,
                     step=1,
-                    label="Inference Timesteps",
-                    info="Number of inference timesteps for generation (higher values may improve quality but slower)"
+                    label="推理时间步",
+                    info="生成的推理时间步数（较高的值可能提高质量但速度较慢）"
                 )
                 with gr.Row():
                     text = gr.Textbox(
                         value="VoxCPM is an innovative end-to-end TTS model from ModelBest, designed to generate highly realistic speech.",
-                        label="Target Text",
+                        label="目标文本",
                     )
                 with gr.Row():
                     DoNormalizeText = gr.Checkbox(
                         value=False,
-                        label="Text Normalization",
+                        label="文本标准化",
                         elem_id="chk_normalize",
-                        info="We use wetext library to normalize the input text."
+                        info="我们使用 wetext 库对输入文本进行标准化。"
                     )
-                audio_output = gr.Audio(label="Output Audio")
+                audio_output = gr.Audio(label="输出音频")
 
-        # Wiring
+        # 组件连接
         run_btn.click(
             fn=demo.generate_tts_audio,
             inputs=[text, prompt_wav, prompt_text, cfg_value, inference_timesteps, DoNormalizeText, DoDenoisePromptAudio],
@@ -234,7 +234,7 @@ def create_demo_interface(demo: VoxCPMDemo):
 def run_demo(server_name: str = "localhost", server_port: int = 7860, show_error: bool = True):
     demo = VoxCPMDemo()
     interface = create_demo_interface(demo)
-    # Recommended to enable queue on Spaces for better throughput
+    # 在 Spaces 上建议启用队列以获得更好的吞吐量
     interface.queue(max_size=10).launch(server_name=server_name, server_port=server_port, show_error=show_error)
 
 
