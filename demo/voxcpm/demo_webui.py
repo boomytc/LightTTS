@@ -122,46 +122,34 @@ def create_demo_interface(demo: VoxCPMDemo):
         # 页头 logo
         gr.HTML('<div class="logo-container"><img src="/gradio_api/file=assets/voxcpm_logo.png" alt="VoxCPM Logo"></div>')
 
-        # Quick Start
-        with gr.Accordion("📋 Quick Start Guide ｜快速入门", open=False, elem_id="acc_quick"):
+        # 快速入门
+        with gr.Accordion("📋 快速入门", open=False, elem_id="acc_quick"):
             gr.Markdown("""
-            ### How to Use ｜使用说明
-            1. **(Optional) Provide a Voice Prompt** - Upload or record an audio clip to provide the desired voice characteristics for synthesis.  
-               **（可选）提供参考声音** - 上传或录制一段音频，为声音合成提供音色、语调和情感等个性化特征
-            2. **(Optional) Enter prompt text** - If you provided a voice prompt, enter the corresponding transcript here (auto-recognition available).  
-               **（可选项）输入参考文本** - 如果提供了参考语音，请输入其对应的文本内容（支持自动识别）。
-            3. **Enter target text** - Type the text you want the model to speak.  
-               **输入目标文本** - 输入您希望模型朗读的文字内容。
-            4. **Generate Speech** - Click the "Generate" button to create your audio.  
-               **生成语音** - 点击"生成"按钮，即可为您创造出音频。
+            ### 使用说明
+            1. **（可选）提供参考声音** - 上传或录制一段音频，为声音合成提供音色、语调和情感等个性化特征
+            2. **（可选）输入参考文本** - 如果提供了参考语音，请输入其对应的文本内容
+            3. **输入目标文本** - 输入您希望模型朗读的文字内容
+            4. **生成语音** - 点击"生成"按钮，即可创造出音频
             """)
 
-        # Pro Tips
-        with gr.Accordion("💡 Pro Tips ｜使用建议", open=False, elem_id="acc_tips"):
+        # 使用建议
+        with gr.Accordion("💡 使用建议", open=False, elem_id="acc_tips"):
             gr.Markdown("""
-            ### Prompt Speech Enhancement｜参考语音降噪
-            - **Enable** to remove background noise for a clean, studio-like voice, with an external ZipEnhancer component.  
-              **启用**：通过 ZipEnhancer 组件消除背景噪音，获得更好的音质。
-            - **Disable** to preserve the original audio's background atmosphere.  
-              **禁用**：保留原始音频的背景环境声，如果想复刻相应声学环境。
+            ### 参考语音降噪
+            - **启用**：通过 ZipEnhancer 组件消除背景噪音，获得更好的音质
+            - **禁用**：保留原始音频的背景环境声，如果想复刻相应声学环境
 
-            ### Text Normalization｜文本正则化
-            - **Enable** to process general text with an external WeTextProcessing component.  
-              **启用**：使用 WeTextProcessing 组件，可处理常见文本。
-            - **Disable** to use VoxCPM's native text understanding ability. For example, it supports phonemes input ({HH AH0 L OW1}), try it!  
-              **禁用**：将使用 VoxCPM 内置的文本理解能力。如，支持音素输入（如 {da4}{jia1}好）和公式符号合成，尝试一下！
+            ### 文本正则化
+            - **启用**：使用 WeTextProcessing 组件，可处理常见文本
+            - **禁用**：将使用 VoxCPM 内置的文本理解能力。支持音素输入（如 {da4}{jia1}好）和公式符号合成
 
-            ### CFG Value｜CFG 值
-            - **Lower CFG** if the voice prompt sounds strained or expressive.  
-              **调低**：如果提示语音听起来不自然或过于夸张。
-            - **Higher CFG** for better adherence to the prompt speech style or input text.  
-              **调高**：为更好地贴合提示音频的风格或输入文本。
+            ### CFG 值
+            - **调低**：如果提示语音听起来不自然或过于夸张
+            - **调高**：为更好地贴合提示音频的风格或输入文本
 
-            ### Inference Timesteps｜推理时间步
-            - **Lower** for faster synthesis speed.  
-              **调低**：合成速度更快。
-            - **Higher** for better synthesis quality.  
-              **调高**：合成质量更佳。
+            ### 推理时间步
+            - **调低**：合成速度更快
+            - **调高**：合成质量更佳
             """)
 
         # Main controls
@@ -181,12 +169,12 @@ def create_demo_interface(demo: VoxCPMDemo):
                 )
                 with gr.Row():
                     prompt_text = gr.Textbox(
-                        value="Just by listening a few minutes a day, you'll be able to eliminate negative thoughts by conditioning your mind to be more positive.",
+                        value="每天只需听几分钟，你就能通过调节心态来消除负面想法，让思维变得更积极。",
                         label="参考文本",
                         placeholder="请输入参考文本。支持自动识别，您可以自行修正结果..."
                     )
                 run_btn = gr.Button("生成语音", variant="primary")
-                gr.Markdown("**注意**: 自动语音识别已被禁用。请手动输入与您的音频对应的参考文本。")
+                gr.Markdown("**注意**：自动语音识别已被禁用，请手动输入与音频对应的参考文本")
 
             with gr.Column():
                 cfg_value = gr.Slider(
@@ -207,7 +195,7 @@ def create_demo_interface(demo: VoxCPMDemo):
                 )
                 with gr.Row():
                     text = gr.Textbox(
-                        value="VoxCPM is an innovative end-to-end TTS model from ModelBest, designed to generate highly realistic speech.",
+                        value="VoxCPM 是来自 ModelBest 的创新端到端 TTS 模型，旨在生成高度逼真的语音。",
                         label="目标文本",
                     )
                 with gr.Row():
