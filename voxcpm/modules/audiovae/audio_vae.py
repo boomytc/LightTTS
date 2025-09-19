@@ -1,5 +1,5 @@
 import math
-from typing import List, Union
+from typing import List
 
 import numpy as np
 import torch
@@ -44,7 +44,7 @@ def WNCausalTransposeConv1d(*args, **kwargs):
     return weight_norm(CausalTransposeConv1d(*args, **kwargs))
 
 
-# Scripting this brings model speed up 1.4x
+# 脚本化可提升模型速度约 1.4 倍
 @torch.jit.script
 def snake(x, alpha):
     shape = x.shape
@@ -128,10 +128,10 @@ class CausalEncoder(nn.Module):
         depthwise: bool = False,
     ):
         super().__init__()
-        # Create first convolution
+        # 创建第一层卷积
         self.block = [WNCausalConv1d(1, d_model, kernel_size=7, padding=3)]
 
-        # Create EncoderBlocks that double channels as they downsample by `stride`
+        # 创建在下采样时通道数加倍的 EncoderBlock
         for stride in strides:
             d_model *= 2
             groups = d_model // 2 if depthwise else 1
@@ -139,11 +139,11 @@ class CausalEncoder(nn.Module):
 
         groups = d_model if depthwise else 1
 
-        # Create two convolution, for mu and logvar
+        # 为均值 (mu) 和对数方差 (logvar) 创建两层卷积
         self.fc_mu = WNCausalConv1d(d_model, latent_dim, kernel_size=3, padding=1)
         self.fc_logvar = WNCausalConv1d(d_model, latent_dim, kernel_size=3, padding=1)
 
-        # Wrap black into nn.Sequential
+        # 将 block 包装为 nn.Sequential
         self.block = nn.Sequential(*self.block)
         self.enc_dim = d_model
 
@@ -223,7 +223,7 @@ class CausalDecoder(nn.Module):
     ):
         super().__init__()
 
-        # Add first conv layer
+        # 添加第一层卷积
         if depthwise:
             layers = [
                 WNCausalConv1d(
@@ -238,7 +238,7 @@ class CausalDecoder(nn.Module):
         else:
             layers = [WNCausalConv1d(input_channel, channels, kernel_size=7, padding=3)]
 
-        # Add upsampling + MRF blocks
+        # 添加上采样 + 多尺度残差块 (MRF)
         for i, stride in enumerate(rates):
             input_dim = channels // 2**i
             output_dim = channels // 2 ** (i + 1)
@@ -253,7 +253,7 @@ class CausalDecoder(nn.Module):
                 )
             ]
 
-        # Add final conv layer
+        # 添加最终卷积层
         layers += [
             Snake1d(output_dim),
             WNCausalConv1d(output_dim, d_out, kernel_size=7, padding=3),
@@ -268,7 +268,15 @@ class CausalDecoder(nn.Module):
 
 class AudioVAE(nn.Module):
     """
-    Args:
+    参数:
+        encoder_dim: 编码器的维度 (默认 128)
+        encoder_rates: 编码器的下采样率列表 (默认 [2, 5, 8, 8])
+        latent_dim: 潜在空间维度 (默认 64)
+        decoder_dim: 解码器的维度 (默认 1536)
+        decoder_rates: 解码器的上采样率列表 (默认 [8, 8, 5, 2])
+        depthwise: 是否使用深度可分离卷积 (默认 True)
+        sample_rate: 音频采样率 (默认 16000)
+        use_noise_block: 是否在解码器中使用噪声块 (默认 False)
     """
 
     def __init__(
@@ -326,31 +334,36 @@ class AudioVAE(nn.Module):
         return audio_data
 
     def decode(self, z: torch.Tensor):
-        """Decode given latent codes and return audio data
+        """
+        解码给定的潜在码并返回音频数据
 
-        Parameters
+        参数
         ----------
         z : Tensor[B x D x T]
-            Quantized continuous representation of input
-        length : int, optional
-            Number of samples in output audio, by default None
+            输入的连续量化表示
 
-        Returns
+        返回
         -------
-        dict
-            A dictionary with the following keys:
-            "audio" : Tensor[B x 1 x length]
-                Decoded audio data.
+        Tensor[B x 1 x length]
+            解码后的音频数据
         """
         return self.decoder(z)
 
     def encode(self, audio_data: torch.Tensor, sample_rate: int):
         """
-        Args:
-            audio_data: Tensor[B x 1 x T]
-            sample_rate: int
-        Returns:
-            z: Tensor[B x D x T]
+        编码音频数据为潜在表示
+
+        参数
+        ----------
+        audio_data : Tensor[B x 1 x T]
+            输入的音频张量
+        sample_rate : int
+            音频采样率
+
+        返回
+        -------
+        Tensor[B x D x T]
+            编码得到的潜在表示 (mu)
         """
         if audio_data.ndim == 2:
             audio_data = audio_data.unsqueeze(1)
