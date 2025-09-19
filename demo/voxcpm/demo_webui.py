@@ -1,14 +1,17 @@
 import os
+import sys
 import numpy as np
 import torch
 import gradio as gr  
 from typing import Optional, Tuple
 from pathlib import Path
-os.environ["TOKENIZERS_PARALLELISM"] = "false"
-if os.environ.get("HF_REPO_ID", "").strip() == "":
-    os.environ["HF_REPO_ID"] = "openbmb/VoxCPM-0.5B"
 
-import voxcpm
+current_dir = os.path.dirname(__file__)
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.append(project_root)
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from voxcpm.core import VoxCPM
 
 
 class VoxCPMDemo:
@@ -17,42 +20,21 @@ class VoxCPMDemo:
         print(f"🚀 Running on device: {self.device}")
 
         # TTS model (lazy init)
-        self.voxcpm_model: Optional[voxcpm.VoxCPM] = None
-        self.default_local_model_dir = "./models/VoxCPM-0.5B"
+        self.voxcpm_model: Optional[VoxCPM] = None
+        self.tts_model_path = "models/VoxCPM-0.5B"
 
     # ---------- Model helpers ----------
-    def _resolve_model_dir(self) -> str:
-        """
-        Resolve model directory:
-        1) Use local checkpoint directory if exists
-        2) If HF_REPO_ID env is set, download into models/{repo}
-        3) Fallback to 'models'
-        """
-        if os.path.isdir(self.default_local_model_dir):
-            return self.default_local_model_dir
 
-        repo_id = os.environ.get("HF_REPO_ID", "").strip()
-        if len(repo_id) > 0:
-            target_dir = os.path.join("models", repo_id.replace("/", "__"))
-            if not os.path.isdir(target_dir):
-                try:
-                    from huggingface_hub import snapshot_download  # type: ignore
-                    os.makedirs(target_dir, exist_ok=True)
-                    print(f"Downloading model from HF repo '{repo_id}' to '{target_dir}' ...")
-                    snapshot_download(repo_id=repo_id, local_dir=target_dir, local_dir_use_symlinks=False)
-                except Exception as e:
-                    print(f"Warning: HF download failed: {e}. Falling back to 'data'.")
-                    return "models"
-            return target_dir
-        return "models"
-
-    def get_or_load_voxcpm(self) -> voxcpm.VoxCPM:
+    def get_or_load_voxcpm(self) -> VoxCPM:
         if self.voxcpm_model is not None:
             return self.voxcpm_model
         print("Model not loaded, initializing...")
-        model_dir = self._resolve_model_dir()
-        print(f"Using model dir: {model_dir}")
-        self.voxcpm_model = voxcpm.VoxCPM(voxcpm_model_path=model_dir)
+        print(f"Using model path: {self.tts_model_path}")
+        self.voxcpm_model = VoxCPM.from_pretrained(
+            self.tts_model_path,
+            local_files_only=True,
+            device=self.device,
+        )
         print("Model loaded successfully.")
         return self.voxcpm_model
 
