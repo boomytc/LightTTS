@@ -16,7 +16,7 @@ def rms_layernorm(hidden: torch.Tensor, weight: torch.Tensor, eps: float):
 class MiniCPMRMSNorm(nn.Module):
     def __init__(self, hidden_size, eps=1e-6):
         """
-        MiniCPMRMSNorm is equivalent to T5LayerNorm
+        MiniCPMRMSNorm 等价于 T5LayerNorm
         """
         super().__init__()
         self.weight = nn.Parameter(torch.ones(hidden_size))
@@ -27,20 +27,20 @@ class MiniCPMRMSNorm(nn.Module):
 
 
 def rotate_half(x):
-    """Rotates half the hidden dims of the input."""
+    """旋转输入的一半隐藏维度。"""
     x1, x2 = x.chunk(2, dim=-1)
     return torch.cat((-x2, x1), dim=-1)
 
 
 def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor):
     """
-    Args:
-        q: Tensor(batch_size, num_heads, seq_len, head_dim)
-        k: Tensor(batch_size, num_key_value_heads, seq_len, head_dim)
-        cos: Tensor(seq_len, head_dim)
-        sin: Tensor(seq_len, head_dim)
-    Returns:
-        Tensor(batch_size, num_heads, seq_len, head_dim), Tensor(batch_size, num_key_value_heads, seq_len, head_dim)
+    参数:
+        q: 张量(batch_size, num_heads, seq_len, head_dim)
+        k: 张量(batch_size, num_key_value_heads, seq_len, head_dim)
+        cos: 张量(seq_len, head_dim)
+        sin: 张量(seq_len, head_dim)
+    返回:
+        张量(batch_size, num_heads, seq_len, head_dim), 张量(batch_size, num_key_value_heads, seq_len, head_dim)
     """
     orig_dtype = q.dtype
     q = q.to(torch.float32)
@@ -51,7 +51,7 @@ def apply_rotary_pos_emb(q: torch.Tensor, k: torch.Tensor, cos: torch.Tensor, si
 
 
 class MiniCPMLongRoPE(nn.Module):
-    """MiniCPMRotaryEmbedding extended with Dynamic NTK scaling. Credits to the Reddit users /u/bloc97 and /u/emozilla"""
+    """MiniCPMRotaryEmbedding 扩展了动态 NTK 缩放。感谢 Reddit 用户 /u/bloc97 和 /u/emozilla"""
 
     def __init__(self, config: MiniCPM4Config):
         super().__init__()
@@ -105,10 +105,10 @@ class MiniCPMLongRoPE(nn.Module):
 
     def forward(self, position_ids: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
-        Args:
-            position_ids: Tensor(seq_len) 或 Tensor(batch_size, seq_len)
-        Returns:
-            Tensor(seq_len, head_dim), Tensor(seq_len, head_dim)
+        参数:
+            position_ids: 张量(seq_len) 或 张量(batch_size, seq_len)
+        返回:
+            张量(seq_len, head_dim), 张量(seq_len, head_dim)
         """
         cos = self.cos_cached[position_ids]
         sin = self.sin_cached[position_ids]
@@ -133,6 +133,22 @@ class MiniCPMAttention(nn.Module):
         self.k_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
         self.v_proj = nn.Linear(self.hidden_size, self.num_key_value_heads * self.head_dim, bias=False)
         self.o_proj = nn.Linear(self.num_heads * self.head_dim, self.hidden_size, bias=False)
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,
+        position_emb: Tuple[torch.Tensor, torch.Tensor],
+        is_causal: bool,
+    ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        """
+        参数:
+            hidden_states: 张量(batch_size, seq_length, hidden_size)
+            is_causal: bool, 是否为因果注意力掩码
+        返回:
+            hidden_states: 张量(batch_size, seq_length, hidden_size)
+            next_decoder_cache: 列表[(batch_size, num_heads, seq_length, head_dim), (batch_size, num_heads, seq_length, head_dim)]
+        """
+        bsz, q_len, _ = hidden_states.size()
 
     def forward(
         self,
@@ -249,14 +265,14 @@ class MiniCPMDecoderLayer(nn.Module):
         is_causal: bool,
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
-        Args:
-            hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
-            position_ids (`torch.LongTensor`): position ids of shape `(batch_size, seq_len)`
-            is_causal (`bool`): whether the attention mask is causal
+        参数:
+            hidden_states (`torch.FloatTensor`): 输入到层的形状为 `(batch, seq_len, embed_dim)`
+            position_ids (`torch.LongTensor`): 位置 ID 的形状为 `(batch_size, seq_len)`
+            is_causal (`bool`): 是否为因果注意力掩码
         """
         residual = hidden_states
         hidden_states = self.input_layernorm(hidden_states)
-        # Self Attention
+        # 自注意力
         hidden_states, present_key_value = self.self_attn(
             hidden_states=hidden_states,
             position_emb=position_emb,
@@ -268,7 +284,7 @@ class MiniCPMDecoderLayer(nn.Module):
         else:
             hidden_states = residual + hidden_states
 
-        # Fully Connected
+        # 全连接
         residual = hidden_states
         hidden_states = self.post_attention_layernorm(hidden_states)
 
@@ -289,7 +305,7 @@ class MiniCPMDecoderLayer(nn.Module):
     ) -> torch.Tensor:
         residual = hidden_states
         hidden_states = self.input_layernorm(hidden_states)
-        # Self Attention
+        # 自注意力
         hidden_states = self.self_attn.forward_step(
             hidden_states=hidden_states,
             position_emb=position_emb,
@@ -302,7 +318,7 @@ class MiniCPMDecoderLayer(nn.Module):
         else:
             hidden_states = residual + hidden_states
 
-        # Fully Connected
+        # 全连接
         residual = hidden_states
         hidden_states = self.post_attention_layernorm(hidden_states)
 
@@ -348,12 +364,12 @@ class MiniCPMModel(nn.Module):
         is_causal: bool = True,
     ) -> Tuple[torch.Tensor, List[Tuple[torch.Tensor, torch.Tensor]]]:
         """
-        Args:
-            inputs_embeds: Tensor(batch_size, seq_length, hidden_size)
-            is_causal: bool, whether the attention mask is causal
-        Returns:
-            hidden_states: Tensor(batch_size, seq_length, hidden_size)
-            next_decoder_cache: List[(batch_size, num_heads, seq_length, head_dim), (batch_size, num_heads, seq_length, head_dim)]
+        参数:
+            inputs_embeds: 张量(batch_size, seq_length, hidden_size)
+            is_causal: bool, 是否为因果注意力掩码
+        返回:
+            hidden_states: 张量(batch_size, seq_length, hidden_size)
+            next_decoder_cache: 列表[(batch_size, num_heads, seq_length, head_dim), (batch_size, num_heads, seq_length, head_dim)]
         """
         position_ids = torch.arange(0, inputs_embeds.size(1), dtype=torch.long, device=inputs_embeds.device)
         position_emb = self.rope_emb(position_ids)
@@ -378,10 +394,10 @@ class MiniCPMModel(nn.Module):
         position_id: torch.Tensor,
     ) -> torch.Tensor:
         """
-        Args:
-            inputs_embeds: Tensor(batch_size, hidden_size)
-        Returns:
-            hidden_states: Tensor(batch_size, hidden_size)
+        参数:
+            inputs_embeds: 张量(batch_size, hidden_size)
+        返回:
+            hidden_states: 张量(batch_size, hidden_size)
         """
         assert self.kv_cache is not None, "KV cache is not setup"
 
