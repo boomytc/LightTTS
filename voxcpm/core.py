@@ -8,7 +8,7 @@ class VoxCPM:
     def __init__(self,
             voxcpm_model_path : str,
             zipenhancer_model_path : str = "iic/speech_zipenhancer_ans_multiloss_16k_base",
-            enable_denoiser : bool = True,
+            enable_denoiser : bool = False,
             device : str = None,
         ):
         """初始化 VoxCPM TTS 流水线。
