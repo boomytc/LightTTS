@@ -222,7 +222,6 @@ def create_demo_interface(demo: VoxCPMDemo):
 def run_demo(server_name: str = "localhost", server_port: int = 7860, show_error: bool = True):
     demo = VoxCPMDemo()
     interface = create_demo_interface(demo)
-    # 在 Spaces 上建议启用队列以获得更好的吞吐量
     interface.queue(max_size=10).launch(server_name=server_name, server_port=server_port, show_error=show_error)
 
 
