@@ -50,7 +50,6 @@ class VoxCPMDemo:
         cfg_value_input: float = 2.0,
         inference_timesteps_input: int = 10,
         do_normalize: bool = True,
-        denoise: bool = True,
     ) -> Tuple[int, np.ndarray]:
         """
         使用 VoxCPM 从文本生成语音；可选参考音频用于语音风格指导。
@@ -73,7 +72,6 @@ class VoxCPMDemo:
             cfg_value=float(cfg_value_input),
             inference_timesteps=int(inference_timesteps_input),
             normalize=do_normalize,
-            denoise=denoise,
         )
         return (16000, wav)
 
@@ -98,8 +96,6 @@ def create_demo_interface(demo: VoxCPMDemo):
             font-size: 1.1em !important;
         }
         /* Bold labels for specific checkboxes */
-        #chk_denoise label,
-        #chk_denoise span,
         #chk_normalize label,
         #chk_normalize span {
             font-weight: 600;
@@ -120,10 +116,6 @@ def create_demo_interface(demo: VoxCPMDemo):
         # 使用建议
         with gr.Accordion("💡 使用建议", open=False, elem_id="acc_tips"):
             gr.Markdown("""
-            ### 参考语音降噪
-            - **启用**：通过 ZipEnhancer 组件消除背景噪音，获得更好的音质
-            - **禁用**：保留原始音频的背景环境声，如果想复刻相应声学环境
-
             ### 文本正则化
             - **启用**：使用 WeTextProcessing 组件，可处理常见文本
             - **禁用**：将使用 VoxCPM 内置的文本理解能力。支持音素输入（如 {da4}{jia1}好）和公式符号合成
@@ -145,12 +137,6 @@ def create_demo_interface(demo: VoxCPMDemo):
                     type="filepath",
                     label="参考语音（可选，或让 VoxCPM 自由发挥）",
                     value="asset/zero_shot_prompt.wav",
-                )
-                DoDenoisePromptAudio = gr.Checkbox(
-                    value=False,
-                    label="参考语音增强",
-                    elem_id="chk_denoise",
-                    info="我们使用 ZipEnhancer 模型对参考音频进行降噪。"
                 )
                 with gr.Row():
                     prompt_text = gr.Textbox(
@@ -195,7 +181,7 @@ def create_demo_interface(demo: VoxCPMDemo):
         # 组件连接
         run_btn.click(
             fn=demo.generate_tts_audio,
-            inputs=[text, prompt_wav, prompt_text, cfg_value, inference_timesteps, DoNormalizeText, DoDenoisePromptAudio],
+            inputs=[text, prompt_wav, prompt_text, cfg_value, inference_timesteps, DoNormalizeText],
             outputs=[audio_output],
             show_progress=True,
             api_name="generate",
