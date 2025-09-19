@@ -76,6 +76,11 @@ class VoxCPMDemo:
             inference_timesteps=int(inference_timesteps_input),
             normalize=do_normalize,
         )
+        
+        # 手动转换为 int16 格式避免 Gradio 警告
+        if wav.dtype == np.float32:
+            wav = (wav * 32767).astype(np.int16)
+        
         return (16000, wav)
 
 
