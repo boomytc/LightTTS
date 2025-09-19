@@ -10,6 +10,8 @@ project_root = os.path.dirname(os.path.dirname(current_dir))
 sys.path.append(project_root)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from voxcpm.core import VoxCPM
 
 
@@ -29,11 +31,12 @@ class VoxCPMDemo:
             return self.voxcpm_model
         print("模型未加载，正在初始化...")
         print(f"使用模型路径: {self.tts_model_path}")
-        self.voxcpm_model = VoxCPM.from_pretrained(
-            self.tts_model_path,
-            local_files_only=True,
-            device=self.device,
-        )
+        with redirect_stderr(StringIO()), redirect_stdout(StringIO()):
+            self.voxcpm_model = VoxCPM.from_pretrained(
+                self.tts_model_path,
+                local_files_only=True,
+                device=self.device,
+            )
         print("模型加载成功。")
         return self.voxcpm_model
 
