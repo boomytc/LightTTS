@@ -1,17 +1,29 @@
+import os
+import sys
+
+current_dir = os.path.dirname(__file__)
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
+
 import soundfile as sf
-from voxcpm import VoxCPM
+from voxcpm.core import VoxCPM
 
-tts_model_path = "/Users/boom/Model/TTS/VoxCPM-0.5B"
-se_model_path = "/Users/boom/Model/SE/speech_zipenhancer_ans_multiloss_16k_base"
 
-model = VoxCPM.from_pretrained(
-    tts_model_path,
-    zipenhancer_model_id= se_model_path,
-    local_files_only=True,
-)
+tts_model_path = "models/VoxCPM-0.5B"
+se_model_path = "models/speech_zipenhancer_ans_multiloss_16k_base"
+
+with redirect_stderr(StringIO()), redirect_stdout(StringIO()):
+    model = VoxCPM.from_pretrained(
+        tts_model_path,
+        zipenhancer_model_id= se_model_path,
+        local_files_only=True,
+    )
 
 wav = model.generate(
-    text="VoxCPM 是 ModelBest 推出的创新端到端 TTS 模型，旨在生成高度表现力的语音。",
+    text="八百标兵奔北坡，炮兵并排北边跑。",
     prompt_wav_path=None,      # 可选：用于声音克隆的提示音频路径
     prompt_text=None,          # 可选：参考文本
     cfg_value=2.0,             # LocDiT上的LM引导，值越高对提示的遵循越好，但质量可能较差
