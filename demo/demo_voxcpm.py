@@ -5,6 +5,8 @@ current_dir = os.path.dirname(__file__)
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import soundfile as sf
@@ -13,15 +15,17 @@ from voxcpm.core import VoxCPM
 # 全局变量
 TTS_MODEL_PATH = "models/VoxCPM-0.5B"
 SE_MODEL_PATH = "models/speech_zipenhancer_ans_multiloss_16k_base"
-OUTPUT_FILE = "output.wav"
+DEVICE = "cpu"
+
 TEST_TEXT = "八百标兵奔北坡，炮兵并排北边跑。"
+OUTPUT_FILE = "output.wav"
 
 with redirect_stderr(StringIO()), redirect_stdout(StringIO()):
     model = VoxCPM.from_pretrained(
         TTS_MODEL_PATH,
         zipenhancer_model_id=SE_MODEL_PATH,
         local_files_only=True,
-        device="cuda",
+        device=DEVICE,
     )
 
 wav = model.generate(
