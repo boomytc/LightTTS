@@ -569,8 +569,12 @@ class VoxCPMModel(nn.Module):
         return feat_pred, pred_feat_seq.squeeze(0).cpu()
 
     @classmethod
-    def from_local(cls, path: str):
+    def from_local(cls, path: str, device: str = None):
         config = VoxCPMConfig.model_validate_json(open(os.path.join(path, "config.json")).read())
+        
+        # 如果用户指定了device，覆盖配置文件中的设置
+        if device is not None:
+            config.device = device
 
         tokenizer = LlamaTokenizerFast.from_pretrained(path)
 

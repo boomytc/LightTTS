@@ -9,6 +9,7 @@ class VoxCPM:
             voxcpm_model_path : str,
             zipenhancer_model_path : str = "iic/speech_zipenhancer_ans_multiloss_16k_base",
             enable_denoiser : bool = True,
+            device : str = None,
         ):
         """初始化 VoxCPM TTS 流水线。
 
@@ -18,9 +19,10 @@ class VoxCPM:
             zipenhancer_model_path: ModelScope 声学噪声抑制模型
                 ID 或本地路径。如果为 None，则不会初始化去噪器。
             enable_denoiser: 是否初始化去噪器流水线。
+            device: 指定运行设备 ("cuda" 或 "cpu")。如果为 None，则使用配置文件中的设置。
         """
-        print(f"voxcpm_model_path: {voxcpm_model_path}, zipenhancer_model_path: {zipenhancer_model_path}, enable_denoiser: {enable_denoiser}")
-        self.tts_model = VoxCPMModel.from_local(voxcpm_model_path)
+        print(f"voxcpm_model_path: {voxcpm_model_path}, zipenhancer_model_path: {zipenhancer_model_path}, enable_denoiser: {enable_denoiser}, device: {device}")
+        self.tts_model = VoxCPMModel.from_local(voxcpm_model_path, device=device)
         self.text_normalizer = None
         if enable_denoiser and zipenhancer_model_path is not None:
             from voxcpm.zipenhancer import ZipEnhancer
@@ -40,6 +42,7 @@ class VoxCPM:
             zipenhancer_model_id: str = "iic/speech_zipenhancer_ans_multiloss_16k_base",
             cache_dir: str = None,
             local_files_only: bool = False,
+            device: str = None,
         ):
         """从 Hugging Face Hub 快照实例化 ``VoxCPM``。
 
@@ -49,6 +52,7 @@ class VoxCPM:
             zipenhancer_model_id: ModelScope 声学噪声抑制的去噪器模型 ID 或路径。
             cache_dir: 快照的自定义缓存目录。
             local_files_only: 如果为 True，则仅使用本地文件，不尝试下载。
+            device: 指定运行设备 ("cuda" 或 "cpu")。如果为 None，则使用配置文件中的设置。
 
         Returns:
             VoxCPM: 初始化的实例，其 ``voxcpm_model_path`` 指向下载的快照目录。
@@ -75,6 +79,7 @@ class VoxCPM:
             voxcpm_model_path=local_path,
             zipenhancer_model_path=zipenhancer_model_id if load_denoiser else None,
             enable_denoiser=load_denoiser,
+            device=device,
         )
 
     def generate(self, 
