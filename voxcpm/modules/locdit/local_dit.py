@@ -50,7 +50,7 @@ class TimestepEmbedding(nn.Module):
 
 class VoxCPMLocDiT(nn.Module):
     """
-    Diffusion model with a Transformer backbone.
+    使用 Transformer 主干的扩散模型。
     """
 
     def __init__(
@@ -89,12 +89,12 @@ class VoxCPMLocDiT(nn.Module):
         dt: torch.Tensor,
     ):
         """
-        Forward pass of DiT.
-        x: (N, C, T) tensor of inputs
-        mu: (N, C) tensor of hidden embedding
-        t: (N,) tensor of diffusion timesteps
-        cond: (N, C, T') tensor of prefix conditions
-        dt: (N,) used for mean velocity (may be supported in the future...)
+        DiT 的前向传播。
+        x: (N, C, T) 输入张量
+        mu: (N, C) 隐藏嵌入张量
+        t: (N,) 扩散时间步张量
+        cond: (N, C, T') 前缀条件张量
+        dt: (N,) 用于平均速度（可能在未来支持...）
         """
         x = self.in_proj(x.transpose(1, 2).contiguous())
 
