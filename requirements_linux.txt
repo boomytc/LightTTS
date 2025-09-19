@@ -24,6 +24,7 @@ wget
 peft
 pyside6
 WeTextProcessing==1.0.3
+wetext
 einops
 addict
 datasets>=3,<4
