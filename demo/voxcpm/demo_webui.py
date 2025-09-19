@@ -3,7 +3,6 @@ import numpy as np
 import torch
 import gradio as gr  
 from typing import Optional, Tuple
-from funasr import AutoModel
 from pathlib import Path
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 if os.environ.get("HF_REPO_ID", "").strip() == "":
@@ -16,15 +15,6 @@ class VoxCPMDemo:
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"🚀 Running on device: {self.device}")
-
-        # ASR model for prompt text recognition
-        self.asr_model_id = "iic/SenseVoiceSmall"
-        self.asr_model: Optional[AutoModel] = AutoModel(
-            model=self.asr_model_id,
-            disable_update=True,
-            log_level='DEBUG',
-            device="cuda:0" if self.device == "cuda" else "cpu",
-        )
 
         # TTS model (lazy init)
         self.voxcpm_model: Optional[voxcpm.VoxCPM] = None
@@ -68,11 +58,8 @@ class VoxCPMDemo:
 
     # ---------- Functional endpoints ----------
     def prompt_wav_recognition(self, prompt_wav: Optional[str]) -> str:
-        if prompt_wav is None:
-            return ""
-        res = self.asr_model.generate(input=prompt_wav, language="auto", use_itn=True)
-        text = res[0]["text"].split('|>')[-1]
-        return text
+        # 移除自动识别功能，返回空字符串
+        return ""
 
     def generate_tts_audio(
         self,
@@ -217,6 +204,7 @@ def create_demo_interface(demo: VoxCPMDemo):
                         placeholder="Please enter the prompt text. Automatic recognition is supported, and you can correct the results yourself..."
                     )
                 run_btn = gr.Button("Generate Speech", variant="primary")
+                gr.Markdown("**Note**: Automatic speech recognition has been disabled. Please manually enter the prompt text corresponding to your audio.")
 
             with gr.Column():
                 cfg_value = gr.Slider(
@@ -257,7 +245,6 @@ def create_demo_interface(demo: VoxCPMDemo):
             show_progress=True,
             api_name="generate",
         )
-        prompt_wav.change(fn=demo.prompt_wav_recognition, inputs=[prompt_wav], outputs=[prompt_text])
 
     return interface
 
