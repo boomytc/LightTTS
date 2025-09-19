@@ -14,7 +14,6 @@ onnx
 onnxruntime
 openai-whisper
 cosyvoice
-voxcpm
 pyarrow
 pyworld
 soundfile
