@@ -1,5 +1,3 @@
-import torch
-import torchaudio
 import os
 import re
 import tempfile
@@ -12,15 +10,14 @@ class VoxCPM:
             zipenhancer_model_path : str = "iic/speech_zipenhancer_ans_multiloss_16k_base",
             enable_denoiser : bool = True,
         ):
-        """Initialize VoxCPM TTS pipeline.
+        """初始化 VoxCPM TTS 流水线。
 
         Args:
-            voxcpm_model_path: Local filesystem path to the VoxCPM model assets
-                (weights, configs, etc.). Typically the directory returned by
-                a prior download step.
-            zipenhancer_model_path: ModelScope acoustic noise suppression model
-                id or local path. If None, denoiser will not be initialized.
-            enable_denoiser: Whether to initialize the denoiser pipeline.
+            voxcpm_model_path: VoxCPM 模型资源的本地文件系统路径
+                (权重、配置等)。通常是先前下载步骤返回的目录。
+            zipenhancer_model_path: ModelScope 声学噪声抑制模型
+                ID 或本地路径。如果为 None，则不会初始化去噪器。
+            enable_denoiser: 是否初始化去噪器流水线。
         """
         print(f"voxcpm_model_path: {voxcpm_model_path}, zipenhancer_model_path: {zipenhancer_model_path}, enable_denoiser: {enable_denoiser}")
         self.tts_model = VoxCPMModel.from_local(voxcpm_model_path)
@@ -44,24 +41,20 @@ class VoxCPM:
             cache_dir: str = None,
             local_files_only: bool = False,
         ):
-        """Instantiate ``VoxCPM`` from a Hugging Face Hub snapshot.
+        """从 Hugging Face Hub 快照实例化 ``VoxCPM``。
 
         Args:
-            hf_model_id: Explicit Hugging Face repository id (e.g. "org/repo") or local path.
-            load_denoiser: Whether to initialize the denoiser pipeline.
-            zipenhancer_model_id: Denoiser model id or path for ModelScope
-                acoustic noise suppression.
-            cache_dir: Custom cache directory for the snapshot.
-            local_files_only: If True, only use local files and do not attempt
-                to download.
+            hf_model_id: 明确的 Hugging Face 仓库 ID (例如 "org/repo") 或本地路径。
+            load_denoiser: 是否初始化去噪器流水线。
+            zipenhancer_model_id: ModelScope 声学噪声抑制的去噪器模型 ID 或路径。
+            cache_dir: 快照的自定义缓存目录。
+            local_files_only: 如果为 True，则仅使用本地文件，不尝试下载。
 
         Returns:
-            VoxCPM: Initialized instance whose ``voxcpm_model_path`` points to
-            the downloaded snapshot directory.
+            VoxCPM: 初始化的实例，其 ``voxcpm_model_path`` 指向下载的快照目录。
 
         Raises:
-            ValueError: If neither a valid ``hf_model_id`` nor a resolvable
-                ``hf_model_id`` is provided.
+            ValueError: 如果未提供有效的 ``hf_model_id`` 或可解析的 ``hf_model_id``。
         """
         repo_id = hf_model_id
         if not repo_id:
@@ -97,29 +90,26 @@ class VoxCPM:
             retry_badcase_max_times : int = 3,
             retry_badcase_ratio_threshold : float = 6.0,
         ):
-        """Synthesize speech for the given text and return a single waveform.
+        """为给定文本合成语音并返回单一波形。
 
-        This method optionally builds and reuses a prompt cache. If an external
-        prompt (``prompt_wav_path`` + ``prompt_text``) is provided, it will be
-        used for all sub-sentences. Otherwise, the prompt cache is built from
-        the first generated result and reused for the remaining text chunks.
+        此方法可选择性地构建和重用提示缓存。如果提供了外部提示
+        (``prompt_wav_path`` + ``prompt_text``)，则将用于所有子句子。
+        否则，提示缓存将从第一次生成结果构建，并在剩余的文本块中重用。
 
         Args:
-            text: Input text. Can include newlines; each non-empty line is
-                treated as a sub-sentence.
-            prompt_wav_path: Path to a reference audio file for prompting.
-            prompt_text: Text content corresponding to the prompt audio.
-            cfg_value: Guidance scale for the generation model.
-            inference_timesteps: Number of inference steps.
-            max_length: Maximum token length during generation.
-            normalize: Whether to run text normalization before generation.
-            denoise: Whether to denoise the prompt audio if a denoiser is
-                available.
-            retry_badcase: Whether to retry badcase.
-            retry_badcase_max_times: Maximum number of times to retry badcase.
-            retry_badcase_ratio_threshold: Threshold for audio-to-text ratio.
+            text: 输入文本。可以包含换行符；每个非空行被视为一个子句子。
+            prompt_wav_path: 用于提示的参考音频文件路径。
+            prompt_text: 与提示音频对应的文本内容。
+            cfg_value: 生成模型的指导比例。
+            inference_timesteps: 推理步数。
+            max_length: 生成过程中的最大 token 长度。
+            normalize: 是否在生成前运行文本标准化。
+            denoise: 如果有去噪器可用，是否对提示音频进行去噪。
+            retry_badcase: 是否重试错误案例。
+            retry_badcase_max_times: 重试错误案例的最大次数。
+            retry_badcase_ratio_threshold: 音频到文本比例的阈值。
         Returns:
-            numpy.ndarray: 1D waveform array (float32) on CPU.
+            numpy.ndarray: CPU 上的 1D 波形数组 (float32)。
         """
         if not text.strip() or not isinstance(text, str):
             raise ValueError("target text must be a non-empty string")
@@ -147,7 +137,7 @@ class VoxCPM:
                     prompt_text=prompt_text
                 )
             else:
-                fixed_prompt_cache = None  # will be built from the first inference
+                fixed_prompt_cache = None  # 将会在第一次生成时构建
             
             if normalize:
                 if self.text_normalizer is None:
@@ -174,4 +164,4 @@ class VoxCPM:
                 try:
                     os.unlink(temp_prompt_wav_path)
                 except OSError:
-                    pass  
+                    pass
