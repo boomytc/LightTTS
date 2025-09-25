@@ -11,8 +11,8 @@ dependencies = [
   "cython; sys_platform == 'linux'",
   
   # Core ML & NLP packages
-  "transformers",
-  "accelerate",
+  "transformers==4.52.1", 
+  "accelerate==1.8.1",
   "datasets>=3,<4",
   "peft; sys_platform != 'darwin'",  # Linux and Windows only
   
@@ -34,6 +34,7 @@ dependencies = [
   "pyworld",
   "openai-whisper",
   "funasr",
+  "descript-audiotools==0.7.2",
   
   # Deep learning frameworks
   "diffusers",
