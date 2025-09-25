@@ -1,5 +1,6 @@
 [project]
 name = "lighttts"
+version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
   # PyTorch - macOS only (Linux/Windows need manual install)
@@ -69,7 +70,7 @@ dependencies = [
   "pyarrow",
   
   # macOS-specific KittenTTS wheel package
-  "kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl; sys_platform == 'darwin'",
+  "kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl ; sys_platform == 'darwin'",
 ]
 
 [project.optional-dependencies]
@@ -77,3 +78,11 @@ dependencies = [
 deepspeed = [
   "deepspeed==0.17.1",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["cosyvoice*", "indextts*", "voxcpm*"]
+exclude = ["demo*", "asset*", "BatchGenerate*", "Matcha-TTS*"]
