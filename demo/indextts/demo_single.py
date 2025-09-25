@@ -1,11 +1,10 @@
 from indextts.infer_v2 import IndexTTS2
 
-MODEL_DIR = "checkpoints"
+MODEL_DIR = "models/IndexTTS-2"
 CFG_PATH = f"{MODEL_DIR}/config.yaml"
 DEVICE = "cpu"  # "cuda" or "cpu"
 
-
-prompt_wav="demo/examples/诗朗诵_面朝大海春暖花开_一句话.wav"
+prompt_wav="asset/zero_shot_prompt.wav"
 tts = IndexTTS2(cfg_path=CFG_PATH, model_dir=MODEL_DIR, use_fp16=True, device=DEVICE, use_cuda_kernel=False)
 
 
