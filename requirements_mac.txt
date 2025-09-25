@@ -20,6 +20,7 @@ soundfile
 torch
 torchaudio
 transformers
+accelerate
 wget
 pyside6
 WeTextProcessing==1.0.3

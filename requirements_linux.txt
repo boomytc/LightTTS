@@ -2,6 +2,7 @@ torch
 torchaudio
 cython
 transformers
+accelerate
 conformer
 diffusers
 gdown

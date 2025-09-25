@@ -19,6 +19,7 @@ pyarrow
 pyworld
 soundfile
 transformers
+accelerate
 wget
 peft
 pyside6
