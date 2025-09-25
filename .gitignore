@@ -5,6 +5,7 @@ __pycache__
 .gradio/certificate.pem
 /BatchGenerate/clone_src_wav/*
 /BatchGenerate/texts/*
+outputs
 .qoder
 .github
 .trae
