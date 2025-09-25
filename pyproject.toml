@@ -1,0 +1,62 @@
+[project]
+name = "lighttts"
+requires-python = ">=3.10"
+dependencies = [
+  # PyTorch - macOS only (Linux/Windows need manual install)
+  "torch; sys_platform == 'darwin'",
+  "torchaudio; sys_platform == 'darwin'",
+  
+  # Linux-specific packages
+  "cython; sys_platform == 'linux'",
+  
+  # Core ML & NLP packages
+  "transformers",
+  "accelerate",
+  "datasets>=3,<4",
+  "peft; sys_platform != 'darwin'",  # Linux and Windows only
+  
+  # Audio processing packages
+  "conformer",
+  "librosa", 
+  "soundfile",
+  "pyworld",
+  "openai-whisper",
+  "funasr",
+  
+  # Deep learning frameworks
+  "diffusers",
+  "lightning",
+  "omegaconf",
+  "hydra-core",
+  "HyperPyYAML",
+  
+  # UI & Visualization
+  "gradio",
+  "pyside6",
+  "matplotlib",
+  
+  # Text processing
+  # Use "wetext" on Windows/Mac, otherwise "WeTextProcessing" on Linux.
+  "wetext>=0.0.9; sys_platform != 'linux'",
+  "WeTextProcessing==1.0.3; sys_platform == 'linux'",
+  "inflect",
+  
+  # Utilities & Tools
+  "modelscope",
+  "gdown",
+  "wget",
+  "einops",
+  "addict",
+  "pydantic",
+  "tqdm",
+  "simplejson",
+  "sortedcontainers",
+  
+  # Export & Runtime
+  "onnx",
+  "onnxruntime",
+  "pyarrow",
+  
+  # macOS-specific KittenTTS wheel package
+  "kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl; sys_platform == 'darwin'",
+]
