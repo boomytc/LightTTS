@@ -15,14 +15,17 @@ from voxcpm.core import VoxCPM
 # 全局变量
 TTS_MODEL_PATH = "models/VoxCPM-0.5B"
 SE_MODEL_PATH = "models/speech_zipenhancer_ans_multiloss_16k_base"
-DEVICE = "cpu"
+DEVICE = "cpu" # "cuda" or "cpu"
 
 TEST_TEXT = "八百标兵奔北坡，炮兵并排北边跑。"
-OUTPUT_FILE = "output.wav"
+OUTPUT_FILE = "outputs/output.wav"
+
+os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
 
 with redirect_stderr(StringIO()), redirect_stdout(StringIO()):
     model = VoxCPM.from_pretrained(
         TTS_MODEL_PATH,
+        load_denoiser=False,
         zipenhancer_model_id=SE_MODEL_PATH,
         local_files_only=True,
         device=DEVICE,
