@@ -1,5 +1,11 @@
 import sys
-sys.path.append('Matcha-TTS')
+import os
+
+# 获取项目根目录，添加 Matcha-TTS 路径
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+matcha_path = os.path.join(project_root, 'Matcha-TTS')
+sys.path.insert(0, project_root)
+sys.path.insert(0, matcha_path)
 import argparse
 import gradio as gr
 import numpy as np
@@ -101,7 +107,7 @@ def main():
                               outputs=[audio_output])
     
     demo.queue(max_size=4, default_concurrency_limit=2)
-    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=True)
+    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=False)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
