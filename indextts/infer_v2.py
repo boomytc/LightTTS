@@ -1,7 +1,7 @@
 import os
 from subprocess import CalledProcessError
 
-os.environ['HF_HUB_CACHE'] = './checkpoints/hf_cache'
+os.environ['HF_HUB_CACHE'] = './models/IndexTTS-2/hf_cache'
 import json
 import re
 import time
@@ -37,7 +37,7 @@ import torch.nn.functional as F
 
 class IndexTTS2:
     def __init__(
-            self, cfg_path="checkpoints/config.yaml", model_dir="checkpoints", use_fp16=False, device=None,
+            self, cfg_path="models/IndexTTS-2/config.yaml", model_dir="models/IndexTTS-2", use_fp16=False, device=None,
             use_cuda_kernel=None,use_deepspeed=False
     ):
         """
@@ -760,5 +760,5 @@ if __name__ == "__main__":
     prompt_wav = "examples/voice_01.wav"
     text = '欢迎大家来体验indextts2，并给予我们意见与反馈，谢谢大家。'
 
-    tts = IndexTTS2(cfg_path="checkpoints/config.yaml", model_dir="checkpoints", use_cuda_kernel=False)
+    tts = IndexTTS2(cfg_path="models/IndexTTS-2/config.yaml", model_dir="models/IndexTTS-2", use_cuda_kernel=False)
     tts.infer(spk_audio_prompt=prompt_wav, text=text, output_path="gen.wav", verbose=True)
