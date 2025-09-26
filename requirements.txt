@@ -39,7 +39,6 @@ matplotlib
 wetext>=0.0.9; sys_platform != "linux"
 WeTextProcessing==1.0.3; sys_platform == "linux"
 inflect
-json5
 
 modelscope
 gdown
@@ -50,7 +49,6 @@ pydantic
 tqdm
 simplejson
 sortedcontainers
-munch
 
 onnx
 onnxruntime
