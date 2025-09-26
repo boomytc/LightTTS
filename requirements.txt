@@ -1,0 +1,61 @@
+torch; sys_platform == "darwin"
+torchaudio; sys_platform == "darwin"
+
+cython; sys_platform == "linux"
+
+transformers==4.52.1
+accelerate==1.8.1
+datasets>=3,<4
+peft; sys_platform != "darwin"
+
+jieba==0.42.1
+json5==0.10.0
+munch==4.0.0
+numba==0.58.1
+numpy==1.26.2
+safetensors==0.5.2
+sentencepiece>=0.2.1
+textstat>=0.7.10
+tokenizers==0.21.0
+
+conformer
+librosa
+soundfile
+pyworld
+openai-whisper
+funasr
+descript-audiotools==0.7.2
+
+diffusers
+lightning
+omegaconf
+hydra-core
+HyperPyYAML
+
+gradio
+pyside6
+matplotlib
+
+wetext>=0.0.9; sys_platform != "linux"
+WeTextProcessing==1.0.3; sys_platform == "linux"
+inflect
+json5
+
+modelscope
+gdown
+wget
+einops
+addict
+pydantic
+tqdm
+simplejson
+sortedcontainers
+munch
+
+onnx
+onnxruntime
+pyarrow
+
+kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl ; sys_platform == "darwin"
+
+# deepspeed==0.17.1
