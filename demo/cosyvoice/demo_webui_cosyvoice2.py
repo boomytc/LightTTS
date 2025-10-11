@@ -7,7 +7,6 @@ matcha_path = os.path.join(project_root, 'Matcha-TTS')
 sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
 import gradio as gr
-import numpy as np
 import torchaudio
 import random
 from cosyvoice.cli.cosyvoice import CosyVoice2
