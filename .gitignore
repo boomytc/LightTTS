@@ -10,3 +10,4 @@ outputs
 .github
 .trae
 .gradio
+indextts/s2mel/modules/bigvgan/alias_free_activation/cuda/build/
