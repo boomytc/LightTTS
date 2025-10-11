@@ -1,7 +1,7 @@
 default: 
-  device: "cuda"
-  use_cuda_kernel: True
-  use_fp16: True
+  device: "cpu"
+  use_cuda_kernel: False
+  use_fp16: False
   output_dir: "outputs"
 
 models:
