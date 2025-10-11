@@ -9,6 +9,8 @@ models:
     model_dir: "models/CosyVoice2-0.5B"
     load_jit: False
     load_trt: False
+    load_vllm: False
+    trt_concurrent: 1
 
   indextts:
     model_dir: "models/IndexTTS-2"
