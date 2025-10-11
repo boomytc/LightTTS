@@ -16,6 +16,8 @@ models:
 
   kittentts:
     model_dir: "models/kitten-tts-nano-0.1"
+    model_path: "models/kitten-tts-nano-0.2/kitten_tts_nano_v0_2.onnx"
+    voices_path: "models/kitten-tts-nano-0.2/voices.npz"
 
   voxcpm:
     model_dir: "models/VoxCPM-0.5B"
