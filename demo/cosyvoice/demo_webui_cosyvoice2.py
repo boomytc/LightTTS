@@ -15,8 +15,7 @@ from cosyvoice.utils.common import set_all_random_seed
 inference_mode_list = ['零样本语音克隆', '跨语言语音合成', '精细控制合成', '指令控制合成']
 stream_mode_list = [('否', False), ('是', True)]
 
-def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,
-                   seed, stream, speed):
+def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,seed, stream, speed):
     if prompt_wav is None:
         gr.Warning("请先上传或录制prompt音频！", duration=3)
         return
@@ -68,8 +67,7 @@ def main():
         audio_output = gr.Audio(label="合成音频", autoplay=True, streaming=True)
 
         generate_button.click(generate_audio,
-                              inputs=[tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,
-                                      seed, stream, speed],
+                              inputs=[tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,seed, stream, speed],
                               outputs=[audio_output])
     
     demo.queue(max_size=4, default_concurrency_limit=2)
