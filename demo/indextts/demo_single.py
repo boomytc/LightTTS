@@ -1,12 +1,20 @@
+import os
 from indextts.infer_v2 import IndexTTS2
 
 MODEL_DIR = "models/IndexTTS-2"
 CFG_PATH = f"{MODEL_DIR}/config.yaml"
 DEVICE = "cpu"  # "cuda" or "cpu"
+CUDA_KERNEL = False
+USE_FP16 = False
+
+if DEVICE == "cuda":
+    CUDA_KERNEL = True
+    USE_FP16 = True
 
 prompt_wav="asset/zero_shot_prompt.wav"
-tts = IndexTTS2(cfg_path=CFG_PATH, model_dir=MODEL_DIR, use_fp16=True, device=DEVICE, use_cuda_kernel=False)
+tts = IndexTTS2(cfg_path=CFG_PATH, model_dir=MODEL_DIR, use_fp16=USE_FP16, device=DEVICE, use_cuda_kernel=CUDA_KERNEL)
 
+os.makedirs('outputs', exist_ok=True)
 
 # 单音频推理测试
 text="晕 XUAN4 是 一 种 GAN3 觉"
