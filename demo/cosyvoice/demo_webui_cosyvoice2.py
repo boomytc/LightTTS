@@ -1,29 +1,16 @@
 import sys
 import os
-
-# 获取项目根目录，添加 Matcha-TTS 路径
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 matcha_path = os.path.join(project_root, 'Matcha-TTS')
 sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
+
 import gradio as gr
-import logging
-import warnings
 import torchaudio
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 from cosyvoice.utils.common import set_all_random_seed
-
-# 静默第三方库的冗余日志
-os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("uvicorn").setLevel(logging.WARNING)
-logging.getLogger("gradio").setLevel(logging.WARNING)
-warnings.filterwarnings("ignore", category=FutureWarning)
-warnings.filterwarnings("ignore", category=UserWarning)
-
+ 
 inference_mode_list = ['零样本语音克隆', '跨语言语音合成', '精细控制合成', '指令控制合成']
 stream_mode_list = [('否', False), ('是', True)]
 
