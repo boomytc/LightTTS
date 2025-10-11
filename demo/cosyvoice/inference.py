@@ -28,18 +28,29 @@ tts_model = CosyVoice2(
 )
 
 prompt_audio = load_wav('./asset/zero_shot_prompt.wav', 16000)
+prompt_text = '希望你以后能够做的比我还好呦。'
 
-result = tts_model.inference_zero_shot(
-    tts_text='收到好友从远方寄来的生日礼物，那份意外的惊喜与深深的祝福让我心中充满了甜蜜的快乐，笑容如花儿般绽放。',
-    prompt_text='希望你以后能够做的比我还好呦。',
-    prompt_speech_16k=prompt_audio,
-    stream=False,
-    speed=1.0,
-    text_frontend=True,
-)
+tts_text1 = '收到好友从远方寄来的生日礼物，那份意外的惊喜与深深的祝福让我心中充满了甜蜜的快乐，笑容如花儿般绽放。'
+tts_text2 = '在他讲述那个荒诞故事的过程中，他突然[laughter]停下来，因为他自己也被逗笑了[laughter]。'
 
-for i, j in enumerate(result):
-    if (i > 0):
-        torchaudio.save(os.path.join(output_dir, 'zero_shot_{}.wav'.format(i)), j['tts_speech'], tts_model.sample_rate)
-    else:
-        torchaudio.save(os.path.join(output_dir, 'zero_shot.wav'), j['tts_speech'], tts_model.sample_rate)
+# zero_shot usage
+result_zero_shot = tts_model.inference_zero_shot(tts_text1, prompt_text, prompt_audio, stream=False, speed=1.0, text_frontend=True)
+
+# fine_grained_control usage
+result_fine_grained_control = tts_model.inference_cross_lingual(tts_text2, prompt_audio, stream=False, speed=1.0, text_frontend=True)
+
+# instruct usage
+result_instruct = tts_model.inference_instruct2(tts_text1, '用四川话说这句话', prompt_audio, stream=False, speed=1.0, text_frontend=True)
+
+result_list = [
+    ('zero_shot', result_zero_shot),
+    ('fine_grained_control', result_fine_grained_control),
+    ('instruct', result_instruct)
+]
+
+for label, result in result_list:
+    for i, j in enumerate(result):
+        if (i > 0):
+            torchaudio.save('outputs/{}_{}.wav'.format(label, i), j['tts_speech'], tts_model.sample_rate)
+        else:
+            torchaudio.save('outputs/{}.wav'.format(label), j['tts_speech'], tts_model.sample_rate)
