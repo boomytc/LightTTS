@@ -1,0 +1,25 @@
+default: 
+  device: "cuda"
+  use_cuda_kernel: True
+  use_fp16: True
+  output_dir: "outputs"
+
+models:
+  cosyvoice:
+    model_dir: "models/CosyVoice2-0.5B"
+    load_jit: False
+    load_trt: False
+
+  indextts:
+    model_dir: "models/IndexTTS-2"
+    cfg_path: "models/IndexTTS-2/config.yaml"
+
+  kittentts:
+    model_dir: "models/kitten-tts-nano-0.1"
+
+  voxcpm:
+    model_dir: "models/VoxCPM-0.5B"
+    se_model_dir: "models/speech_zipenhancer_ans_multiloss_16k_base"
+    load_denoiser: False
+    local_files_only: True
+
