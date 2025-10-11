@@ -8,20 +8,12 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
 import gradio as gr
 import torchaudio
-import random
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 from cosyvoice.utils.common import set_all_random_seed
 
 inference_mode_list = ['零样本语音克隆', '跨语言语音合成', '精细控制合成', '指令控制合成']
 stream_mode_list = [('否', False), ('是', True)]
-
-def generate_seed():
-    seed = random.randint(1, 100000000)
-    return {
-        "__type__": "update",
-        "value": seed
-    }
 
 def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload, prompt_wav_record, instruct_text,
                    seed, stream, speed):
@@ -66,9 +58,7 @@ def main():
             mode_checkbox_group = gr.Radio(choices=inference_mode_list, label='推理模式', value=inference_mode_list[0])
             stream = gr.Radio(choices=stream_mode_list, label='流式推理', value=stream_mode_list[0][1])
             speed = gr.Number(value=1, label="速度", minimum=0.5, maximum=2.0, step=0.1)
-            with gr.Column():
-                seed_button = gr.Button(value="🎲")
-                seed = gr.Number(value=0, label="种子")
+            seed = gr.Number(value=0, label="种子", precision=0, step=1, minimum=0, maximum=1000000)
 
         with gr.Row():
             prompt_wav_upload = gr.Audio(sources='upload', type='filepath', label='音频文件')
@@ -80,7 +70,6 @@ def main():
         generate_button = gr.Button("生成音频")
         audio_output = gr.Audio(label="合成音频", autoplay=True, streaming=True)
 
-        seed_button.click(generate_seed, inputs=[], outputs=seed)
         generate_button.click(generate_audio,
                               inputs=[tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload, prompt_wav_record, instruct_text,
                                       seed, stream, speed],
