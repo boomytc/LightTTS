@@ -12,14 +12,12 @@ import numpy as np
 import torch
 import torchaudio
 import random
-import librosa
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 from cosyvoice.utils.common import set_all_random_seed
 
 inference_mode_list = ['零样本语音克隆', '跨语言语音合成', '精细控制合成', '指令控制合成']
 stream_mode_list = [('否', False), ('是', True)]
-max_val = 0.8
 
 def generate_seed():
     seed = random.randint(1, 100000000)
@@ -27,17 +25,6 @@ def generate_seed():
         "__type__": "update",
         "value": seed
     }
-
-def postprocess(speech, top_db=60, hop_length=220, win_length=440):
-    speech, _ = librosa.effects.trim(
-        speech, top_db=top_db,
-        frame_length=win_length,
-        hop_length=hop_length
-    )
-    if speech.abs().max() > max_val:
-        speech = speech / speech.abs().max() * max_val
-    speech = torch.concat([speech, torch.zeros(1, int(cosyvoice.sample_rate * 0.2))], dim=1)
-    return speech
 
 def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload, prompt_wav_record, instruct_text,
                    seed, stream, speed):
@@ -51,7 +38,7 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
         yield (cosyvoice.sample_rate, default_data)
         return
     
-    prompt_speech_16k = postprocess(load_wav(prompt_wav, prompt_sr))
+    prompt_speech_16k = load_wav(prompt_wav, prompt_sr)
     set_all_random_seed(seed)
     
     if mode_checkbox_group == '零样本语音克隆':
