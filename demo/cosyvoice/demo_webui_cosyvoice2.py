@@ -46,12 +46,8 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
             return
         for i in cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
-    
-    elif mode_checkbox_group == '跨语言语音合成':
-        for i in cosyvoice.inference_cross_lingual(tts_text, prompt_speech_16k, stream=stream, speed=speed):
-            yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
-    
-    elif mode_checkbox_group == '精细控制合成':
+
+    elif mode_checkbox_group in ['跨语言语音合成', '精细控制合成']:
         for i in cosyvoice.inference_cross_lingual(tts_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
     
