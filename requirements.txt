@@ -54,6 +54,6 @@ onnx
 onnxruntime
 pyarrow
 
-kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl ; sys_platform == "darwin"
+kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl
 
 # deepspeed==0.17.1
