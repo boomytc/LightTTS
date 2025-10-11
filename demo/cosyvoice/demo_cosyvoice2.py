@@ -11,6 +11,8 @@ from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 import torchaudio
 
+os.makedirs('outputs', exist_ok=True)
+
 cosyvoice = CosyVoice2('models/CosyVoice2-0.5B', load_jit=False, load_trt=False, fp16=False)
 
 # 注意：如果你想要重现 https://funaudiollm.github.io/cosyvoice2 上的结果，请在推理时添加 text_frontend=False 参数
