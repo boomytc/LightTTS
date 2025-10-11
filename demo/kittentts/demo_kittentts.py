@@ -1,22 +1,34 @@
 import os
+import sys
 
-# 设置模型下载路径 - 必须在导入任何huggingface相关库之前设置
-model_cache_dir = "models/kitten-tts-nano-0.1"
-os.makedirs(model_cache_dir, exist_ok=True)
-os.environ["HF_HOME"] = model_cache_dir
-os.environ["HUGGINGFACE_HUB_CACHE"] = model_cache_dir
+current_dir = os.path.dirname(__file__)
+project_root = os.path.dirname(os.path.dirname(current_dir))
+sys.path.append(project_root)
 
-# 现在导入其他库
-from kittentts import KittenTTS
-import soundfile as sf
+kittentts_dir = os.path.join(project_root, 'kittentts')
+sys.path.insert(0, kittentts_dir)
 
-model = KittenTTS("KittenML/kitten-tts-nano-0.1")
+import yaml
+from kittentts.onnx_model import KittenTTS_Onnx
 
-audio = model.generate("fuck! what are you talking about?", voice='expr-voice-2-f' )
+with open("config/load.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
-# 可用的语音
-# available_voices = [  'expr-voice-2-m', 'expr-voice-2-f', 'expr-voice-3-m', 'expr-voice-3-f',  'expr-voice-4-m', 'expr-voice-4-f', 'expr-voice-5-m', 'expr-voice-5-f' ]
+config_default = config["default"]
+config_kittentts = config["models"]["kittentts"]
 
-# 保存音频
-os.makedirs('outputs', exist_ok=True)
-sf.write('outputs/output.wav', audio, 24000)
+model = KittenTTS_Onnx(
+    model_path=config_kittentts["model_path"],
+    voices_path=config_kittentts["voices_path"]
+)
+
+output_dir = config_default["output_dir"]
+os.makedirs(output_dir, exist_ok=True)
+
+audio = model.generate_to_file(
+    text="fuck! what are you talking about? This high quality TTS model works without a GPU",
+    output_path=f"{output_dir}/output.wav",
+    voice='expr-voice-2-f',
+    speed=1.0,
+    sample_rate=24000
+)
