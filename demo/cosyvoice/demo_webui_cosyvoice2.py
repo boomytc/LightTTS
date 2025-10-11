@@ -29,7 +29,7 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
     prompt_wav = prompt_wav_upload or prompt_wav_record
     
     if prompt_wav is None:
-        gr.Warning("请先上传或录制音频！")
+        gr.Warning("请先上传或录制模板音频！")
         return
     
     if torchaudio.info(prompt_wav).sample_rate < 16000:
