@@ -6,7 +6,6 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(_
 matcha_path = os.path.join(project_root, 'Matcha-TTS')
 sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
-import argparse
 import gradio as gr
 import numpy as np
 import torchaudio
@@ -89,21 +88,10 @@ def main():
                               outputs=[audio_output])
     
     demo.queue(max_size=4, default_concurrency_limit=2)
-    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=args.port, share=False)
+    demo.launch(inbrowser=True, server_name='127.0.0.1', server_port=8001, share=False)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--port',
-                        type=int,
-                        default=8001)
-    parser.add_argument('--model_dir',
-                        type=str,
-                        default='models/CosyVoice2-0.5B',
-                        help='local path or modelscope repo id')
-    args = parser.parse_args()
-    
-    cosyvoice = CosyVoice2(args.model_dir)
-
+    cosyvoice = CosyVoice2('models/CosyVoice2-0.5B')
     prompt_sr = 16000
     default_data = np.zeros(cosyvoice.sample_rate)
     main()
