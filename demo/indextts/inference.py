@@ -8,7 +8,8 @@ with open("config/load.yaml", "r", encoding = "utf-8") as f:
 config_default = config["default"]
 config_indextts = config["models"]["indextts"]
 
-os.makedirs(config_default["output_dir"], exist_ok=True)
+output_dir = config_default["output_dir"]
+os.makedirs(output_dir, exist_ok=True)
 
 tts = IndexTTS2(
     cfg_path = config_indextts["cfg_path"],
@@ -43,4 +44,17 @@ text_list = [
 
 for title, text in text_list:
     text = text.replace("\n", "")
-    tts.infer(spk_audio_prompt=prompt_wav, text=text, output_path=f"outputs/{title}.wav", verbose=False)
+    tts.infer(
+        spk_audio_prompt=prompt_wav, 
+        text=text, 
+        output_path=f"{output_dir}/{title}.wav", 
+        emo_audio_prompt=None,                      #情感参考音频
+        emo_alpha=1,                                #情感参考音频权重(0.0-1.0)     
+        # emo_vector=[0, 0, 0, 0, 0, 0, 0.45, 0],     #情感向量([happy, angry, sad, afraid, disgusted, melancholic, surprised, calm])
+        # use_emo_text=True,                          #根据text引导情感,建议将 emo_alpha 设置在 0.6以下
+        # emo_text="你吓死我了！你是鬼吗？",              #引导情感的文本
+        use_random=False,
+        interval_silence=200,
+        max_text_tokens_per_segment=120,
+        verbose=False
+    )
