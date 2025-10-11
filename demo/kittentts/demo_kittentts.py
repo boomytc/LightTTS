@@ -11,7 +11,7 @@ sys.path.insert(0, kittentts_dir)
 import yaml
 from kittentts.onnx_model import KittenTTS_Onnx
 
-with open("config/load.yaml", "r") as f:
+with open("config/load.yaml", "r", encoding='utf-8') as f:
     config = yaml.safe_load(f)
 
 config_default = config["default"]

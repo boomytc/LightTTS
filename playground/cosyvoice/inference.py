@@ -9,7 +9,7 @@ sys.path.insert(0, matcha_path)
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 
-with open("config/load.yaml", 'r') as f:
+with open("config/load.yaml", 'r', encoding='utf-8') as f:
     config = yaml.safe_load(f)
 
 config_default = config['default']
