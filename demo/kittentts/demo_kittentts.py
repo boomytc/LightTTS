@@ -26,9 +26,9 @@ output_dir = config_default["output_dir"]
 os.makedirs(output_dir, exist_ok=True)
 
 audio = model.generate_to_file(
-    text="fuck! what are you talking about? This high quality TTS model works without a GPU",
+    text="fuck! what are you talking about? This high quality TTS model works without a GPU.",
     output_path=f"{output_dir}/output.wav",
-    voice='expr-voice-2-f',
-    speed=1.0,
+    voice='expr-voice-3-m',
+    speed=1.2,
     sample_rate=24000
 )
