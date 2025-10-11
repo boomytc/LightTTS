@@ -9,7 +9,6 @@ sys.path.insert(0, matcha_path)
 import argparse
 import gradio as gr
 import numpy as np
-import torch
 import torchaudio
 import random
 from cosyvoice.cli.cosyvoice import CosyVoice2
