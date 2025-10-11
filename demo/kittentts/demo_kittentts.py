@@ -18,4 +18,5 @@ audio = model.generate("fuck! what are you talking about?", voice='expr-voice-2-
 # available_voices = [  'expr-voice-2-m', 'expr-voice-2-f', 'expr-voice-3-m', 'expr-voice-3-f',  'expr-voice-4-m', 'expr-voice-4-f', 'expr-voice-5-m', 'expr-voice-5-f' ]
 
 # 保存音频
-sf.write('KittenTTS/output.wav', audio, 24000)
+os.makedirs('output', exist_ok=True)
+sf.write('output/output.wav', audio, 24000)
