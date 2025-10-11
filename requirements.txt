@@ -21,6 +21,7 @@ tokenizers==0.21.0
 conformer
 librosa
 soundfile
+phonemizer
 pyworld
 openai-whisper
 funasr
@@ -53,7 +54,5 @@ sortedcontainers
 onnx
 onnxruntime
 pyarrow
-
-kittentts @ https://github.com/KittenML/KittenTTS/releases/download/0.1/kittentts-0.1.0-py3-none-any.whl
 
 # deepspeed==0.17.1
