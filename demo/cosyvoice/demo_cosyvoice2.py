@@ -1,10 +1,9 @@
 import sys
 import os
-# 添加项目根目录到 Python 路径
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-sys.path.insert(0, project_root)
-# 添加 Matcha-TTS 目录到 Python 路径
 matcha_path = os.path.join(project_root, 'Matcha-TTS')
+sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
 
 from cosyvoice.cli.cosyvoice import CosyVoice2

@@ -2,8 +2,8 @@ import os, sys, yaml
 import torchaudio
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-sys.path.insert(0, project_root)
 matcha_path = os.path.join(project_root, 'Matcha-TTS')
+sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
 
 from cosyvoice.cli.cosyvoice import CosyVoice2
