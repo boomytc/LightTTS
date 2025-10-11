@@ -29,19 +29,19 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
     prompt_wav = prompt_wav_upload or prompt_wav_record
     
     if prompt_wav is None:
-        yield (cosyvoice.sample_rate, default_data)
+        gr.Warning("请先上传或录制音频！")
         return
     
-    if torchaudio.info(prompt_wav).sample_rate < prompt_sr:
-        yield (cosyvoice.sample_rate, default_data)
+    if torchaudio.info(prompt_wav).sample_rate < 16000:
+        gr.Warning("音频采样率过低，需要至少16000Hz！")
         return
     
-    prompt_speech_16k = load_wav(prompt_wav, prompt_sr)
+    prompt_speech_16k = load_wav(prompt_wav, 16000)
     set_all_random_seed(seed)
     
     if mode_checkbox_group == '零样本语音克隆':
         if not prompt_text:
-            yield (cosyvoice.sample_rate, default_data)
+            gr.Warning("请输入prompt文本！")
             return
         for i in cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
@@ -52,7 +52,7 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
     
     elif mode_checkbox_group == '指令控制合成':
         if not instruct_text:
-            yield (cosyvoice.sample_rate, default_data)
+            gr.Warning("请输入指令文本！")
             return
         for i in cosyvoice.inference_instruct2(tts_text, instruct_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
@@ -92,6 +92,4 @@ def main():
 
 if __name__ == '__main__':
     cosyvoice = CosyVoice2('models/CosyVoice2-0.5B')
-    prompt_sr = 16000
-    default_data = np.zeros(cosyvoice.sample_rate)
     main()
