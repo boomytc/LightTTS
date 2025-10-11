@@ -27,8 +27,10 @@ text_list = [
     ("英文", "There is a vehicle arriving in dock number 7?"),
     ("中英混引号", '"我爱你！"的英语是"I love you!"'),
     ("中英", "Joseph Gordon-Levitt is an American actor，约瑟夫·高登-莱维特是美国演员"),
-    ("蒂姆·库克", "蒂莫西·唐纳德·库克（英文名：Timothy Donald Cook），通称蒂姆·库克（Tim Cook），现任苹果公司首席执行官。")
+    ("蒂姆·库克", "蒂莫西·唐纳德·库克（英文名：Timothy Donald Cook），通称蒂姆·库克（Tim Cook），现任苹果公司首席执行官。"),
+    ("长文本《盗梦空间》介绍", "《盗梦空间》是由美国华纳兄弟影片公司出品的电影，由克里斯托弗·诺兰执导并编剧，莱昂纳多·迪卡普里奥、玛丽昂·歌迪亚、约瑟夫·高登-莱维特、艾利奥特·佩吉、汤姆·哈迪等联袂主演，2010年7月16日在美国上映，2010年9月1日在中国内地上映，2020年8月28日在中国内地重映。影片剧情游走于梦境与现实之间，被定义为“发生在意识结构内的当代动作科幻片”，讲述了由莱昂纳多·迪卡普里奥扮演的造梦师，带领特工团队进入他人梦境，从他人的潜意识中盗取机密，并重塑他人梦境的故事。")
 ]
 
 for title, text in text_list:
-    tts.infer(spk_audio_prompt=prompt_wav, text=text, output_path=f"outputs/{title}.wav", verbose=True)
+    text = text.replace("\n", "")
+    tts.infer(spk_audio_prompt=prompt_wav, text=text, output_path=f"outputs/{title}.wav", verbose=False)
