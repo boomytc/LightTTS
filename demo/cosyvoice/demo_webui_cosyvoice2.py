@@ -59,7 +59,7 @@ def main():
             seed = gr.Number(value=0, label="种子", precision=0, step=1, minimum=0, maximum=1000000)
 
         with gr.Row():
-            prompt_wav = gr.Audio(sources=['upload', 'microphone'], type='filepath', label='音频文件')
+            prompt_wav = gr.Audio(sources=['upload', 'microphone'], type='filepath', label='音频文件', value="asset/zero_shot_prompt.wav")
         
         prompt_text = gr.Textbox(label="prompt文本", value='希望你以后能够做的比我还好呦。')
         instruct_text = gr.Textbox(label="指令文本", value='用四川话说这句话')
