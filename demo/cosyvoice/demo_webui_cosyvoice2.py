@@ -15,16 +15,14 @@ from cosyvoice.utils.common import set_all_random_seed
 inference_mode_list = ['零样本语音克隆', '跨语言语音合成', '精细控制合成', '指令控制合成']
 stream_mode_list = [('否', False), ('是', True)]
 
-def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload, prompt_wav_record, instruct_text,
+def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,
                    seed, stream, speed):
-    prompt_wav = prompt_wav_upload or prompt_wav_record
-    
     if prompt_wav is None:
-        gr.Warning("请先上传或录制prompt音频！")
+        gr.Warning("请先上传或录制prompt音频！", duration=3)
         return
     
     if torchaudio.info(prompt_wav).sample_rate < 16000:
-        gr.Warning("音频采样率过低，需要至少16000Hz！")
+        gr.Warning("音频采样率过低，需要至少16000Hz！", duration=3)
         return
     
     prompt_speech_16k = load_wav(prompt_wav, 16000)
@@ -32,7 +30,7 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
     
     if mode_checkbox_group == '零样本语音克隆':
         if not prompt_text:
-            gr.Warning("请输入prompt文本！")
+            gr.Warning("请输入prompt文本！", duration=3)
             return
         for i in cosyvoice.inference_zero_shot(tts_text, prompt_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
@@ -43,14 +41,14 @@ def generate_audio(tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload
     
     elif mode_checkbox_group == '指令控制合成':
         if not instruct_text:
-            gr.Warning("请输入指令文本！")
+            gr.Warning("请输入指令文本！", duration=3)
             return
         for i in cosyvoice.inference_instruct2(tts_text, instruct_text, prompt_speech_16k, stream=stream, speed=speed):
             yield (cosyvoice.sample_rate, i['tts_speech'].numpy().flatten())
 
 def main():
     with gr.Blocks() as demo:
-        gr.Markdown("### CosyVoice2 语音合成系统")
+        gr.Markdown("### 语音合成系统")
         
         tts_text = gr.Textbox(label="合成文本", lines=2, value="收到好友从远方寄来的生日礼物，那份意外的惊喜与深深的祝福让我心中充满了甜蜜的快乐，笑容如花儿般绽放。")
         
@@ -61,8 +59,7 @@ def main():
             seed = gr.Number(value=0, label="种子", precision=0, step=1, minimum=0, maximum=1000000)
 
         with gr.Row():
-            prompt_wav_upload = gr.Audio(sources='upload', type='filepath', label='音频文件')
-            prompt_wav_record = gr.Audio(sources='microphone', type='filepath', label='录制音频')
+            prompt_wav = gr.Audio(sources=['upload', 'microphone'], type='filepath', label='音频文件')
         
         prompt_text = gr.Textbox(label="prompt文本", value='希望你以后能够做的比我还好呦。')
         instruct_text = gr.Textbox(label="指令文本", value='用四川话说这句话')
@@ -71,7 +68,7 @@ def main():
         audio_output = gr.Audio(label="合成音频", autoplay=True, streaming=True)
 
         generate_button.click(generate_audio,
-                              inputs=[tts_text, mode_checkbox_group, prompt_text, prompt_wav_upload, prompt_wav_record, instruct_text,
+                              inputs=[tts_text, mode_checkbox_group, prompt_text, prompt_wav, instruct_text,
                                       seed, stream, speed],
                               outputs=[audio_output])
     
