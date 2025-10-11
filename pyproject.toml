@@ -53,7 +53,6 @@ dependencies = [
   "wetext>=0.0.9; sys_platform != 'linux'",
   "WeTextProcessing==1.0.3; sys_platform == 'linux'",
   "inflect",
-  "json5",
   
   # Utilities & Tools
   "modelscope",
@@ -65,7 +64,6 @@ dependencies = [
   "tqdm",
   "simplejson",
   "sortedcontainers",
-  "munch",
   
   # Export & Runtime
   "onnx",
