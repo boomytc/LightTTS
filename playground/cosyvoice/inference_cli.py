@@ -77,10 +77,10 @@ def main():
             stream=False, speed=args.speed
         )
     
-    # 保存音频（非流式模式只会有一个结果）
+    # 保存音频
     for audio_data in result:
         torchaudio.save(args.output, audio_data['tts_speech'], cosyvoice.sample_rate)
-        print(f"✅ 已保存音频: {args.output}")
+        print(f"已保存音频: {args.output}")
 
 
 if __name__ == '__main__':
