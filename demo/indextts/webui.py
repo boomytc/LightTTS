@@ -169,7 +169,7 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
         with gr.Accordion("高级生成参数设置", open=False, visible=True) as advanced_settings_group:
             with gr.Row():
                 with gr.Column(scale=1):
-                    gr.Markdown(f"**GPT2 采样设置** _参数会影响音频多样性和生成速度._")
+                    gr.Markdown(f"**GPT2 采样设置** _参数会影响音频多样性和生成速度_")
                     with gr.Row():
                         do_sample = gr.Checkbox(label="do_sample", value=True, info="是否进行采样")
                         temperature = gr.Slider(label="temperature", minimum=0.1, maximum=2.0, value=0.8, step=0.1)
@@ -276,4 +276,4 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
 
 if __name__ == "__main__":
     demo.queue(20)
-    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port)
+    demo.launch(server_name=cmd_args.host, server_port=cmd_args.port, inbrowser=True)
