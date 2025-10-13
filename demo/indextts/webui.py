@@ -60,22 +60,20 @@ tts = IndexTTS2(
 
 EMO_CHOICES_ALL = ["与音色参考音频相同",
                 "使用情感参考音频",
-                "使用情感向量控制",
-                "使用情感描述文本控制"]
-EMO_CHOICES_OFFICIAL = EMO_CHOICES_ALL[:-1]  # skip experimental features
+                "使用情感向量控制"]
 
 os.makedirs("outputs/tasks",exist_ok=True)
 
-def gen_single(emo_control_method,prompt, text,
+def gen_single(emo_control_method, prompt, text,
                emo_ref_path, emo_weight,
                vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8,
-               emo_text,emo_random,
+               emo_random,
                max_text_tokens_per_segment=120,
-                *args, progress=gr.Progress()):
+               *args, progress=gr.Progress()):
     output_path = None
     if not output_path:
         output_path = os.path.join("outputs", f"spk_{int(time.time())}.wav")
-    # set gradio progress
+    # 设置 gradio 进度条
     tts.gr_progress = progress
     do_sample, top_p, top_k, temperature, \
         length_penalty, num_beams, repetition_penalty, max_mel_tokens = args
@@ -88,36 +86,30 @@ def gen_single(emo_control_method,prompt, text,
         "num_beams": num_beams,
         "repetition_penalty": float(repetition_penalty),
         "max_mel_tokens": int(max_mel_tokens),
-        # "typical_sampling": bool(typical_sampling),
-        # "typical_mass": float(typical_mass),
     }
     if type(emo_control_method) is not int:
         emo_control_method = emo_control_method.value
-    if emo_control_method == 0:  # emotion from speaker
-        emo_ref_path = None  # remove external reference audio
-    if emo_control_method == 1:  # emotion from reference audio
+    if emo_control_method == 0:  # 情感来自说话人
+        emo_ref_path = None  # 移除外部参考音频
+    if emo_control_method == 1:  # 情感来自参考音频
         pass
-    if emo_control_method == 2:  # emotion from custom vectors
+    if emo_control_method == 2:  # 情感来自自定义向量
         vec = [vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8]
         vec = tts.normalize_emo_vec(vec, apply_bias=True)
     else:
-        # don't use the emotion vector inputs for the other modes
+        # 其他模式不使用情感向量输入
         vec = None
-
-    if emo_text == "":
-        # erase empty emotion descriptions; `infer()` will then automatically use the main prompt
-        emo_text = None
 
     print(f"Emo control mode:{emo_control_method},weight:{emo_weight},vec:{vec}")
     output = tts.infer(spk_audio_prompt=prompt, text=text,
                        output_path=output_path,
                        emo_audio_prompt=emo_ref_path, emo_alpha=emo_weight,
                        emo_vector=vec,
-                       use_emo_text=(emo_control_method==3), emo_text=emo_text,use_random=emo_random,
+                       use_random=emo_random,
                        verbose=cmd_args.verbose,
                        max_text_tokens_per_segment=int(max_text_tokens_per_segment),
                        **kwargs)
-    return gr.update(value=output,visible=True)
+    return gr.update(value=output, visible=True)
 
 def update_prompt_audio():
     update_button = gr.update(interactive=True)
@@ -125,9 +117,6 @@ def update_prompt_audio():
 
 def create_warning_message(warning_text):
     return gr.HTML(f"<div style=\"padding: 0.5em 0.8em; border-radius: 0.5em; background: #ffa87d; color: #000; font-weight: bold\">{html.escape(warning_text)}</div>")
-
-def create_experimental_warning_message():
-    return create_warning_message('提示:此功能为实验版,结果尚不稳定,我们正在持续优化中。')
 
 with gr.Blocks(title="IndexTTS Demo") as demo:
     mutex = threading.Lock()
@@ -144,23 +133,13 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                 gen_button = gr.Button("生成语音", key="gen_button",interactive=True)
             output_audio = gr.Audio(label="生成结果", visible=True,key="output_audio")
 
-        experimental_checkbox = gr.Checkbox(label="显示实验功能", value=False)
-
         with gr.Accordion("功能设置"):
             # 情感控制选项部分
             with gr.Row():
                 emo_control_method = gr.Radio(
-                    choices=EMO_CHOICES_OFFICIAL,
-                    type="index",
-                    value=EMO_CHOICES_OFFICIAL[0],label="情感控制方式")
-                # we MUST have an extra, INVISIBLE list of *all* emotion control
-                # methods so that gr.Dataset() can fetch ALL control mode labels!
-                # otherwise, the gr.Dataset()'s experimental labels would be empty!
-                emo_control_method_all = gr.Radio(
                     choices=EMO_CHOICES_ALL,
                     type="index",
-                    value=EMO_CHOICES_ALL[0], label="情感控制方式",
-                    visible=False)  # do not render
+                    value=EMO_CHOICES_ALL[0],label="情感控制方式")
         # 情感参考音频部分
         with gr.Group(visible=False) as emotion_reference_group:
             with gr.Row():
@@ -184,14 +163,6 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                     vec7 = gr.Slider(label="惊喜", minimum=0.0, maximum=1.0, value=0.0, step=0.05)
                     vec8 = gr.Slider(label="平静", minimum=0.0, maximum=1.0, value=0.0, step=0.05)
 
-        with gr.Group(visible=False) as emo_text_group:
-            create_experimental_warning_message()
-            with gr.Row():
-                emo_text = gr.Textbox(label="情感描述文本",
-                                      placeholder="请输入情绪描述(或留空以自动使用目标文本作为情绪描述)",
-                                      value="",
-                                      info="例如:委屈巴巴、危险在悄悄逼近")
-
         with gr.Row(visible=False) as emo_weight_group:
             emo_weight = gr.Slider(label="情感权重", minimum=0.0, maximum=1.0, value=0.65, step=0.01)
 
@@ -210,9 +181,6 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                         repetition_penalty = gr.Number(label="repetition_penalty", precision=None, value=10.0, minimum=0.1, maximum=20.0, step=0.1)
                         length_penalty = gr.Number(label="length_penalty", precision=None, value=0.0, minimum=-2.0, maximum=2.0, step=0.1)
                     max_mel_tokens = gr.Slider(label="max_mel_tokens", value=1500, minimum=50, maximum=tts.cfg.gpt.max_mel_tokens, step=10, info="生成Token最大数量,过小导致音频被截断", key="max_mel_tokens")
-                    # with gr.Row():
-                    #     typical_sampling = gr.Checkbox(label="typical_sampling", value=False, info="不建议使用")
-                    #     typical_mass = gr.Slider(label="typical_mass", value=0.9, minimum=0.0, maximum=1.0, step=0.1)
                 with gr.Column(scale=2):
                     gr.Markdown(f'**分句设置** _参数会影响音频质量和生成速度_')
                     with gr.Row():
@@ -230,7 +198,6 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
             advanced_params = [
                 do_sample, top_p, top_k, temperature,
                 length_penalty, num_beams, repetition_penalty, max_mel_tokens,
-                # typical_sampling, typical_mass,
             ]
 
     def on_input_text_change(text, max_text_tokens_per_segment):
@@ -253,30 +220,20 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
             }
 
     def on_method_change(emo_control_method):
-        if emo_control_method == 1:  # emotion reference audio
+        if emo_control_method == 1:  # 情感参考音频
             return (gr.update(visible=True),
                     gr.update(visible=False),
                     gr.update(visible=False),
-                    gr.update(visible=False),
                     gr.update(visible=True)
                     )
-        elif emo_control_method == 2:  # emotion vectors
+        elif emo_control_method == 2:  # 情感向量
             return (gr.update(visible=False),
                     gr.update(visible=True),
                     gr.update(visible=True),
-                    gr.update(visible=False),
                     gr.update(visible=True)
                     )
-        elif emo_control_method == 3:  # emotion text description
+        else:  # 0: 与说话人声音相同
             return (gr.update(visible=False),
-                    gr.update(visible=True),
-                    gr.update(visible=False),
-                    gr.update(visible=True),
-                    gr.update(visible=True)
-                    )
-        else:  # 0: same as speaker voice
-            return (gr.update(visible=False),
-                    gr.update(visible=False),
                     gr.update(visible=False),
                     gr.update(visible=False),
                     gr.update(visible=False)
@@ -287,23 +244,7 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
         outputs=[emotion_reference_group,
                  emotion_randomize_group,
                  emotion_vector_group,
-                 emo_text_group,
                  emo_weight_group]
-    )
-
-    def on_experimental_change(is_experimental, current_mode_index):
-        # 切换情感控制选项
-        new_choices = EMO_CHOICES_ALL if is_experimental else EMO_CHOICES_OFFICIAL
-        # if their current mode selection doesn't exist in new choices, reset to 0.
-        # we don't verify that OLD index means the same in NEW list, since we KNOW it does.
-        new_index = current_mode_index if current_mode_index < len(new_choices) else 0
-
-        return gr.update(choices=new_choices, value=new_choices[new_index])
-
-    experimental_checkbox.change(
-        on_experimental_change,
-        inputs=[experimental_checkbox, emo_control_method],
-        outputs=[emo_control_method]
     )
 
     input_text_single.change(
@@ -323,9 +264,9 @@ with gr.Blocks(title="IndexTTS Demo") as demo:
                          outputs=[gen_button])
 
     gen_button.click(gen_single,
-                     inputs=[emo_control_method,prompt_audio, input_text_single, emo_upload, emo_weight,
+                     inputs=[emo_control_method, prompt_audio, input_text_single, emo_upload, emo_weight,
                             vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8,
-                             emo_text,emo_random,
+                             emo_random,
                              max_text_tokens_per_segment,
                              *advanced_params,
                      ],
