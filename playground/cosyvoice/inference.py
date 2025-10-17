@@ -1,6 +1,13 @@
 import os, sys, yaml
 import torchaudio
 
+# 抑制 ONNX Runtime 警告
+os.environ['ORT_LOGGING_LEVEL'] = '3'  # 0=Verbose, 1=Info, 2=Warning, 3=Error, 4=Fatal
+
+import warnings
+warnings.filterwarnings('ignore', category=FutureWarning)
+warnings.filterwarnings('ignore', category=UserWarning)
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 matcha_path = os.path.join(project_root, 'Matcha-TTS')
 sys.path.insert(0, project_root)
