@@ -7,6 +7,10 @@ sys.path.append(project_root)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
+import torch
+if torch.cuda.is_available():
+    torch.set_float32_matmul_precision("high")
+
 import yaml
 import soundfile as sf
 from voxcpm.core import VoxCPM
