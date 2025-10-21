@@ -12,3 +12,4 @@ outputs
 .gradio
 .kiro
 indextts/s2mel/modules/bigvgan/alias_free_activation/cuda/build/
+AGENT.md
