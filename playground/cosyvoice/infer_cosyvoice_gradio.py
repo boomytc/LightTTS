@@ -85,13 +85,15 @@ def generate_speech(
     instruct_text: str,
     speed: float,
     seed: int,
-    model_dir: str,
+    model_loaded: bool,
 ):
     """Run CosyVoice inference and return audio + status message."""
     text = (text or "").strip()
     prompt_text = (prompt_text or "").strip()
     instruct_text = (instruct_text or "").strip()
-    model_dir = (model_dir or DEFAULT_MODEL_DIR).strip()
+
+    if not model_loaded:
+        return None, "请先加载模型。"
 
     if not text:
         return None, "请输入待合成文本。"
@@ -115,7 +117,7 @@ def generate_speech(
     set_all_random_seed(seed)
 
     try:
-        cosyvoice = get_model(model_dir)
+        cosyvoice = get_model(DEFAULT_MODEL_DIR)
     except Exception as exc:
         return None, f"模型加载失败: {exc}"
 
@@ -153,6 +155,22 @@ def generate_speech(
         return None, f"推理失败: {exc}"
 
 
+def load_model(model_loaded: bool):
+    """Load the CosyVoice model and enable generation once ready."""
+    if model_loaded:
+        return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
+
+    try:
+        get_model(DEFAULT_MODEL_DIR)
+        return "模型加载完成 ✅", True, gr.update(interactive=True)
+    except Exception as exc:
+        return f"模型加载失败: {exc}", False, gr.update(interactive=False)
+
+
+def stop_generation_message():
+    return "生成已停止。"
+
+
 def build_interface() -> gr.Blocks:
     with gr.Blocks(title="CosyVoice2 语音合成") as demo:
         gr.Markdown(
@@ -163,10 +181,10 @@ def build_interface() -> gr.Blocks:
         )
 
         with gr.Row():
-            model_dir = gr.Textbox(
-                label="模型目录",
-                value=DEFAULT_MODEL_DIR,
-                placeholder="models/CosyVoice2-0.5B",
+            mode = gr.Radio(
+                choices=["zero_shot", "cross_lingual", "instruct"],
+                value="zero_shot",
+                label="推理模式",
             )
             speed = gr.Slider(
                 minimum=0.5,
@@ -180,12 +198,6 @@ def build_interface() -> gr.Blocks:
                 precision=0,
                 label="随机种子",
             )
-
-        mode = gr.Radio(
-            choices=["zero_shot", "cross_lingual", "instruct"],
-            value="zero_shot",
-            label="推理模式",
-        )
 
         text = gr.Textbox(
             label="待合成文本",
@@ -212,11 +224,23 @@ def build_interface() -> gr.Blocks:
             value=DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else None,
         )
 
-        generate_button = gr.Button("生成语音")
+        model_loaded_state = gr.State(False)
+
+        with gr.Row():
+            load_button = gr.Button("加载模型")
+            generate_button = gr.Button("生成语音", interactive=False)
+            stop_button = gr.Button("停止生成", variant="stop")
+
         audio_output = gr.Audio(label="生成语音", type="numpy", autoplay=False)
         status_output = gr.Textbox(label="状态", interactive=False)
 
-        generate_button.click(
+        load_button.click(
+            fn=load_model,
+            inputs=[model_loaded_state],
+            outputs=[status_output, model_loaded_state, generate_button],
+        )
+
+        generate_event = generate_button.click(
             fn=generate_speech,
             inputs=[
                 mode,
@@ -226,9 +250,16 @@ def build_interface() -> gr.Blocks:
                 instruct_text,
                 speed,
                 seed,
-                model_dir,
+                model_loaded_state,
             ],
             outputs=[audio_output, status_output],
+        )
+
+        stop_button.click(
+            fn=stop_generation_message,
+            inputs=[],
+            outputs=[status_output],
+            cancels=[generate_event],
         )
 
         return demo
