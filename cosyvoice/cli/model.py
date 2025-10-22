@@ -60,7 +60,11 @@ class CosyVoiceModel:
         # rtf and decoding related
         self.stream_scale_factor = 1
         assert self.stream_scale_factor >= 1, 'stream_scale_factor should be greater than 1, change it according to your actual rtf'
-        self.llm_context = torch.cuda.stream(torch.cuda.Stream(self.device)) if torch.cuda.is_available() else nullcontext()
+        # 根据实际设备创建 CUDA stream 或使用 nullcontext
+        if self.device.type == 'cuda':
+            self.llm_context = torch.cuda.stream(torch.cuda.Stream(self.device))
+        else:
+            self.llm_context = nullcontext()
         self.lock = threading.Lock()
         # dict used to store session related variable
         self.tts_speech_token_dict = {}
@@ -270,7 +274,11 @@ class CosyVoice2Model(CosyVoiceModel):
         # speech fade in out
         self.speech_window = np.hamming(2 * self.source_cache_len)
         # rtf and decoding related
-        self.llm_context = torch.cuda.stream(torch.cuda.Stream(self.device)) if torch.cuda.is_available() else nullcontext()
+        # 根据实际设备创建 CUDA stream 或使用 nullcontext
+        if self.device.type == 'cuda':
+            self.llm_context = torch.cuda.stream(torch.cuda.Stream(self.device))
+        else:
+            self.llm_context = nullcontext()
         self.lock = threading.Lock()
         # dict used to store session related variable
         self.tts_speech_token_dict = {}

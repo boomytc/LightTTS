@@ -1,4 +1,5 @@
 import os
+import torch
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context
 from indextts.infer_v2 import IndexTTS2
@@ -8,9 +9,10 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # 全局配置
 MODEL_DIR = 'models/IndexTTS-2'
 CFG_PATH = 'models/IndexTTS-2/config.yaml'
-DEVICE = 'cuda'
-USE_FP16 = True
-USE_CUDA_KERNEL = True
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+# CPU 不支持 FP16 和 CUDA kernel，自动降级
+USE_FP16 = True if DEVICE == 'cuda' else False
+USE_CUDA_KERNEL = True if DEVICE == 'cuda' else False
 OUTPUT_DIR = 'outputs'
 PROMPT_WAV = 'asset/zero_shot_prompt.wav'
 MODEL_COUNT = 2  # 进程数量
@@ -38,7 +40,7 @@ def inference_worker(process_idx, items):
         device=DEVICE,
         use_cuda_kernel=USE_CUDA_KERNEL
     )
-    print(f"进程 {process_idx} 模型加载完成，任务数: {len(items)}")
+    print(f"进程 {process_idx} 模型加载完成，任务数: {len(items)}，设备: {DEVICE}，FP16: {USE_FP16}")
     
     for title, raw_text in items:
         text = raw_text.replace("\n", "")
@@ -60,7 +62,9 @@ def inference_worker(process_idx, items):
             print(f"✗ 进程 {process_idx} 生成失败: {e}")
 
 if __name__ == "__main__":
-    print(f"使用设备: {DEVICE}")
+    print(f"使用设备: {DEVICE}，FP16: {USE_FP16}，CUDA Kernel: {USE_CUDA_KERNEL}")
+    if DEVICE == 'cpu':
+        print("⚠️  警告：CPU 模式，FP16 和 CUDA Kernel 已自动禁用")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     # 任务分配：轮询分配任务到各进程

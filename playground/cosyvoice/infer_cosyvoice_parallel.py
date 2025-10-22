@@ -24,7 +24,8 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # 全局配置
 MODEL_DIR = 'models/CosyVoice2-0.5B'
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-USE_FP16 = True
+# CPU 不支持 FP16，自动降级
+USE_FP16 = True if DEVICE == 'cuda' else False
 OUTPUT_DIR = 'outputs'
 MODEL_COUNT = 3  # 进程数量
 
@@ -55,7 +56,7 @@ def inference_worker(process_idx, task_type, text, prompt_text, instruct_text):
         trt_concurrent=1,
         device=DEVICE,
     )
-    print(f"进程 {process_idx} 模型加载完成，任务: {task_type}，设备: {DEVICE}")
+    print(f"进程 {process_idx} 模型加载完成，任务: {task_type}，设备: {DEVICE}，FP16: {USE_FP16}")
     
     # 加载 prompt 音频
     prompt_audio = load_wav(PROMPT_AUDIO_PATH, 16000)
@@ -76,7 +77,9 @@ def inference_worker(process_idx, task_type, text, prompt_text, instruct_text):
         print(f"✗ 进程 {process_idx} 推理失败: {e}")
 
 if __name__ == "__main__":
-    print(f"使用设备: {DEVICE}")
+    print(f"使用设备: {DEVICE}，FP16: {USE_FP16}")
+    if DEVICE == 'cpu' and USE_FP16:
+        print("⚠️  警告：CPU 不支持 FP16，已自动降级为 FP32")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     print(f"启动 {MODEL_COUNT} 个并行进程...\n")
