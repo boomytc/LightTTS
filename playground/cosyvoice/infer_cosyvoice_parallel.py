@@ -53,8 +53,9 @@ def inference_worker(process_idx, task_type, text, prompt_text, instruct_text):
         load_vllm=False,
         fp16=USE_FP16,
         trt_concurrent=1,
+        device=DEVICE,
     )
-    print(f"进程 {process_idx} 模型加载完成，任务: {task_type}")
+    print(f"进程 {process_idx} 模型加载完成，任务: {task_type}，设备: {DEVICE}")
     
     # 加载 prompt 音频
     prompt_audio = load_wav(PROMPT_AUDIO_PATH, 16000)
