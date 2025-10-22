@@ -7,12 +7,12 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # 全局配置
 MODEL_DIR = 'models/IndexTTS-2'
 CFG_PATH = 'models/IndexTTS-2/config.yaml'
-DEVICE = 'cpu'
+DEVICE = 'cuda'
 USE_FP16 = True
 USE_CUDA_KERNEL = True
 OUTPUT_DIR = 'outputs'
 PROMPT_WAV = 'asset/zero_shot_prompt.wav'
-MODEL_COUNT = 5
+MODEL_COUNT = 2
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
