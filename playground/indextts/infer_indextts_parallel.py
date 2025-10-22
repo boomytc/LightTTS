@@ -1,5 +1,6 @@
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
 from indextts.infer_v2 import IndexTTS2
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -12,31 +13,7 @@ USE_FP16 = True
 USE_CUDA_KERNEL = True
 OUTPUT_DIR = 'outputs'
 PROMPT_WAV = 'asset/zero_shot_prompt.wav'
-MODEL_COUNT = 2
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# 加载模型
-models = []
-print(f"加载 {MODEL_COUNT} 个模型...")
-for idx in range(MODEL_COUNT):
-    try:
-        model = IndexTTS2(
-            cfg_path=CFG_PATH,
-            model_dir=MODEL_DIR,
-            use_fp16=USE_FP16,
-            device=DEVICE,
-            use_cuda_kernel=USE_CUDA_KERNEL
-        )
-        models.append(model)
-        print(f"模型 {idx} 加载完成")
-    except Exception as e:
-        print(f"模型 {idx} 加载失败: {e}")
-
-if not models:
-    raise RuntimeError("未能成功加载任何 IndexTTS2 模型")
-
-print(f"共加载 {len(models)} 个模型\n")
+MODEL_COUNT = 2  # 进程数量
 
 # 推理文本列表
 text_list = [
@@ -51,9 +28,18 @@ text_list = [
     ("长文本《盗梦空间》介绍", "《盗梦空间》是由美国华纳兄弟影片公司出品的电影，由克里斯托弗·诺兰执导并编剧，莱昂纳多·迪卡普里奥、玛丽昂·歌迪亚、约瑟夫·高登-莱维特、艾利奥特·佩吉、汤姆·哈迪等联袂主演，2010年7月16日在美国上映，2010年9月1日在中国内地上映，2020年8月28日在中国内地重映。"),
 ]
 
-def inference_worker(model_idx, items):
-    """推理工作线程"""
-    model = models[model_idx]
+def inference_worker(process_idx, items):
+    """推理工作进程 - 每个进程独立加载模型"""
+    # 每个进程加载自己的模型实例
+    model = IndexTTS2(
+        cfg_path=CFG_PATH,
+        model_dir=MODEL_DIR,
+        use_fp16=USE_FP16,
+        device=DEVICE,
+        use_cuda_kernel=USE_CUDA_KERNEL
+    )
+    print(f"进程 {process_idx} 模型加载完成，任务数: {len(items)}")
+    
     for title, raw_text in items:
         text = raw_text.replace("\n", "")
         output_path = f"{OUTPUT_DIR}/{title}.wav"
@@ -69,18 +55,25 @@ def inference_worker(model_idx, items):
                 max_text_tokens_per_segment=120,
                 verbose=False,
             )
-            print(f"✓ 模型 {model_idx} 生成完成: {output_path}")
+            print(f"✓ 进程 {process_idx} 生成完成: {output_path}")
         except Exception as e:
-            print(f"✗ 模型 {model_idx} 生成失败: {e}")
+            print(f"✗ 进程 {process_idx} 生成失败: {e}")
 
-# 任务分配：轮询分配任务到各模型
-task_groups = [[] for _ in range(len(models))]
-for idx, task in enumerate(text_list):
-    task_groups[idx % len(models)].append(task)
-
-# 并行推理
-print(f"开始并行推理...\n")
-with ThreadPoolExecutor(max_workers=len(models)) as executor:
-    futures = [executor.submit(inference_worker, idx, items) for idx, items in enumerate(task_groups) if items]
-    for future in futures:
-        future.result()
+if __name__ == "__main__":
+    print(f"使用设备: {DEVICE}")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    # 任务分配：轮询分配任务到各进程
+    task_groups = [[] for _ in range(MODEL_COUNT)]
+    for idx, task in enumerate(text_list):
+        task_groups[idx % MODEL_COUNT].append(task)
+    
+    print(f"启动 {MODEL_COUNT} 个并行进程...\n")
+    
+    # 使用 spawn 上下文避免 fork 问题
+    with ProcessPoolExecutor(max_workers=MODEL_COUNT, mp_context=get_context('spawn')) as executor:
+        futures = [executor.submit(inference_worker, idx, items) for idx, items in enumerate(task_groups) if items]
+        for future in futures:
+            future.result()
+    
+    print("\n✅ 所有任务完成！")
