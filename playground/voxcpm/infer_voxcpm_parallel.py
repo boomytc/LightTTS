@@ -1,7 +1,6 @@
 import os
 import sys
 import soundfile as sf
-import torch
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import get_context
 
@@ -17,9 +16,10 @@ from voxcpm.core import VoxCPM
 # 全局配置
 MODEL_DIR = 'models/VoxCPM-0.5B'
 SE_MODEL_DIR = 'models/speech_zipenhancer_ans_multiloss_16k_base'
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+# DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE = 'cpu'
 OUTPUT_DIR = 'outputs'
-MODEL_COUNT = 4  # 进程数量
+MODEL_COUNT = 2  # 进程数量
 
 # 推理文本列表
 text_list = [
