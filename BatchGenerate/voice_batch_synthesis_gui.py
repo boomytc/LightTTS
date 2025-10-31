@@ -12,29 +12,19 @@ _matcha_tts_path = os.path.join(_project_root, 'Matcha-TTS')
 if os.path.isdir(_matcha_tts_path) and _matcha_tts_path not in sys.path:
     sys.path.insert(1, _matcha_tts_path)
 
-import random
 import glob
-import logging
 import torch
 import torchaudio
 import librosa
-import numpy as np
-from pathlib import Path
-from threading import Thread
-import time
 import json
-import shutil
-import uuid
-from datetime import datetime
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QHBoxLayout, QGridLayout, QLabel, QLineEdit, 
                                QPushButton, QFileDialog, QProgressBar, QTextEdit,
                                QSpinBox, QDoubleSpinBox, QGroupBox, QMessageBox,
-                               QSplitter, QFrame, QTabWidget, QListWidget, 
-                               QListWidgetItem, QInputDialog, QComboBox)
+                               QSplitter, QComboBox)
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QTimer, QUrl
-from PySide6.QtGui import QFont, QIcon
+from PySide6.QtGui import QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 from cosyvoice.cli.cosyvoice import CosyVoice2

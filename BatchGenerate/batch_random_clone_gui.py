@@ -14,22 +14,17 @@ if os.path.isdir(_matcha_tts_path) and _matcha_tts_path not in sys.path:
 
 import random
 import glob
-import logging
 import torch
 import torchaudio
 import librosa
-import numpy as np
-from pathlib import Path
-from threading import Thread
-import time
 
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QHBoxLayout, QGridLayout, QLabel, QLineEdit, 
                                QPushButton, QFileDialog, QProgressBar, QTextEdit,
                                QSpinBox, QDoubleSpinBox, QGroupBox, QMessageBox,
-                               QSplitter, QFrame)
-from PySide6.QtCore import Qt, QThread, QObject, Signal, QTimer
-from PySide6.QtGui import QFont, QIcon
+                               QSplitter)
+from PySide6.QtCore import Qt, QThread, QObject, Signal
+from PySide6.QtGui import QFont
 
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
@@ -41,16 +36,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
 max_val = 0.8
-
-class LogHandler(logging.Handler):
-    """自定义日志处理器，将日志输出到GUI"""
-    def __init__(self, text_widget):
-        super().__init__()
-        self.text_widget = text_widget
-    
-    def emit(self, record):
-        log_entry = self.format(record)
-        self.text_widget.append(log_entry)
 
 class SynthesisWorker(QObject):
     """语音合成工作线程"""
