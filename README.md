@@ -1,144 +1,123 @@
 # LightTTS
 
-基于 CosyVoice 精简开发的语音合成系统。
+LightTTS 是在 CosyVoice 生态基础上整合 VoxCPM、IndexTTS、Kitten TTS 等模型的多引擎语音合成实验平台，提供统一的脚本、图形界面和批量生产工具，便于在本地快速验证不同模型的推理效果。
 
-## 📖 项目简介
+## 功能亮点
+- 支持 CosyVoice2-0.5B、VoxCPM-0.5B、IndexTTS-2、Kitten TTS Nano 等多种主流零样本语音合成模型
+- 内置 CLI 脚本、Gradio Web UI、PySide GUI 以及多进程批量推理范例
+- 通过 `config/load.yaml` 统一管理模型路径、推理设备、输出目录等公共配置
+- 预置示例音频 (`asset/zero_shot_prompt.wav`) 及常用文本，开箱即用
 
-LightTTS 是一个基于 CosyVoice 的轻量级语音合成系统，提供高质量的文本转语音功能。该项目简化了原始 CosyVoice 的复杂性，使其更易于部署和使用。
+## 仓库结构
+- `asset/`：示例提示音频与素材
+- `BatchGenerate/`：PySide6 批量语音合成与音色管理 GUI
+- `config/`：全局配置（`load.yaml`）
+- `cosyvoice/`、`voxcpm/`、`indextts/`、`kittentts/`：各模型的推理与工具代码
+- `demo/`：Gradio Web UI 与简单示例脚本
+- `playground/`：命令行和并行推理范例
+- `models/`：放置已下载的预训练权重
+- `requirements.txt`：跨平台依赖列表
 
-## ✨ 主要特性
-
-- 🎯 基于 CosyVoice2-0.5B 模型
-- 🚀 简化的部署流程
-- 🌐 Web UI 界面
-- 🔧 支持 macOS、Linux、Windows
-- 📦 轻量化设计
-
-## 🛠️ 系统要求
-
-- Python 3.10
-- Conda 环境管理器
-- macOS、Linux、Windows 操作系统
-
-## 📦 安装说明
-
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/boomytc/LightTTS.git
-cd LightTTS
-```
-
-# 如果使用ubuntu，请运行
-```bash
-sudo apt install sox libsox-dev
-```
-
-### 2. 创建虚拟环境
+## 环境准备
+1. 准备 Python 3.10（推荐使用 Conda 环境）
+2. 安装 PyTorch 与 torchaudio（根据自身 CUDA 版本参考 [PyTorch 官网](https://pytorch.org/get-started/locally/)）
+3. 安装项目依赖
 
 ```bash
 conda create -n LightTTS python=3.10 -y
 conda activate LightTTS
+pip install --upgrade pip
+# 参考 PyTorch 官网命令安装 torch/torchaudio
+pip install -r requirements.txt
 ```
 
-### 3. 安装依赖
+> **提示**：Linux 环境若提示缺少 `libsndfile`，可执行 `sudo apt install libsndfile1`。
 
-# 查看torch和torchaudio的安装命令请访问查看：[PyTorch官网](https://pytorch.org/get-started/locally/)
+## 模型资源准备
+将所需模型按下表放置到 `models/` 目录，或在 `config/load.yaml` 中改写路径。
+
+| 模型 | 推荐来源 | 默认目录 | 备注 |
+| --- | --- | --- | --- |
+| VoxCPM-0.5B | Hugging Face `openbmb/VoxCPM-0.5B` | `models/VoxCPM-0.5B` | 支持本地加载或自动快照下载 |
+| CosyVoice2-0.5B | ModelScope `iic/CosyVoice2-0.5B` | `models/CosyVoice2-0.5B` | 需同时准备 Matcha-TTS 依赖目录（仓库已包含） |
+| speech_zipenhancer_ans_multiloss_16k_base | ModelScope `iic/speech_zipenhancer_ans_multiloss_16k_base` | `models/speech_zipenhancer_ans_multiloss_16k_base` | VoxCPM 去噪可选 |
+| IndexTTS-2 | Hugging Face / ModelScope `IndexTeam/IndexTTS-2` | `models/IndexTTS-2` | 包含配置 `config.yaml` 与权重 |
+| Kitten TTS Nano 0.2 | Hugging Face `KittenML/kitten-tts-nano-0.2` | `models/kitten-tts-nano-0.2` | 纯 ONNX，CPU 即可运行 |
+
+### 示例下载命令
 ```bash
-# 安装 torch torchaudio 基本命令如下：
-pip install torch torchaudio
+# VoxCPM-0.5B（Hugging Face）
+huggingface-cli download openbmb/VoxCPM-0.5B --local-dir models/VoxCPM-0.5B --local-dir-use-symlinks False
 
-# 安装 Python 依赖包
-# 如使用 Windows，请运行
-pip install -r requirements_win.txt
-# 如使用 ubuntu，请运行
-pip install -r requirements_linux.txt
-# 如使用 mac，请运行
-pip install -r requirements_mac.txt
+# CosyVoice2-0.5B（ModelScope）
+modelscope download --model iic/CosyVoice2-0.5B --local_dir models/CosyVoice2-0.5B
+
+# VoxCPM 降噪模型
+modelscope download --model iic/speech_zipenhancer_ans_multiloss_16k_base --local_dir models/speech_zipenhancer_ans_multiloss_16k_base
+
+# IndexTTS-2
+huggingface-cli download IndexTeam/IndexTTS-2 --local-dir models/IndexTTS-2 --local-dir-use-symlinks False
+
+# Kitten TTS Nano 0.2
+huggingface-cli download KittenML/kitten-tts-nano-0.2 --local-dir models/kitten-tts-nano-0.2 --local-dir-use-symlinks False
 ```
 
-# 如果是在ubuntu上，可以选择使用ttsfrd来替代WeTextProcessing
-```bash
-modelscope download --model iic/CosyVoice-ttsfrd --local_dir ./pretrained_models/CosyVoice-ttsfrd
+## 配置
+`config/load.yaml` 管理默认运行参数：
+- `default`: 设备(`device`)、是否启用 CUDA Kernel、是否使用 FP16、输出目录等
+- `models`: 天然分块配置 `cosyvoice`、`indextts`、`kittentts`、`voxcpm` 的模型目录、额外资源和开关
 
-cd pretrained_models/CosyVoice-ttsfrd/
+运行脚本前请确认路径与本地模型一致。例如：
+- `models.kittentts.model_path` 应指向 `models/kitten-tts-nano-0.2/kitten_tts_nano_v0_2.onnx`
+- 自定义输出位置可修改 `default.output_dir`
 
-unzip resource.zip -d .
-pip install ttsfrd_dependency-0.1-py3-none-any.whl
-pip install ttsfrd-0.4.2-cp310-cp310-linux_x86_64.whl
-```
+## 快速体验
+各脚本默认在项目根目录执行，并将结果保存到 `outputs/`（或你在配置中设定的目录）。
 
-### 4. 下载预训练模型
+### VoxCPM
+- 单句示例：`python playground/voxcpm/infer_voxcpm.py`
+- 命令行工具：
+  ```bash
+  python playground/voxcpm/infer_voxcpm_cli.py --text "八百标兵奔北坡，炮兵并排北边跑。" --output outputs/voxcpm.wav
+  ```
+- 多进程批量推理：`python playground/voxcpm/infer_voxcpm_parallel.py`（根据 GPU 数量调整 `MODEL_COUNT` 和 `CUDA_VISIBLE_DEVICES`）
+- Gradio Web UI：`python demo/voxcpm/demo_webui.py`
 
-```bash
-modelscope download --model iic/CosyVoice2-0.5B --local_dir ./models/CosyVoice2-0.5B
-```
+### CosyVoice2
+- 脚本示例：`python playground/cosyvoice/infer_cosyvoice.py`
+- CLI：
+  ```bash
+  python playground/cosyvoice/infer_cosyvoice_cli.py --mode zero_shot --text "收到好友从远方寄来的生日礼物..." --output outputs/cosyvoice.wav
+  ```
+- Gradio Web UI：`python demo/cosyvoice/demo_webui_cosyvoice2.py`（支持零样本、跨语言、指令模式切换）
+- 其它 demo：`demo/cosyvoice/demo_cosyvoice2.py`、`demo/cosyvoice/inference.py`
 
-## 🚀 快速开始
+### IndexTTS-2
+- 快速生成：`python playground/indextts/infer_indextts.py`
+- CLI：
+  ```bash
+  python playground/indextts/infer_indextts_cli.py --text "大家好，我是 AI 语音合成系统" --output outputs/indextts.wav
+  ```
+  支持情感音频、情感向量与文本情感引导参数。
 
-### 使用脚本启动（推荐）
+### Kitten TTS Nano
+- 查看可用音色：`python demo/kittentts/list_voices.py`
+- 合成示例：`python demo/kittentts/demo_kittentts.py`
+  （ONNX 推理，可在 CPU 上快速体验。）
 
-```bash
-# 使用自动化脚本启动
-./run_webui.sh
-```
+### 批量与 GUI 工具
+- 音色批处理 GUI：`python BatchGenerate/voice_batch_synthesis_gui.py`
+- 随机音色克隆 GUI：`python BatchGenerate/batch_random_clone_gui.py`
+- 音色注册管理：`python BatchGenerate/voice_register_manager_gui.py`
 
-### 手动启动
+## 常见问题
+- **缺少 `huggingface-cli` 或 `modelscope`**：分别执行 `pip install huggingface-hub` 或 `pip install modelscope`。
+- **提示找不到模型文件**：检查 `config/load.yaml` 是否与实际目录匹配。
+- **CPU 推理速度慢**：VoxCPM、CosyVoice2、IndexTTS-2 推荐使用 GPU；Kitten TTS 可作为纯 CPU 方案。
+- **首次运行耗时长**：模型会在第一次调用时加载到显存/内存，请耐心等待。
 
-```bash
-# 激活环境
-conda activate LightTTS
-
-# 启动 Web UI
-python webui_cosyvoice2.py
-```
-
-### 使用演示脚本
-
-```bash
-# 运行演示
-python demo_cosyvoice2.py
-```
-
-## 📁 项目结构
-
-```
-LightTTS/
-├── cosyvoice/              # 核心语音合成模块
-├── third_party/            # 第三方依赖
-│   └── Matcha-TTS/        # Matcha-TTS 集成
-├── pretrained_models/      # 预训练模型目录
-├── webui_cosyvoice2.py    # Web UI 主程序
-├── demo_cosyvoice2.py     # 演示脚本
-├── run_webui.sh           # 启动脚本
-├── requirements_mac.txt   # 依赖包列表
-└── README.md              # 项目说明
-```
-
-## 🔧 配置说明
-
-项目会自动设置必要的环境变量：
-
-```bash
-export PYTHONPATH=third_party/Matcha-TTS
-```
-
-## 📝 使用说明
-
-1. 启动 Web UI 后，在浏览器中访问显示的本地地址
-2. 在文本框中输入要合成的文字
-3. 选择合适的语音参数
-4. 点击生成按钮获取语音文件
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request 来改进项目。
-
-## 📄 许可证
-
-本项目基于开源许可证发布，具体请查看 LICENSE 文件。
-
-## 🙏 致谢
-
-- [CosyVoice](https://github.com/FunAudioLLM/CosyVoice) - 原始语音合成模型
-- [Matcha-TTS](https://github.com/shivammehta25/Matcha-TTS) - 语音合成技术支持
+本项目整合了以下开源工作，具体协议请参阅各自仓库：
+- [CosyVoice](https://github.com/FunAudioLLM/CosyVoice)
+- [VoxCPM](https://github.com/OpenBMB/VoxCPM)
+- [IndexTTS](https://github.com/index-tts/index-tts)
+- [Kitten TTS](https://github.com/KittenML/KittenTTS)
