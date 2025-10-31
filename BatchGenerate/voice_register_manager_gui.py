@@ -37,7 +37,21 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-max_val = 0.8
+# 全局常量配置
+MAX_VAL = 0.8
+DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
+DB_CLONE_DIR_NAME = "BatchGenerate/DB_clone"
+DB_CLONE_JSONL_NAME = "db_clone.jsonl"
+
+# 音频处理参数
+PROMPT_SAMPLE_RATE = 16000
+AUDIO_TRIM_TOP_DB = 60
+AUDIO_HOP_LENGTH = 220
+AUDIO_WIN_LENGTH = 440
+AUDIO_SILENCE_DURATION = 0.2
+
+# 支持的文件扩展名
+AUDIO_FILE_FILTER = "音频文件 (*.wav *.mp3 *.flac *.m4a *.ogg);;所有文件 (*)"
 
 class VoiceRegisterWorker(QObject):
     """音色注册工作线程"""
@@ -55,19 +69,19 @@ class VoiceRegisterWorker(QObject):
         self.prompt_speech_16k = None
         
         # DB_clone 路径设置
-        self.db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        self.db_clone_jsonl = os.path.join(self.db_clone_dir, "db_clone.jsonl")
+        self.db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        self.db_clone_jsonl = os.path.join(self.db_clone_dir, DB_CLONE_JSONL_NAME)
     
-    def postprocess(self, speech, top_db=60, hop_length=220, win_length=440):
+    def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
         """音频后处理"""
         speech, _ = librosa.effects.trim(
             speech, top_db=top_db,
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > max_val:
-            speech = speech / speech.abs().max() * max_val
-        speech = torch.concat([speech, torch.zeros(1, int(16000 * 0.2))], dim=1)
+        if speech.abs().max() > MAX_VAL:
+            speech = speech / speech.abs().max() * MAX_VAL
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
         return speech
     
     def save_voice_to_db(self, voice_key, original_audio_path, prompt_text):
@@ -148,8 +162,8 @@ class VoiceRegisterWorker(QObject):
             
             # 检查音频采样率
             audio_info = torchaudio.info(self.prompt_audio_path)
-            if audio_info.sample_rate < 16000:
-                self.log_updated.emit(f"警告: 音频 {self.prompt_audio_path} 采样率过低")
+            if audio_info.sample_rate < PROMPT_SAMPLE_RATE:
+                self.log_updated.emit(f"错误: 音频采样率过低 ({audio_info.sample_rate} Hz)，需要至少 {PROMPT_SAMPLE_RATE} Hz")
                 return False
             
             # 加载并处理prompt音频
@@ -158,7 +172,7 @@ class VoiceRegisterWorker(QObject):
             self.log_updated.emit(f"音频采样率: {audio_info.sample_rate} Hz")
             self.log_updated.emit(f"音频时长: {audio_info.num_frames / audio_info.sample_rate:.2f} 秒")
             
-            self.prompt_speech_16k = self.postprocess(load_wav(self.prompt_audio_path, 16000))
+            self.prompt_speech_16k = self.postprocess(load_wav(self.prompt_audio_path, PROMPT_SAMPLE_RATE))
             
             # 保存音色到数据库
             self.status_updated.emit("正在保存音色到数据库...")
@@ -255,7 +269,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         model_layout = QGridLayout(model_group)
         
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
-        self.model_dir_edit = QLineEdit("models/CosyVoice2-0.5B")
+        self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         model_layout.addWidget(self.model_dir_edit, 0, 1)
         model_dir_btn = QPushButton("浏览")
         model_dir_btn.clicked.connect(self.select_model_dir)
@@ -427,7 +441,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """选择音频文件"""
         file_path, _ = QFileDialog.getOpenFileName(
             self, "选择音频文件", "", 
-            "音频文件 (*.wav *.mp3 *.flac *.m4a *.ogg);;所有文件 (*)"
+            AUDIO_FILE_FILTER
         )
         if file_path:
             self.audio_file_edit.setText(file_path)
@@ -456,8 +470,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         self.log_text.append("=== 音色数据库内容 ===")
         
@@ -563,8 +577,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """刷新音色列表"""
         self.voice_list_widget.clear()
         
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
             self.log_text.append("数据库文件不存在")
@@ -674,8 +688,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def is_voice_key_exists(self, voice_key):
         """检查音色键名是否已存在"""
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
             return False
@@ -694,8 +708,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def update_voice_key_in_db(self, old_key, new_key):
         """更新数据库中的音色键名"""
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
             return False
@@ -724,8 +738,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def delete_voice_from_db(self, voice_key):
         """从数据库中删除音色"""
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
             return False

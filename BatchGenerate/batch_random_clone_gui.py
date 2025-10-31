@@ -35,7 +35,36 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-max_val = 0.8
+# 全局常量配置
+MAX_VAL = 0.8
+DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
+DEFAULT_CLONE_SRC_DIR = "BatchGenerate/clone_src_wav"
+DEFAULT_INPUT_DIR = "BatchGenerate/texts"
+DEFAULT_OUTPUT_DIR = "BatchGenerate/output"
+
+# 音频处理参数
+PROMPT_SAMPLE_RATE = 16000
+DEFAULT_OUTPUT_SAMPLE_RATE = 22050
+MIN_SAMPLE_RATE = 16000
+MAX_SAMPLE_RATE = 48000
+SAMPLE_RATE_STEP = 1000
+
+# 音频后处理参数
+AUDIO_TRIM_TOP_DB = 60
+AUDIO_HOP_LENGTH = 220
+AUDIO_WIN_LENGTH = 440
+AUDIO_SILENCE_DURATION = 0.2
+
+# 支持的文件扩展名
+AUDIO_EXTENSIONS = ['.wav', '.mp3', '.flac', '.m4a', '.ogg']
+TEXT_EXTENSIONS = ['.txt']
+
+# 默认合成参数
+DEFAULT_SPEED = 1.0
+DEFAULT_SEED = -1
+MIN_SPEED = 0.5
+MAX_SPEED = 2.0
+SPEED_STEP = 0.1
 
 class SynthesisWorker(QObject):
     """语音合成工作线程"""
@@ -45,7 +74,7 @@ class SynthesisWorker(QObject):
     finished = Signal(int, int)  # success_count, total_count
     
     def __init__(self, model_dir, clone_src_dir, input_dir, output_dir, 
-                 speed=1.0, seed=None, sample_rate=22050):
+                 speed=DEFAULT_SPEED, seed=None, sample_rate=DEFAULT_OUTPUT_SAMPLE_RATE):
         super().__init__()
         self.model_dir = model_dir
         self.clone_src_dir = clone_src_dir
@@ -59,31 +88,28 @@ class SynthesisWorker(QObject):
     def stop(self):
         self.is_running = False
     
-    def postprocess(self, speech, top_db=60, hop_length=220, win_length=440):
+    def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
         """音频后处理"""
         speech, _ = librosa.effects.trim(
             speech, top_db=top_db,
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > max_val:
-            speech = speech / speech.abs().max() * max_val
-        speech = torch.concat([speech, torch.zeros(1, int(16000 * 0.2))], dim=1)
+        if speech.abs().max() > MAX_VAL:
+            speech = speech / speech.abs().max() * MAX_VAL
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
         return speech
     
     def get_prompt_pairs(self, clone_src_dir):
         """获取clone_src_dir中的音频文本对"""
-        audio_exts = ['.wav', '.mp3', '.flac', '.m4a', '.ogg']
-        text_exts = ['.txt']
-        
         pairs = []
         
-        for audio_ext in audio_exts:
+        for audio_ext in AUDIO_EXTENSIONS:
             audio_files = glob.glob(os.path.join(clone_src_dir, f"*{audio_ext}"))
             for audio_file in audio_files:
                 base_name = os.path.splitext(os.path.basename(audio_file))[0]
                 
-                for text_ext in text_exts:
+                for text_ext in TEXT_EXTENSIONS:
                     text_file = os.path.join(clone_src_dir, f"{base_name}{text_ext}")
                     if os.path.exists(text_file):
                         pairs.append((audio_file, text_file))
@@ -106,14 +132,13 @@ class SynthesisWorker(QObject):
     def get_input_text_files(self, input_dir):
         """获取输入目录中的所有文本文件"""
         text_files = []
-        text_exts = ['.txt']
         
-        for text_ext in text_exts:
+        for text_ext in TEXT_EXTENSIONS:
             text_files.extend(glob.glob(os.path.join(input_dir, f"*{text_ext}")))
         
         return text_files
     
-    def synthesize_audio(self, cosyvoice, tts_text, prompt_text, prompt_wav_path, prompt_sr=16000):
+    def synthesize_audio(self, cosyvoice, tts_text, prompt_text, prompt_wav_path, prompt_sr=PROMPT_SAMPLE_RATE):
         """语音合成函数"""
         if self.seed is not None:
             set_all_random_seed(self.seed)
@@ -283,7 +308,7 @@ class BatchCloneGUI(QMainWindow):
         
         # 模型路径
         folders_layout.addWidget(QLabel("模型路径:"), 0, 0)
-        self.model_dir_edit = QLineEdit("models/CosyVoice2-0.5B")
+        self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         folders_layout.addWidget(self.model_dir_edit, 0, 1)
         model_dir_btn = QPushButton("浏览")
         model_dir_btn.clicked.connect(self.select_model_dir)
@@ -291,7 +316,7 @@ class BatchCloneGUI(QMainWindow):
         
         # Clone源文件夹
         folders_layout.addWidget(QLabel("Clone源文件夹:"), 1, 0)
-        self.clone_src_edit = QLineEdit("BatchGenerate/clone_src_wav")
+        self.clone_src_edit = QLineEdit(DEFAULT_CLONE_SRC_DIR)
         folders_layout.addWidget(self.clone_src_edit, 1, 1)
         clone_src_btn = QPushButton("浏览")
         clone_src_btn.clicked.connect(self.select_clone_src_dir)
@@ -299,7 +324,7 @@ class BatchCloneGUI(QMainWindow):
         
         # 输入文本文件夹
         folders_layout.addWidget(QLabel("输入文本文件夹:"), 2, 0)
-        self.input_dir_edit = QLineEdit("BatchGenerate/texts")
+        self.input_dir_edit = QLineEdit(DEFAULT_INPUT_DIR)
         folders_layout.addWidget(self.input_dir_edit, 2, 1)
         input_dir_btn = QPushButton("浏览")
         input_dir_btn.clicked.connect(self.select_input_dir)
@@ -307,7 +332,7 @@ class BatchCloneGUI(QMainWindow):
         
         # 输出文件夹
         folders_layout.addWidget(QLabel("输出文件夹:"), 3, 0)
-        self.output_dir_edit = QLineEdit("BatchGenerate/output")
+        self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
         folders_layout.addWidget(self.output_dir_edit, 3, 1)
         output_dir_btn = QPushButton("浏览")
         output_dir_btn.clicked.connect(self.select_output_dir)
@@ -322,25 +347,25 @@ class BatchCloneGUI(QMainWindow):
         # 语音速度
         params_layout.addWidget(QLabel("语音速度:"), 0, 0)
         self.speed_spinbox = QDoubleSpinBox()
-        self.speed_spinbox.setRange(0.5, 2.0)
-        self.speed_spinbox.setSingleStep(0.1)
-        self.speed_spinbox.setValue(1.0)
+        self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
+        self.speed_spinbox.setSingleStep(SPEED_STEP)
+        self.speed_spinbox.setValue(DEFAULT_SPEED)
         params_layout.addWidget(self.speed_spinbox, 0, 1)
         
         # 随机种子
         params_layout.addWidget(QLabel("随机种子:"), 1, 0)
         self.seed_spinbox = QSpinBox()
-        self.seed_spinbox.setRange(-1, 999999999)
-        self.seed_spinbox.setValue(-1)
+        self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
+        self.seed_spinbox.setValue(DEFAULT_SEED)
         self.seed_spinbox.setSpecialValueText("随机")
         params_layout.addWidget(self.seed_spinbox, 1, 1)
         
         # 采样率
         params_layout.addWidget(QLabel("采样率:"), 2, 0)
         self.sample_rate_spinbox = QSpinBox()
-        self.sample_rate_spinbox.setRange(16000, 48000)
-        self.sample_rate_spinbox.setSingleStep(1000)
-        self.sample_rate_spinbox.setValue(22050)
+        self.sample_rate_spinbox.setRange(MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
+        self.sample_rate_spinbox.setSingleStep(SAMPLE_RATE_STEP)
+        self.sample_rate_spinbox.setValue(DEFAULT_OUTPUT_SAMPLE_RATE)
         params_layout.addWidget(self.sample_rate_spinbox, 2, 1)
         
         layout.addWidget(params_group)

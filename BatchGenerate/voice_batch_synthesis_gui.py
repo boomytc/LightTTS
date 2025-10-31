@@ -36,7 +36,36 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-max_val = 0.8
+# 全局常量配置
+MAX_VAL = 0.8
+DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
+DEFAULT_INPUT_DIR = "BatchGenerate/texts"
+DEFAULT_OUTPUT_DIR = "BatchGenerate/voice_output"
+DB_CLONE_DIR_NAME = "BatchGenerate/DB_clone"
+DB_CLONE_JSONL_NAME = "db_clone.jsonl"
+
+# 音频处理参数
+PROMPT_SAMPLE_RATE = 16000
+DEFAULT_OUTPUT_SAMPLE_RATE = 22050
+MIN_SAMPLE_RATE = 16000
+MAX_SAMPLE_RATE = 48000
+SAMPLE_RATE_STEP = 1000
+
+# 音频后处理参数
+AUDIO_TRIM_TOP_DB = 60
+AUDIO_HOP_LENGTH = 220
+AUDIO_WIN_LENGTH = 440
+AUDIO_SILENCE_DURATION = 0.2
+
+# 支持的文件扩展名
+TEXT_EXTENSIONS = ['.txt']
+
+# 默认合成参数
+DEFAULT_SPEED = 1.0
+DEFAULT_SEED = -1
+MIN_SPEED = 0.5
+MAX_SPEED = 2.0
+SPEED_STEP = 0.1
 
 class VoiceSynthesisWorker(QObject):
     """音色批量合成工作线程"""
@@ -46,7 +75,7 @@ class VoiceSynthesisWorker(QObject):
     finished = Signal(int, int)  # success_count, total_count
     
     def __init__(self, model_dir, voice_data, input_dir, output_dir, 
-                 speed=1.0, seed=None, sample_rate=22050):
+                 speed=DEFAULT_SPEED, seed=None, sample_rate=DEFAULT_OUTPUT_SAMPLE_RATE):
         super().__init__()
         self.model_dir = model_dir
         self.voice_data = voice_data
@@ -62,16 +91,16 @@ class VoiceSynthesisWorker(QObject):
     def stop(self):
         self.is_running = False
     
-    def postprocess(self, speech, top_db=60, hop_length=220, win_length=440):
+    def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
         """音频后处理"""
         speech, _ = librosa.effects.trim(
             speech, top_db=top_db,
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > max_val:
-            speech = speech / speech.abs().max() * max_val
-        speech = torch.concat([speech, torch.zeros(1, int(16000 * 0.2))], dim=1)
+        if speech.abs().max() > MAX_VAL:
+            speech = speech / speech.abs().max() * MAX_VAL
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
         return speech
     
     def read_text_file(self, text_file):
@@ -89,9 +118,8 @@ class VoiceSynthesisWorker(QObject):
     def get_input_text_files(self, input_dir):
         """获取输入目录中的所有文本文件"""
         text_files = []
-        text_exts = ['.txt']
         
-        for text_ext in text_exts:
+        for text_ext in TEXT_EXTENSIONS:
             text_files.extend(glob.glob(os.path.join(input_dir, f"*{text_ext}")))
         
         return text_files
@@ -113,8 +141,8 @@ class VoiceSynthesisWorker(QObject):
             
             # 检查音频采样率
             audio_info = torchaudio.info(prompt_audio_path)
-            if audio_info.sample_rate < 16000:
-                self.log_updated.emit(f"警告: 音频 {prompt_audio_path} 采样率过低")
+            if audio_info.sample_rate < PROMPT_SAMPLE_RATE:
+                self.log_updated.emit(f"错误: 音频采样率过低 ({audio_info.sample_rate} Hz)，需要至少 {PROMPT_SAMPLE_RATE} Hz")
                 return False
             
             # 加载并处理prompt音频
@@ -124,7 +152,7 @@ class VoiceSynthesisWorker(QObject):
             self.log_updated.emit(f"音频时长: {audio_info.num_frames / audio_info.sample_rate:.2f} 秒")
             self.log_updated.emit(f"Prompt文本: {self.voice_data.get('target', '')}")
             
-            self.prompt_speech_16k = self.postprocess(load_wav(prompt_audio_path, 16000))
+            self.prompt_speech_16k = self.postprocess(load_wav(prompt_audio_path, PROMPT_SAMPLE_RATE))
             
             self.log_updated.emit("音色加载完成！")
             return True
@@ -285,7 +313,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         model_layout = QGridLayout(model_group)
         
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
-        self.model_dir_edit = QLineEdit("models/CosyVoice2-0.5B")
+        self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         model_layout.addWidget(self.model_dir_edit, 0, 1)
         model_dir_btn = QPushButton("浏览")
         model_dir_btn.clicked.connect(self.select_model_dir)
@@ -326,7 +354,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         # 输入文本文件夹
         batch_layout.addWidget(QLabel("输入文本文件夹:"), 0, 0)
-        self.input_dir_edit = QLineEdit("BatchGenerate/texts")
+        self.input_dir_edit = QLineEdit(DEFAULT_INPUT_DIR)
         batch_layout.addWidget(self.input_dir_edit, 0, 1)
         input_dir_btn = QPushButton("浏览")
         input_dir_btn.clicked.connect(self.select_input_dir)
@@ -334,7 +362,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         # 输出文件夹
         batch_layout.addWidget(QLabel("输出文件夹:"), 1, 0)
-        self.output_dir_edit = QLineEdit("BatchGenerate/voice_output")
+        self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
         batch_layout.addWidget(self.output_dir_edit, 1, 1)
         output_dir_btn = QPushButton("浏览")
         output_dir_btn.clicked.connect(self.select_output_dir)
@@ -349,25 +377,25 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         # 语音速度
         params_layout.addWidget(QLabel("语音速度:"), 0, 0)
         self.speed_spinbox = QDoubleSpinBox()
-        self.speed_spinbox.setRange(0.5, 2.0)
-        self.speed_spinbox.setSingleStep(0.1)
-        self.speed_spinbox.setValue(1.0)
+        self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
+        self.speed_spinbox.setSingleStep(SPEED_STEP)
+        self.speed_spinbox.setValue(DEFAULT_SPEED)
         params_layout.addWidget(self.speed_spinbox, 0, 1)
         
         # 随机种子
         params_layout.addWidget(QLabel("随机种子:"), 1, 0)
         self.seed_spinbox = QSpinBox()
-        self.seed_spinbox.setRange(-1, 999999999)
-        self.seed_spinbox.setValue(-1)
+        self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
+        self.seed_spinbox.setValue(DEFAULT_SEED)
         self.seed_spinbox.setSpecialValueText("随机")
         params_layout.addWidget(self.seed_spinbox, 1, 1)
         
         # 采样率
         params_layout.addWidget(QLabel("采样率:"), 2, 0)
         self.sample_rate_spinbox = QSpinBox()
-        self.sample_rate_spinbox.setRange(16000, 48000)
-        self.sample_rate_spinbox.setSingleStep(1000)
-        self.sample_rate_spinbox.setValue(22050)
+        self.sample_rate_spinbox.setRange(MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
+        self.sample_rate_spinbox.setSingleStep(SAMPLE_RATE_STEP)
+        self.sample_rate_spinbox.setValue(DEFAULT_OUTPUT_SAMPLE_RATE)
         params_layout.addWidget(self.sample_rate_spinbox, 2, 1)
         
         layout.addWidget(params_group)
@@ -458,8 +486,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         self.log_text.append("=== 音色数据库内容 ===")
         
@@ -668,8 +696,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         self.voice_combo.clear()
         
-        db_clone_dir = os.path.join(_project_root, "BatchGenerate/DB_clone")
-        db_clone_jsonl = os.path.join(db_clone_dir, "db_clone.jsonl")
+        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
             self.voice_combo.addItem("请选择音色...")
