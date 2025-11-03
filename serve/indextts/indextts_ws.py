@@ -39,8 +39,9 @@ class IndexTTSWebSocketServer:
         self.model = None
 
     def load_model(self):
-        """懒加载模型"""
+        """加载模型"""
         if self.model is None:
+            print("正在加载 IndexTTS 模型...")
             is_cuda = self.device.startswith("cuda")
             self.model = IndexTTS2(
                 cfg_path=self.cfg_path,
@@ -49,6 +50,7 @@ class IndexTTSWebSocketServer:
                 device=self.device,
                 use_cuda_kernel=is_cuda,
             )
+            print(f"✅ IndexTTS 模型加载完成 [设备: {self.device}]")
         return self.model
 
     async def websocket_handler(self, websocket):
@@ -204,6 +206,11 @@ class IndexTTSWebSocketServer:
     async def start_server(self):
         """启动 WebSocket 服务器"""
         print(f"启动 IndexTTS 流式 WebSocket 服务器: ws://{self.host}:{self.port}")
+        
+        # 预加载模型
+        self.load_model()
+        
+        print(f"\n🚀 服务器已就绪，等待客户端连接...")
         async with websockets.serve(self.websocket_handler, self.host, self.port, max_size=None):
             await asyncio.Future()  # 运行直到手动停止
 

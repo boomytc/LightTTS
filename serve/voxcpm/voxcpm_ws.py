@@ -64,8 +64,9 @@ class VoxCPMWebSocketServer:
         self.model = None
 
     def load_model(self):
-        """懒加载模型"""
+        """加载模型"""
         if self.model is None:
+            print("正在加载 VoxCPM 模型...")
             self.model = VoxCPM.from_pretrained(
                 hf_model_id=self.model_dir,
                 load_denoiser=False,  # 统一使用外部 zipenhancer
@@ -73,6 +74,7 @@ class VoxCPMWebSocketServer:
                 local_files_only=True,
                 device=self.device,
             )
+            print(f"✅ VoxCPM 模型加载完成 [设备: {self.device}]")
         return self.model
 
     async def websocket_handler(self, websocket):
@@ -183,6 +185,11 @@ class VoxCPMWebSocketServer:
     async def start_server(self):
         """启动 WebSocket 服务器"""
         print(f"启动 VoxCPM 流式 WebSocket 服务器: ws://{self.host}:{self.port}")
+        
+        # 预加载模型
+        self.load_model()
+        
+        print(f"\n🚀 服务器已就绪，等待客户端连接...")
         async with websockets.serve(self.websocket_handler, self.host, self.port, max_size=None):
             await asyncio.Future()  # 运行直到手动停止
 

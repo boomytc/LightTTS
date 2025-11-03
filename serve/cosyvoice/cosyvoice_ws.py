@@ -40,8 +40,9 @@ class CosyVoiceWebSocketServer:
         self.model = None
 
     def load_model(self):
-        """懒加载模型"""
+        """加载模型"""
         if self.model is None:
+            print("正在加载 CosyVoice 模型...")
             is_cuda = self.device == "cuda" and torch.cuda.is_available()
             self.model = CosyVoice2(
                 model_dir=self.model_dir,
@@ -52,6 +53,7 @@ class CosyVoiceWebSocketServer:
                 trt_concurrent=1,
                 device=self.device,
             )
+            print(f"✅ CosyVoice 模型加载完成 [设备: {self.device}]")
         return self.model
 
     def load_prompt_audio(self, prompt_audio_path: str) -> torch.Tensor:
@@ -219,6 +221,11 @@ class CosyVoiceWebSocketServer:
     async def start_server(self):
         """启动 WebSocket 服务器"""
         print(f"启动 CosyVoice 流式 WebSocket 服务器: ws://{self.host}:{self.port}")
+        
+        # 预加载模型
+        self.load_model()
+        
+        print(f"\n🚀 服务器已就绪，等待客户端连接...")
         async with websockets.serve(self.websocket_handler, self.host, self.port, max_size=None):
             await asyncio.Future()  # 运行直到手动停止
 
