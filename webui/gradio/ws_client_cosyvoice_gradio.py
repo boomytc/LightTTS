@@ -120,6 +120,23 @@ def generate_speech(
     ))
 
 
+async def test_connection(server_uri: str):
+    """测试 WebSocket 连接"""
+    try:
+        async with websockets.connect(server_uri, max_size=None) as ws:
+            # 接收欢迎消息
+            welcome = await ws.recv()
+            data = json.loads(welcome)
+            return f"✅ 连接成功：{data.get('message', '服务器已就绪')}", gr.update(interactive=True)
+    except Exception as e:
+        return f"❌ 连接失败：{str(e)}", gr.update(interactive=False)
+
+
+def test_connection_sync(server_uri: str):
+    """同步包装器"""
+    return asyncio.run(test_connection(server_uri))
+
+
 def stop_generation_message():
     return "生成已停止。"
 
@@ -220,8 +237,9 @@ def build_interface() -> gr.Blocks:
                 )
                 
                 with gr.Row():
-                    generate_button = gr.Button("生成语音", variant="primary")
-                    stop_button = gr.Button("停止生成", variant="stop")
+                    test_button = gr.Button("测试连接", scale=1)
+                    generate_button = gr.Button("生成语音", variant="primary", interactive=False, scale=1)
+                    stop_button = gr.Button("停止生成", variant="stop", scale=1)
 
             # 右侧：输出面板
             with gr.Column(scale=1):
@@ -243,6 +261,12 @@ def build_interface() -> gr.Blocks:
             fn=update_ui_visibility,
             inputs=[mode],
             outputs=[prompt_audio, prompt_text, instruct_text],
+        )
+
+        test_button.click(
+            fn=test_connection_sync,
+            inputs=[server_uri],
+            outputs=[status_output, generate_button],
         )
 
         generate_event = generate_button.click(
