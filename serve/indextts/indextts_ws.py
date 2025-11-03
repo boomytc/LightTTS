@@ -13,7 +13,8 @@ import sys
 import io
 import websockets
 import torch
-import torchaudio
+import soundfile as sf
+import numpy as np
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, project_root)
@@ -170,13 +171,15 @@ class IndexTTSWebSocketServer:
             sample_rate, audio_numpy = result
 
             # 将音频转换为 WAV 格式的字节流
+            # 确保 audio_numpy 是 1D 或 2D numpy 数组
+            if isinstance(audio_numpy, np.ndarray):
+                if audio_numpy.ndim > 1:
+                    audio_numpy = audio_numpy.squeeze()  # 移除多余维度
+            else:
+                audio_numpy = np.array(audio_numpy)
+            
             buffer = io.BytesIO()
-            torchaudio.save(
-                buffer,
-                torch.from_numpy(audio_numpy).unsqueeze(0),
-                sample_rate,
-                format="wav"
-            )
+            sf.write(buffer, audio_numpy, sample_rate, format="wav")
             buffer.seek(0)
             audio_bytes = buffer.read()
 
