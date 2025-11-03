@@ -46,19 +46,25 @@ DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
 DEFAULT_PROMPT_TEXT = "希望你以后能够做得比我还好哟。"
 
 _model: Optional[VoxCPM] = None
+_model_config: dict = {}
 
 
-def get_model() -> VoxCPM:
+def get_model(device: str = DEVICE) -> VoxCPM:
     """懒加载并缓存 VoxCPM 管道。"""
-    global _model
-    if _model is None:
+    global _model, _model_config
+    
+    current_config = {"device": device}
+    
+    # 如果配置变化，重新加载模型
+    if _model is None or _model_config != current_config:
         _model = VoxCPM.from_pretrained(
             hf_model_id=MODEL_ID,
-            load_denoiser=False,
+            load_denoiser=False,  # 统一使用外部 zipenhancer
             zipenhancer_model_id=ZIPENHANCER_MODEL_ID,
             local_files_only=True,
-            device=DEVICE,
+            device=device,
         )
+        _model_config = current_config
     return _model
 
 
@@ -91,6 +97,7 @@ def generate_speech(
     retry_badcase: bool,
     retry_max_times: int,
     retry_ratio_threshold: float,
+    device: str,
     model_loaded: bool,
 ):
     """运行 VoxCPM 推理并返回音频 + 状态消息。"""
@@ -107,7 +114,7 @@ def generate_speech(
         return None, "使用参考音频时，请提供对应的参考文本。"
 
     try:
-        voxcpm = get_model()
+        voxcpm = get_model(device)
     except Exception as exc:
         return None, f"模型加载失败: {exc}"
 
@@ -129,13 +136,13 @@ def generate_speech(
         return None, f"推理失败: {exc}"
 
 
-def load_model(model_loaded: bool):
+def load_model(device: str, model_loaded: bool):
     """加载 VoxCPM 模型并在准备就绪后启用生成。"""
     if model_loaded:
         return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
 
     try:
-        get_model()
+        get_model(device)
         return "模型加载完成 ✅", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
@@ -160,6 +167,13 @@ def build_interface() -> gr.Blocks:
             # 左侧：控制面板
             with gr.Column(scale=1):
                 gr.Markdown("### 控制面板")
+                
+                device = gr.Radio(
+                    choices=["cuda", "cpu"],
+                    value="cuda" if torch.cuda.is_available() else "cpu",
+                    label="运行设备",
+                    info="选择模型运行的设备（CPU 或 GPU）",
+                )
 
                 text = gr.Textbox(
                     label="待合成文本",
@@ -259,7 +273,7 @@ def build_interface() -> gr.Blocks:
 
         load_button.click(
             fn=load_model,
-            inputs=[model_loaded_state],
+            inputs=[device, model_loaded_state],
             outputs=[status_output, model_loaded_state, generate_button],
         )
 
@@ -276,6 +290,7 @@ def build_interface() -> gr.Blocks:
                 retry_badcase,
                 retry_max_times,
                 retry_ratio_threshold,
+                device,
                 model_loaded_state,
             ],
             outputs=[audio_output, status_output],

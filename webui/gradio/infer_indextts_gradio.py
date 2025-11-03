@@ -3,6 +3,7 @@ import sys
 from functools import lru_cache
 
 import gradio as gr
+import torch
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, project_root)
@@ -18,16 +19,21 @@ USE_CUDA_KERNEL = False
 
 EMO_LABELS = ["高兴", "愤怒", "悲伤", "恐惧", "反感", "低落", "惊讶", "自然"]
 
+_model_cache = {}
+
 
 @lru_cache(maxsize=1)
-def get_model() -> IndexTTS2:
+def get_model(device: str = DEVICE) -> IndexTTS2:
     """Load and cache IndexTTS2 model."""
+    # 根据设备类型自动配置加载参数
+    is_cuda = device.startswith("cuda")
+    
     return IndexTTS2(
         cfg_path=DEFAULT_CFG_PATH,
         model_dir=DEFAULT_MODEL_DIR,
-        use_fp16=USE_FP16,
-        device=DEVICE,
-        use_cuda_kernel=USE_CUDA_KERNEL,
+        use_fp16=is_cuda and USE_FP16,  # CUDA 启用 FP16
+        device=device,
+        use_cuda_kernel=is_cuda and USE_CUDA_KERNEL,  # CUDA 启用自定义核
     )
 
 
@@ -82,6 +88,7 @@ def generate_speech(
     interval_silence: int,
     max_tokens: int,
     use_random: bool,
+    device: str,
     model_loaded: bool,
 ):
     """Run IndexTTS2 inference and return audio + status message."""
@@ -101,7 +108,7 @@ def generate_speech(
         return None, "情感文本引导模式需要输入引导文本。"
 
     try:
-        indextts = get_model()
+        indextts = get_model(device)
     except Exception as exc:
         return None, f"模型加载失败: {exc}"
 
@@ -143,13 +150,13 @@ def generate_speech(
         return None, f"推理失败: {exc}"
 
 
-def load_model(model_loaded: bool):
+def load_model(device: str, model_loaded: bool):
     """Load the IndexTTS2 model and enable generation once ready."""
     if model_loaded:
         return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
 
     try:
-        get_model()
+        get_model(device)
         return "模型加载完成 ✅", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
@@ -174,6 +181,13 @@ def build_interface() -> gr.Blocks:
             # 左侧：控制面板
             with gr.Column(scale=1):
                 gr.Markdown("### 控制面板")
+                
+                device = gr.Radio(
+                    choices=["cuda", "cpu"],
+                    value="cuda" if torch.cuda.is_available() else "cpu",
+                    label="运行设备",
+                    info="选择模型运行的设备（CUDA 会自动启用 FP16 和 CUDA 核）",
+                )
 
                 text = gr.Textbox(
                     label="待合成文本",
@@ -282,7 +296,7 @@ def build_interface() -> gr.Blocks:
 
         load_button.click(
             fn=load_model,
-            inputs=[model_loaded_state],
+            inputs=[device, model_loaded_state],
             outputs=[status_output, model_loaded_state, generate_button],
         )
 
@@ -299,6 +313,7 @@ def build_interface() -> gr.Blocks:
                 interval_silence,
                 max_tokens,
                 use_random,
+                device,
                 model_loaded_state,
             ],
             outputs=[audio_output, status_output],

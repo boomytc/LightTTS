@@ -17,7 +17,7 @@ from cosyvoice.utils.common import set_all_random_seed
 
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呦。"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呀。"
 USE_FP16 = True
 LOAD_JIT = False
 LOAD_TRT = False
@@ -30,17 +30,23 @@ MODE_MAPPING = {
     "指令控制": "instruct",
 }
 
+_model_cache = {}
+
 
 @lru_cache(maxsize=2)
-def get_model(model_dir: str) -> CosyVoice2:
-    """Load and cache CosyVoice2 models by directory."""
+def get_model(model_dir: str = DEFAULT_MODEL_DIR, device: str = "cuda") -> CosyVoice2:
+    """Load and cache CosyVoice2 models by configuration."""
+    # 根据设备类型自动配置加载参数
+    is_cuda = device == "cuda" and torch.cuda.is_available()
+    
     return CosyVoice2(
         model_dir=model_dir,
         load_jit=LOAD_JIT,
         load_trt=LOAD_TRT,
         load_vllm=LOAD_VLLM,
-        fp16=USE_FP16,
+        fp16=is_cuda and USE_FP16,  # 仅 CUDA 启用 FP16
         trt_concurrent=TRT_CONCURRENT,
+        device=device,
     )
 
 
@@ -88,6 +94,7 @@ def generate_speech(
     instruct_text: str,
     speed: float,
     seed: int,
+    device: str,
     model_loaded: bool,
 ):
     """Run CosyVoice inference and return audio + status message."""
@@ -122,7 +129,7 @@ def generate_speech(
     set_all_random_seed(seed)
 
     try:
-        cosyvoice = get_model(DEFAULT_MODEL_DIR)
+        cosyvoice = get_model(DEFAULT_MODEL_DIR, device)
     except Exception as exc:
         return None, f"模型加载失败: {exc}"
 
@@ -160,13 +167,13 @@ def generate_speech(
         return None, f"推理失败: {exc}"
 
 
-def load_model(model_loaded: bool):
+def load_model(device: str, model_loaded: bool):
     """Load the CosyVoice model and enable generation once ready."""
     if model_loaded:
         return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
 
     try:
-        get_model(DEFAULT_MODEL_DIR)
+        get_model(DEFAULT_MODEL_DIR, device)
         return "模型加载完成 ✅", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
@@ -216,6 +223,13 @@ def build_interface() -> gr.Blocks:
             # 左侧：控制面板
             with gr.Column(scale=1):
                 gr.Markdown("### 控制面板")
+                
+                device = gr.Radio(
+                    choices=["cuda", "cpu"],
+                    value="cuda" if torch.cuda.is_available() else "cpu",
+                    label="运行设备",
+                    info="选择模型运行的设备（CUDA 会自动启用 FP16）",
+                )
                 
                 mode = gr.Radio(
                     choices=["零样本克隆", "跨语言克隆", "指令控制"],
@@ -297,7 +311,7 @@ def build_interface() -> gr.Blocks:
 
         load_button.click(
             fn=load_model,
-            inputs=[model_loaded_state],
+            inputs=[device, model_loaded_state],
             outputs=[status_output, model_loaded_state, generate_button],
         )
 
@@ -311,6 +325,7 @@ def build_interface() -> gr.Blocks:
                 instruct_text,
                 speed,
                 seed,
+                device,
                 model_loaded_state,
             ],
             outputs=[audio_output, status_output],
