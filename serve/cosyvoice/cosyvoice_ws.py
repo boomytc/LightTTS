@@ -71,123 +71,138 @@ class CosyVoiceWebSocketServer:
         await websocket.send(json.dumps(welcome_msg, ensure_ascii=False))
 
         try:
-            # 接收客户端请求
-            raw_msg = await websocket.recv()
-            try:
-                data = json.loads(raw_msg)
-            except Exception:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "无效的JSON"}, ensure_ascii=False)
-                )
-                return
-
-            if data.get("type") != "tts_stream":
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "仅支持 tts_stream"}, ensure_ascii=False)
-                )
-                return
-
-            # 解析参数
-            text = data.get("text")
-            mode = data.get("mode", "zero_shot")  # zero_shot / cross_lingual / instruct
-            prompt_audio_path = data.get("prompt_audio", os.path.join(project_root, "asset", "zero_shot_prompt.wav"))
-            prompt_text = data.get("prompt_text", "希望你以后能够做的比我还好呀。")
-            instruct_text = data.get("instruct_text", "")
-            speed = data.get("speed", 1.0)
-            seed = data.get("seed", 0)
-
-            # 参数验证
-            if not text or not isinstance(text, str):
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "缺少有效的 text"}, ensure_ascii=False)
-                )
-                return
-
-            if mode not in ["zero_shot", "cross_lingual", "instruct"]:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "mode 必须是 zero_shot/cross_lingual/instruct"}, ensure_ascii=False)
-                )
-                return
-
-            if mode == "zero_shot" and not prompt_text:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "零样本克隆模式需要提供 prompt_text"}, ensure_ascii=False)
-                )
-                return
-
-            if mode == "instruct" and not instruct_text:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": "指令控制模式需要提供 instruct_text"}, ensure_ascii=False)
-                )
-                return
-
-            # 加载模型和参考音频
-            try:
-                model = self.load_model()
-                prompt_audio = self.load_prompt_audio(prompt_audio_path)
-            except Exception as e:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": f"模型或音频加载失败: {str(e)}"}, ensure_ascii=False)
-                )
-                return
-
-            # 设置随机种子
-            set_all_random_seed(int(seed))
-
-            # 根据模式调用推理
-            try:
-                if mode == "zero_shot":
-                    result_generator = model.inference_zero_shot(
-                        text,
-                        prompt_text,
-                        prompt_audio,
-                        stream=True,  # 流式生成
-                        speed=float(speed),
+            # 支持持久连接，可以处理多个请求
+            async for raw_msg in websocket:
+                try:
+                    data = json.loads(raw_msg)
+                except Exception:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "无效的JSON"}, ensure_ascii=False)
                     )
-                elif mode == "cross_lingual":
-                    result_generator = model.inference_cross_lingual(
-                        text,
-                        prompt_audio,
-                        stream=True,
-                        speed=float(speed),
-                    )
-                elif mode == "instruct":
-                    result_generator = model.inference_instruct2(
-                        text,
-                        instruct_text,
-                        prompt_audio,
-                        stream=True,
-                        speed=float(speed),
-                    )
-            except Exception as e:
-                await websocket.send(
-                    json.dumps({"status": "error", "message": f"推理失败: {str(e)}"}, ensure_ascii=False)
-                )
-                return
-
-            # 流式发送音频片段
-            for segment in result_generator:
-                audio_tensor = segment.get("tts_speech")
-                if audio_tensor is None:
                     continue
 
-                # 将音频转换为 WAV 格式的字节流
-                audio_numpy = audio_tensor.squeeze(0).cpu().numpy()
-                buffer = io.BytesIO()
-                torchaudio.save(
-                    buffer,
-                    torch.from_numpy(audio_numpy).unsqueeze(0),
-                    model.sample_rate,
-                    format="wav"
-                )
-                buffer.seek(0)
-                audio_bytes = buffer.read()
+                if data.get("type") != "tts_stream":
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "仅支持 tts_stream"}, ensure_ascii=False)
+                    )
+                    continue
 
-                # 发送二进制音频数据
-                await websocket.send(audio_bytes)
+                # 解析参数
+                text = data.get("text")
+                mode = data.get("mode", "zero_shot")  # zero_shot / cross_lingual / instruct
+                prompt_audio_path = data.get("prompt_audio", os.path.join(project_root, "asset", "zero_shot_prompt.wav"))
+                prompt_text = data.get("prompt_text", "希望你以后能够做的比我还好呀。")
+                instruct_text = data.get("instruct_text", "")
+                speed = data.get("speed", 1.0)
+                seed = data.get("seed", 0)
 
-            # 合成完成，发送结束标记
-            await websocket.send(json.dumps({"type": "end"}, ensure_ascii=False))
+                # 参数验证
+                if not text or not isinstance(text, str):
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "缺少有效的 text"}, ensure_ascii=False)
+                    )
+                    continue
+
+                if mode not in ["zero_shot", "cross_lingual", "instruct"]:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "mode 必须是 zero_shot/cross_lingual/instruct"}, ensure_ascii=False)
+                    )
+                    continue
+
+                if mode == "zero_shot" and not prompt_text:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "零样本克隆模式需要提供 prompt_text"}, ensure_ascii=False)
+                    )
+                    continue
+
+                if mode == "instruct" and not instruct_text:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": "指令控制模式需要提供 instruct_text"}, ensure_ascii=False)
+                    )
+                    continue
+
+                # 加载模型和参考音频
+                try:
+                    model = self.load_model()
+                    prompt_audio = self.load_prompt_audio(prompt_audio_path)
+                except Exception as e:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": f"模型或音频加载失败: {str(e)}"}, ensure_ascii=False)
+                    )
+                    continue
+
+                # 设置随机种子
+                set_all_random_seed(int(seed))
+
+                # 发送开始标记
+                await websocket.send(json.dumps({"type": "start", "message": "开始生成音频"}, ensure_ascii=False))
+
+                # 根据模式调用推理并实时流式发送
+                result_generator = None
+                try:
+                    if mode == "zero_shot":
+                        result_generator = model.inference_zero_shot(
+                            text,
+                            prompt_text,
+                            prompt_audio,
+                            stream=True,  # 流式生成
+                            speed=float(speed),
+                        )
+                    elif mode == "cross_lingual":
+                        result_generator = model.inference_cross_lingual(
+                            text,
+                            prompt_audio,
+                            stream=True,
+                            speed=float(speed),
+                        )
+                    elif mode == "instruct":
+                        result_generator = model.inference_instruct2(
+                            text,
+                            instruct_text,
+                            prompt_audio,
+                            stream=True,
+                            speed=float(speed),
+                        )
+
+                    # 实时流式发送音频片段
+                    if result_generator is not None:
+                        segment_count = 0
+                        for segment in result_generator:
+                            audio_tensor = segment.get("tts_speech")
+                            if audio_tensor is None:
+                                continue
+
+                            # 将音频转换为 WAV 格式的字节流
+                            audio_numpy = audio_tensor.squeeze(0).cpu().numpy()
+                            buffer = io.BytesIO()
+                            torchaudio.save(
+                                buffer,
+                                torch.from_numpy(audio_numpy).unsqueeze(0),
+                                model.sample_rate,
+                                format="wav"
+                            )
+                            buffer.seek(0)
+                            audio_bytes = buffer.read()
+
+                            # 立即发送二进制音频数据（边生成边发送）
+                            await websocket.send(audio_bytes)
+                            segment_count += 1
+
+                        # 合成完成，发送结束标记
+                        await websocket.send(json.dumps({
+                            "type": "end",
+                            "message": "生成完成",
+                            "segments": segment_count
+                        }, ensure_ascii=False))
+                    else:
+                        await websocket.send(
+                            json.dumps({"status": "error", "message": "无效的模式"}, ensure_ascii=False)
+                        )
+                except Exception as e:
+                    await websocket.send(
+                        json.dumps({"status": "error", "message": f"推理失败: {str(e)}"}, ensure_ascii=False)
+                    )
+                    continue
 
         except websockets.exceptions.ConnectionClosed:
             # 客户端中断连接
