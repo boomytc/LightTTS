@@ -30,7 +30,7 @@ except Exception:
 
 
 def _disable_optimize(self: VoxCPMModel):
-    """Disable torch.compile optimizations that fail under some CUDA setups."""
+    """禁用在某些 CUDA 设置下失败的 torch.compile 优化。"""
     self.base_lm.forward_step = self.base_lm.forward_step
     self.residual_lm.forward_step = self.residual_lm.forward_step
     self.feat_encoder_step = self.feat_encoder
@@ -42,12 +42,14 @@ VoxCPMModel.optimize = _disable_optimize
 MODEL_ID = "models/VoxCPM-0.5B"
 ZIPENHANCER_MODEL_ID = "models/speech_zipenhancer_ans_multiloss_16k_base"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
+DEFAULT_PROMPT_TEXT = "希望你以后能够做得比我还好哟。"
 
 _model: Optional[VoxCPM] = None
 
 
 def get_model() -> VoxCPM:
-    """Lazily initialize and cache the VoxCPM pipeline."""
+    """懒加载并缓存 VoxCPM 管道。"""
     global _model
     if _model is None:
         _model = VoxCPM.from_pretrained(
@@ -61,7 +63,7 @@ def get_model() -> VoxCPM:
 
 
 def _save_prompt_audio(prompt_audio: Tuple[int, np.ndarray]) -> Optional[str]:
-    """Persist uploaded prompt audio to a temporary WAV file."""
+    """将上传的提示音频保存到临时 WAV 文件中。"""
     if prompt_audio is None:
         return None
 
@@ -79,300 +81,218 @@ def _save_prompt_audio(prompt_audio: Tuple[int, np.ndarray]) -> Optional[str]:
 
 
 def generate_speech(
-    model_ready: bool,
     text: str,
-    prompt_audio: Optional[Tuple[int, np.ndarray]],
-    prompt_text: Optional[str],
+    prompt_audio_path: str,
+    prompt_text: str,
     cfg_value: float,
     inference_timesteps: int,
     normalize: bool,
     denoise: bool,
     retry_badcase: bool,
-    retry_badcase_max_times: int,
-    retry_badcase_ratio_threshold: float,
+    retry_max_times: int,
+    retry_ratio_threshold: float,
+    model_loaded: bool,
 ):
-    if not bool(model_ready):
-        raise gr.Error("请先点击“加载模型”按钮。")
-
+    """运行 VoxCPM 推理并返回音频 + 状态消息。"""
     text = (text or "").strip()
-    if not text:
-        raise gr.Error("请输入需要合成的文本。")
-
     prompt_text = (prompt_text or "").strip()
-    prompt_wav_path: Optional[str] = None
-    temp_wav_path: Optional[str] = None
+
+    if not model_loaded:
+        return None, "请先加载模型。"
+
+    if not text:
+        return None, "请输入待合成文本。"
+
+    if prompt_audio_path and not prompt_text:
+        return None, "使用参考音频时，请提供对应的参考文本。"
 
     try:
-        if prompt_audio is not None:
-            if not prompt_text:
-                raise gr.Error("提供提示音频时需要同时填写提示文本。")
-            prompt_wav_path = _save_prompt_audio(prompt_audio)
-            temp_wav_path = prompt_wav_path
+        voxcpm = get_model()
+    except Exception as exc:
+        return None, f"模型加载失败: {exc}"
 
-        model = get_model()
-        sample_rate = getattr(model.tts_model.audio_vae, "sample_rate", 16000)
-
-        wav = model.generate(
+    try:
+        wav = voxcpm.generate(
             text=text,
-            prompt_wav_path=prompt_wav_path,  # type: ignore
-            prompt_text=prompt_text if prompt_wav_path else None,  # type: ignore
+            prompt_wav_path=prompt_audio_path or None,  # type: ignore
+            prompt_text=prompt_text or None,  # type: ignore
             cfg_value=cfg_value,
             inference_timesteps=inference_timesteps,
             normalize=normalize,
             denoise=denoise,
             retry_badcase=retry_badcase,
-            retry_badcase_max_times=retry_badcase_max_times,
-            retry_badcase_ratio_threshold=retry_badcase_ratio_threshold,
+            retry_badcase_max_times=retry_max_times,
+            retry_badcase_ratio_threshold=retry_ratio_threshold,
         )
-
-        wav = np.asarray(wav, dtype=np.float32)
-        return sample_rate, wav
-
+        return (16000, wav), "生成完成 ✅"
     except Exception as exc:
-        raise gr.Error(f"生成语音失败：{exc}") from exc
-    finally:
-        if temp_wav_path:
-            try:
-                os.unlink(temp_wav_path)
-            except OSError:
-                pass
+        return None, f"推理失败: {exc}"
 
 
-def load_model_action():
+def load_model(model_loaded: bool):
+    """加载 VoxCPM 模型并在准备就绪后启用生成。"""
+    if model_loaded:
+        return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
+
     try:
-        model = get_model()
-        sample_rate = getattr(model.tts_model.audio_vae, "sample_rate", 16000)
-        device_info = "GPU (CUDA)" if DEVICE == "cuda" else "CPU"
-        status_md = (
-            f"**🟢 模型状态：已加载**\n\n"
-            f"- 设备：{device_info}\n"
-            f"- 采样率：{sample_rate} Hz\n"
-            f"- 模型：VoxCPM-0.5B\n\n"
-            f"✅ 可以开始生成语音了！"
-        )
-        return (
-            status_md,
-            True,
-            gr.update(interactive=False, value="✅ 已加载"),
-            gr.update(interactive=True, variant="primary"),
-        )
+        get_model()
+        return "模型加载完成 ✅", True, gr.update(interactive=True)
     except Exception as exc:
-        error_md = (
-            f"**🔴 模型加载失败**\n\n"
-            f"错误信息：{str(exc)}\n\n"
-            f"请检查模型文件是否存在于 `{MODEL_ID}` 目录"
-        )
-        return (
-            error_md,
-            False,
-            gr.update(interactive=True),
-            gr.update(interactive=False),
-        )
+        return f"模型加载失败: {exc}", False, gr.update(interactive=False)
 
 
-with gr.Blocks(title="VoxCPM 语音合成") as demo:
-    gr.Markdown(
-        """
-        # 🎙️ VoxCPM 语音合成演示
-        
-        VoxCPM 是一个端到端的零样本语音合成模型，支持高质量的声音克隆和多语言合成。
-        """
-    )
+def stop_generation_message():
+    return "生成已停止。"
 
-    model_loaded_state = gr.State(False)
 
-    # 快速入门提示
-    with gr.Accordion("📖 快速入门", open=False, elem_id="tips-accordion"):
+def build_interface() -> gr.Blocks:
+    with gr.Blocks(title="VoxCPM 语音合成") as demo:
         gr.Markdown(
             """
-            ### 使用步骤
-            1. **加载模型** - 点击"加载模型"按钮，等待模型初始化完成
-            2. **输入文本** - 在文本框中输入需要合成的内容
-            3. **（可选）声音克隆** - 上传参考音频和对应文本，实现声音克隆
-            4. **生成语音** - 点击"生成语音"按钮开始合成
-            
-            ### 💡 参数说明
-            - **CFG 值**：控制对提示音频的遵循程度（1.0-4.0），值越高越接近参考音色
-            - **推理步数**：影响生成质量和速度（5-30步），步数越多质量越好但速度越慢
-            - **文本标准化**：自动处理数字、符号等特殊文本，关闭后支持音素输入
-            - **音频降噪**：对参考音频进行降噪处理，提升克隆效果
+            # VoxCPM 语音合成演示
+            支持零样本声音克隆和高质量语音生成。
             """
         )
 
-    with gr.Row():
-        # 左侧：输入控制区
-        with gr.Column(scale=1):
-            gr.Markdown("### 📝 文本输入")
-            
-            text_input = gr.Textbox(
-                label="待合成文本",
-                lines=6,
-                placeholder="请输入需要合成的文本内容...",
-                info="支持中英文混合输入，可使用标点符号控制停顿",
-            )
+        model_loaded_state = gr.State(False)
 
-            gr.Markdown("### 🎤 声音克隆（可选）")
-            
-            prompt_audio_input = gr.Audio(
-                label="参考音频",
-                type="numpy",
-                sources=["upload", "microphone"],
-            )
-            
-            prompt_text_input = gr.Textbox(
-                label="参考文本",
-                lines=2,
-                placeholder="请输入参考音频对应的文本内容...",
-                info="参考音频中说话人说的内容",
-            )
+        with gr.Row():
+            # 左侧：控制面板
+            with gr.Column(scale=1):
+                gr.Markdown("### 控制面板")
 
-            gr.Markdown("### ⚙️ 生成参数")
-            
-            with gr.Row():
-                cfg_slider = gr.Slider(
-                    minimum=0.5,
-                    maximum=4.0,
-                    step=0.1,
+                text = gr.Textbox(
+                    label="待合成文本",
+                    lines=4,
+                    placeholder="请输入需要合成的文本",
+                )
+
+                prompt_audio = gr.Audio(
+                    label="参考音频（可选）",
+                    sources=["upload"],
+                    type="filepath",
+                    value=DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else None,
+                )
+
+                prompt_text = gr.Textbox(
+                    label="参考文本（使用参考音频时必填）",
+                    value=DEFAULT_PROMPT_TEXT,
+                    lines=2,
+                    info="参考音频对应的文本内容",
+                )
+
+                cfg_value = gr.Slider(
+                    minimum=1.0,
+                    maximum=3.0,
                     value=2.0,
-                    label="CFG 引导值",
-                    info="推荐值：2.0-2.5",
+                    step=0.1,
+                    label="CFG 值（引导尺度）",
+                    info="值越高对提示遵循越好，但质量可能下降",
                 )
-                timestep_slider = gr.Slider(
-                    minimum=5,
+
+                inference_timesteps = gr.Slider(
+                    minimum=4,
                     maximum=30,
-                    step=1,
                     value=10,
-                    label="推理步数",
-                    info="推荐值：10-15",
+                    step=1,
+                    label="推理时间步数",
+                    info="值越高质量越好，但速度越慢",
                 )
 
-            with gr.Row():
-                normalize_checkbox = gr.Checkbox(
+                normalize = gr.Checkbox(
+                    label="启用文本标准化",
                     value=True,
-                    label="文本标准化",
-                    info="处理数字、符号等",
-                )
-                denoise_checkbox = gr.Checkbox(
-                    value=True,
-                    label="音频降噪",
-                    info="提升克隆效果",
+                    info="使用外部工具进行文本标准化",
                 )
 
-            # 高级选项
-            with gr.Accordion("🔧 高级选项", open=False):
-                retry_checkbox = gr.Checkbox(
+                denoise = gr.Checkbox(
+                    label="启用降噪",
                     value=True,
-                    label="启用自动重试",
-                    info="检测到生成异常时自动重试",
+                    info="使用外部降噪工具增强音质",
                 )
-                
-                with gr.Row():
-                    retry_max_slider = gr.Slider(
+
+                with gr.Accordion("高级选项", open=False):
+                    retry_badcase = gr.Checkbox(
+                        label="启用糟糕情况重试",
+                        value=True,
+                        info="自动重试生成质量不佳的情况",
+                    )
+
+                    retry_max_times = gr.Slider(
                         minimum=1,
-                        maximum=5,
-                        step=1,
+                        maximum=10,
                         value=3,
+                        step=1,
                         label="最大重试次数",
                     )
-                    ratio_slider = gr.Slider(
-                        minimum=1.0,
+
+                    retry_ratio_threshold = gr.Slider(
+                        minimum=3.0,
                         maximum=10.0,
-                        step=0.5,
                         value=6.0,
-                        label="音频长度阈值（倍）",
-                        info="音频/文本长度比例上限",
+                        step=0.5,
+                        label="糟糕情况检测阈值",
+                        info="长度比率阈值，可根据语速调整",
                     )
 
-            # 操作按钮
-            with gr.Row():
-                load_button = gr.Button(
-                    "🚀 加载模型",
-                    variant="primary",
-                    scale=1,
-                )
-                generate_button = gr.Button(
-                    "🎵 生成语音",
+                with gr.Row():
+                    load_button = gr.Button("加载模型", scale=1)
+                    generate_button = gr.Button("生成语音", interactive=False, scale=1)
+
+                stop_button = gr.Button("停止生成", variant="stop")
+
+            # 右侧：输出面板
+            with gr.Column(scale=1):
+                gr.Markdown("### 输出结果")
+
+                status_output = gr.Textbox(
+                    label="状态",
                     interactive=False,
-                    variant="secondary",
-                    scale=1,
+                    lines=2,
                 )
 
-        # 右侧：输出展示区
-        with gr.Column(scale=1):
-            gr.Markdown("### 📊 状态信息")
-            
-            model_status = gr.Markdown(
-                "**🔴 模型状态：未加载** - 请先点击加载模型按钮",
-            )
-
-            gr.Markdown("### 🔊 生成结果")
-            
-            output_audio = gr.Audio(
-                label="合成音频",
-                type="numpy",
-                show_download_button=True,
-                autoplay=False,
-            )
-
-            # 示例文本
-            gr.Markdown("### 📚 示例文本")
-            gr.Examples(
-                examples=[
-                    ["你好，欢迎使用 VoxCPM 语音合成系统。"],
-                    ["八百标兵奔北坡，炮兵并排北边跑。"],
-                    ["VoxCPM 是一个强大的端到端语音合成模型，支持零样本声音克隆。"],
-                    ["春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。"],
-                ],
-                inputs=text_input,
-                label=None,
-            )
-
-            # 使用提示
-            with gr.Accordion("💬 使用建议", open=False):
-                gr.Markdown(
-                    """
-                    **声音克隆技巧**
-                    - 参考音频建议时长：3-10秒
-                    - 参考音频质量：清晰、无背景噪音
-                    - 参考文本要准确对应音频内容
-                    
-                    **参数调优建议**
-                    - CFG 值过高：音质可能下降，声音过于夸张
-                    - CFG 值过低：可能偏离参考音色
-                    - 推理步数增加：质量提升但速度变慢
-                    
-                    **文本输入提示**
-                    - 支持中英文混合
-                    - 使用标点符号控制语气和停顿
-                    - 关闭标准化可输入音素（如 {ni3}{hao3}）
-                    """
+                audio_output = gr.Audio(
+                    label="生成语音",
+                    type="numpy",
+                    autoplay=False,
                 )
 
-    # 事件绑定
-    load_button.click(
-        fn=load_model_action,
-        inputs=[],
-        outputs=[model_status, model_loaded_state, load_button, generate_button],
-    )
+        load_button.click(
+            fn=load_model,
+            inputs=[model_loaded_state],
+            outputs=[status_output, model_loaded_state, generate_button],
+        )
 
-    generate_button.click(
-        fn=generate_speech,
-        inputs=[
-            model_loaded_state,
-            text_input,
-            prompt_audio_input,
-            prompt_text_input,
-            cfg_slider,
-            timestep_slider,
-            normalize_checkbox,
-            denoise_checkbox,
-            retry_checkbox,
-            retry_max_slider,
-            ratio_slider,
-        ],
-        outputs=output_audio,
-    )
+        generate_event = generate_button.click(
+            fn=generate_speech,
+            inputs=[
+                text,
+                prompt_audio,
+                prompt_text,
+                cfg_value,
+                inference_timesteps,
+                normalize,
+                denoise,
+                retry_badcase,
+                retry_max_times,
+                retry_ratio_threshold,
+                model_loaded_state,
+            ],
+            outputs=[audio_output, status_output],
+        )
+
+        stop_button.click(
+            fn=stop_generation_message,
+            inputs=[],
+            outputs=[status_output],
+            cancels=[generate_event],
+        )
+
+        return demo
+
+
+demo = build_interface()
 
 
 if __name__ == "__main__":
-    demo.queue(max_size=4).launch(server_name="0.0.0.0", share=False)
+    demo.queue(max_size=4).launch(inbrowser=True, server_name="0.0.0.0", server_port=7860)
