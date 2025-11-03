@@ -26,6 +26,7 @@ pyworld
 openai-whisper
 funasr
 descript-audiotools==0.7.2
+sounddevice
 
 diffusers
 lightning
