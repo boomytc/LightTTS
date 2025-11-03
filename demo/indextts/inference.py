@@ -1,22 +1,22 @@
 import os
-import yaml
 from indextts.infer_v2 import IndexTTS2
 
-with open("config/load.yaml", "r", encoding = "utf-8") as f:
-    config = yaml.safe_load(f)
+# 全局配置变量
+DEVICE = "cuda"
+USE_CUDA_KERNEL = True
+USE_FP16 = True
+OUTPUT_DIR = "outputs"
+MODEL_DIR = "models/IndexTTS-2"
+CFG_PATH = "models/IndexTTS-2/config.yaml"
 
-config_default = config["default"]
-config_indextts = config["models"]["indextts"]
-
-output_dir = config_default["output_dir"]
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 tts = IndexTTS2(
-    cfg_path = config_indextts["cfg_path"],
-    model_dir = config_indextts["model_dir"],
-    use_fp16 = config_default["use_fp16"],
-    device = config_default["device"],
-    use_cuda_kernel = config_default["use_cuda_kernel"]
+    cfg_path=CFG_PATH,
+    model_dir=MODEL_DIR,
+    use_fp16=USE_FP16,
+    device=DEVICE,
+    use_cuda_kernel=USE_CUDA_KERNEL
 )
 
 prompt_wav = "asset/zero_shot_prompt.wav"
@@ -47,7 +47,7 @@ for title, text in text_list:
     tts.infer(
         spk_audio_prompt=prompt_wav, 
         text=text, 
-        output_path=f"{output_dir}/{title}.wav", 
+        output_path=f"{OUTPUT_DIR}/{title}.wav", 
         emo_audio_prompt=None,                      #情感参考音频
         emo_alpha=1,                                #情感参考音频权重(0.0-1.0)     
         # emo_vector=[0, 0, 0, 0, 0, 0, 0.45, 0],     #情感向量([happy, angry, sad, afraid, disgusted, melancholic, surprised, calm])

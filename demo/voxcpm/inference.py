@@ -7,25 +7,25 @@ sys.path.append(project_root)
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-import yaml
 import soundfile as sf
 from voxcpm.core import VoxCPM
 
-with open("config/load.yaml", "r", encoding = "utf-8") as f:
-    config = yaml.safe_load(f)
+# 全局配置变量
+DEVICE = "cuda"
+OUTPUT_DIR = "outputs"
+MODEL_DIR = "models/VoxCPM-0.5B"
+SE_MODEL_DIR = "models/speech_zipenhancer_ans_multiloss_16k_base"
+LOAD_DENOISER = False
+LOCAL_FILES_ONLY = True
 
-config_default = config["default"]
-config_voxcpm = config["models"]["voxcpm"]
-
-output_dir = config_default["output_dir"]
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 model = VoxCPM.from_pretrained(
-    config_voxcpm["model_dir"],
-    load_denoiser=config_voxcpm["load_denoiser"],
-    zipenhancer_model_id=config_voxcpm["se_model_dir"],
-    local_files_only=config_voxcpm["local_files_only"],
-    device=config_default["device"],
+    MODEL_DIR,
+    load_denoiser=LOAD_DENOISER,
+    zipenhancer_model_id=SE_MODEL_DIR,
+    local_files_only=LOCAL_FILES_ONLY,
+    device=DEVICE,
 )
 
 wav = model.generate(
@@ -41,6 +41,6 @@ wav = model.generate(
     retry_badcase_ratio_threshold=6.0, # 糟糕情况检测的最大长度限制（简单但有效），可以为慢语速语音调整
 )
 
-output_file = f"{output_dir}/八百标兵奔北坡.wav"
+output_file = f"{OUTPUT_DIR}/八百标兵奔北坡.wav"
 sf.write(output_file, wav, 16000)
 print(f"saved: {output_file}")

@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-import yaml
 
 current_dir = os.path.dirname(__file__)
 project_root = os.path.dirname(os.path.dirname(current_dir))
@@ -11,6 +10,13 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import soundfile as sf
 from voxcpm.core import VoxCPM
+
+# 全局配置变量
+DEVICE = "cuda"
+MODEL_DIR = "models/VoxCPM-0.5B"
+SE_MODEL_DIR = "models/speech_zipenhancer_ans_multiloss_16k_base"
+LOAD_DENOISER = False
+LOCAL_FILES_ONLY = True
 
 
 def main():
@@ -39,10 +45,9 @@ def main():
     parser.add_argument('--prompt_text', type=str, default=None, help='提示音频对应的文本')
     
     # 模型配置
-    parser.add_argument('--config', type=str, default='config/load.yaml', help='配置文件路径')
-    parser.add_argument('--model_dir', type=str, default=None, help='模型路径（覆盖配置文件）')
+    parser.add_argument('--model_dir', type=str, default=None, help='模型路径（覆盖默认配置）')
     parser.add_argument('--device', type=str, default=None, choices=['cpu', 'cuda'], 
-                        help='运行设备（覆盖配置文件）')
+                        help='运行设备（覆盖默认配置）')
     
     # 生成控制参数
     gen_group = parser.add_argument_group('生成控制选项')
@@ -69,15 +74,9 @@ def main():
     
     args = parser.parse_args()
     
-    # 加载配置
-    with open(args.config, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    config_default = config["default"]
-    config_voxcpm = config["models"]["voxcpm"]
-    
-    # 覆盖配置
-    model_dir = args.model_dir if args.model_dir else config_voxcpm["model_dir"]
-    device = args.device if args.device else config_default["device"]
+    # 使用全局变量或命令行参数
+    model_dir = args.model_dir if args.model_dir else MODEL_DIR
+    device = args.device if args.device else DEVICE
     
     # 创建输出目录
     output_dir = os.path.dirname(args.output)
@@ -90,9 +89,9 @@ def main():
     
     model = VoxCPM.from_pretrained(
         model_dir,
-        load_denoiser=config_voxcpm["load_denoiser"],
-        zipenhancer_model_id=config_voxcpm["se_model_dir"],
-        local_files_only=config_voxcpm["local_files_only"],
+        load_denoiser=LOAD_DENOISER,
+        zipenhancer_model_id=SE_MODEL_DIR,
+        local_files_only=LOCAL_FILES_ONLY,
         device=device,
     )
     

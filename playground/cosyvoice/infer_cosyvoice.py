@@ -1,4 +1,5 @@
-import os, sys, yaml
+import os
+import sys
 import torchaudio
 
 import warnings
@@ -16,22 +17,25 @@ sys.path.insert(0, matcha_path)
 from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 
-with open("config/load.yaml", 'r', encoding='utf-8') as f:
-    config = yaml.safe_load(f)
+# 全局配置变量
+DEVICE = "cuda"
+USE_FP16 = True
+OUTPUT_DIR = "outputs"
+MODEL_DIR = "models/CosyVoice2-0.5B"
+LOAD_JIT = False
+LOAD_TRT = False
+LOAD_VLLM = False
+TRT_CONCURRENT = 1
 
-config_default = config['default']
-config_cosyvoice = config["models"]["cosyvoice"]
-
-output_dir = config_default["output_dir"]
-os.makedirs(output_dir, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 tts_model = CosyVoice2(
-    model_dir=config_cosyvoice["model_dir"],
-    load_jit=config_cosyvoice["load_jit"],
-    load_trt=config_cosyvoice["load_trt"],
-    load_vllm=config_cosyvoice["load_vllm"],
-    fp16=config_default["use_fp16"],
-    trt_concurrent=config_cosyvoice["trt_concurrent"],
+    model_dir=MODEL_DIR,
+    load_jit=LOAD_JIT,
+    load_trt=LOAD_TRT,
+    load_vllm=LOAD_VLLM,
+    fp16=USE_FP16,
+    trt_concurrent=TRT_CONCURRENT,
 )
 
 prompt_audio = load_wav('./asset/zero_shot_prompt.wav', 16000)

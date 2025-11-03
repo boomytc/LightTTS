@@ -5,13 +5,12 @@ LightTTS 是在 CosyVoice 生态基础上整合 VoxCPM、IndexTTS、Kitten TTS �
 ## 功能亮点
 - 支持 CosyVoice2-0.5B、VoxCPM-0.5B、IndexTTS-2、Kitten TTS Nano 等多种主流零样本语音合成模型
 - 内置 CLI 脚本、Gradio Web UI、PySide GUI 以及多进程批量推理范例
-- 通过 `config/load.yaml` 统一管理模型路径、推理设备、输出目录等公共配置
+- 通过全局变量和 CLI 参数灵活配置模型路径、推理设备、输出目录等
 - 预置示例音频 (`asset/zero_shot_prompt.wav`) 及常用文本，开箱即用
 
 ## 仓库结构
 - `asset/`：示例提示音频与素材
 - `BatchGenerate/`：PySide6 批量语音合成与音色管理 GUI
-- `config/`：全局配置（`load.yaml`）
 - `cosyvoice/`、`voxcpm/`、`indextts/`、`kittentts/`：各模型的推理与工具代码
 - `demo/`：Gradio Web UI 与简单示例脚本
 - `playground/`：命令行和并行推理范例
@@ -34,7 +33,7 @@ pip install -r requirements.txt
 > **提示**：Linux 环境若提示缺少 `libsndfile`，可执行 `sudo apt install libsndfile1`。
 
 ## 模型资源准备
-将所需模型按下表放置到 `models/` 目录，或在 `config/load.yaml` 中改写路径。
+将所需模型按下表放置到 `models/` 目录，或在脚本中修改对应的全局变量（如 `MODEL_DIR`）。
 
 | 模型 | 推荐来源 | 默认目录 | 备注 |
 | --- | --- | --- | --- |
@@ -63,13 +62,17 @@ huggingface-cli download KittenML/kitten-tts-nano-0.2 --local-dir models/kitten-
 ```
 
 ## 配置
-`config/load.yaml` 管理默认运行参数：
-- `default`: 设备(`device`)、是否启用 CUDA Kernel、是否使用 FP16、输出目录等
-- `models`: 天然分块配置 `cosyvoice`、`indextts`、`kittentts`、`voxcpm` 的模型目录、额外资源和开关
+各脚本在文件顶部定义了全局变量来管理默认运行参数：
+- `DEVICE`: 运行设备（`"cuda"` 或 `"cpu"`）
+- `USE_FP16`: 是否使用半精度推理
+- `OUTPUT_DIR`: 输出目录路径
+- `MODEL_DIR`: 模型目录路径
+- 其他模型特定配置（如 `LOAD_JIT`、`CFG_PATH` 等）
 
-运行脚本前请确认路径与本地模型一致。例如：
-- `models.kittentts.model_path` 应指向 `models/kitten-tts-nano-0.2/kitten_tts_nano_v0_2.onnx`
-- 自定义输出位置可修改 `default.output_dir`
+运行脚本前请确认路径与本地模型一致。CLI 脚本支持通过 `--model_dir` 和 `--device` 参数覆盖默认配置。例如：
+```bash
+python playground/voxcpm/infer_voxcpm_cli.py --text "测试" --model_dir models/VoxCPM-0.5B --device cuda
+```
 
 ## 快速体验
 各脚本默认在项目根目录执行，并将结果保存到 `outputs/`（或你在配置中设定的目录）。
@@ -112,7 +115,7 @@ huggingface-cli download KittenML/kitten-tts-nano-0.2 --local-dir models/kitten-
 
 ## 常见问题
 - **缺少 `huggingface-cli` 或 `modelscope`**：分别执行 `pip install huggingface-hub` 或 `pip install modelscope`。
-- **提示找不到模型文件**：检查 `config/load.yaml` 是否与实际目录匹配。
+- **提示找不到模型文件**：检查脚本中的 `MODEL_DIR` 等全局变量是否与实际目录匹配，或使用 CLI 参数 `--model_dir` 指定路径。
 - **CPU 推理速度慢**：VoxCPM、CosyVoice2、IndexTTS-2 推荐使用 GPU；Kitten TTS 可作为纯 CPU 方案。
 - **首次运行耗时长**：模型会在第一次调用时加载到显存/内存，请耐心等待。
 

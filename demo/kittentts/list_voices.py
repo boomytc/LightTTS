@@ -8,18 +8,15 @@ sys.path.append(project_root)
 kittentts_dir = os.path.join(project_root, 'kittentts')
 sys.path.insert(0, kittentts_dir)
 
-import yaml
 from kittentts.onnx_model import KittenTTS_Onnx
 
-with open("config/load.yaml", 'r', encoding='utf-8') as f:
-    config = yaml.safe_load(f)
-
-config_default = config["default"]
-config_kittentts = config["models"]["kittentts"]
+# 全局配置变量
+MODEL_PATH = "models/kitten-tts-nano-0.2/kitten_tts_nano_v0_2.onnx"
+VOICES_PATH = "models/kitten-tts-nano-0.2/voices.npz"
 
 model = KittenTTS_Onnx(
-    model_path=config_kittentts["model_path"],
-    voices_path=config_kittentts["voices_path"]
+    model_path=MODEL_PATH,
+    voices_path=VOICES_PATH
 )
 
 print("可用音色:", model.available_voices)

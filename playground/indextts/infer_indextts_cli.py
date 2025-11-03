@@ -1,12 +1,18 @@
 import os
 import sys
 import argparse
-import yaml
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
 
 from indextts.infer_v2 import IndexTTS2
+
+# 全局配置变量
+DEVICE = "cuda"
+USE_CUDA_KERNEL = True
+USE_FP16 = True
+MODEL_DIR = "models/IndexTTS-2"
+CFG_PATH = "models/IndexTTS-2/config.yaml"
 
 
 def parse_emo_vector(emo_str):
@@ -52,10 +58,9 @@ def main():
     parser.add_argument('--output', type=str, default='output.wav', help='输出音频路径')
     
     # 模型配置
-    parser.add_argument('--config', type=str, default='config/load.yaml', help='配置文件路径')
-    parser.add_argument('--model_dir', type=str, default=None, help='模型路径（覆盖配置文件）')
+    parser.add_argument('--model_dir', type=str, default=None, help='模型路径（覆盖默认配置）')
     parser.add_argument('--device', type=str, default=None, choices=['cpu', 'cuda'], 
-                        help='运行设备（覆盖配置文件）')
+                        help='运行设备（覆盖默认配置）')
     
     # 情感控制参数
     emo_group = parser.add_argument_group('情感控制选项')
@@ -83,15 +88,9 @@ def main():
     
     args = parser.parse_args()
     
-    # 加载配置
-    with open(args.config, "r", encoding="utf-8") as f:
-        config = yaml.safe_load(f)
-    config_default = config["default"]
-    config_indextts = config["models"]["indextts"]
-    
-    # 覆盖配置
-    model_dir = args.model_dir if args.model_dir else config_indextts["model_dir"]
-    device = args.device if args.device else config_default["device"]
+    # 使用全局变量或命令行参数
+    model_dir = args.model_dir if args.model_dir else MODEL_DIR
+    device = args.device if args.device else DEVICE
     
     # 创建输出目录
     output_dir = os.path.dirname(args.output)
@@ -103,11 +102,11 @@ def main():
     print(f"设备: {device}")
     
     tts = IndexTTS2(
-        cfg_path=config_indextts["cfg_path"],
+        cfg_path=CFG_PATH,
         model_dir=model_dir,
-        use_fp16=config_default["use_fp16"],
+        use_fp16=USE_FP16,
         device=device,
-        use_cuda_kernel=config_default["use_cuda_kernel"]
+        use_cuda_kernel=USE_CUDA_KERNEL
     )
     
     # 显示合成信息
