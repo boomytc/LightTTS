@@ -1,6 +1,5 @@
 import os
 import sys
-import yaml
 from functools import lru_cache
 
 import gradio as gr
@@ -12,20 +11,18 @@ matcha_path = os.path.join(project_root, "Matcha-TTS")
 sys.path.insert(0, project_root)
 sys.path.insert(0, matcha_path)
 
-from cosyvoice.cli.cosyvoice import CosyVoice2  
-from cosyvoice.utils.file_utils import load_wav  
-from cosyvoice.utils.common import set_all_random_seed  
+from cosyvoice.cli.cosyvoice import CosyVoice2
+from cosyvoice.utils.file_utils import load_wav
+from cosyvoice.utils.common import set_all_random_seed
 
-config_path = os.path.join(project_root, "config", "load.yaml")
-with open(config_path, "r", encoding="utf-8") as config_file:
-    config = yaml.safe_load(config_file)
-
-config_default = config.get("default", {})
-config_cosyvoice = config.get("models", {}).get("cosyvoice", {})
-
-DEFAULT_MODEL_DIR = config_cosyvoice.get("model_dir", "models/CosyVoice2-0.5B")
+DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
 DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呦。"
+USE_FP16 = True
+LOAD_JIT = False
+LOAD_TRT = False
+LOAD_VLLM = False
+TRT_CONCURRENT = 1
 
 MODE_MAPPING = {
     "零样本克隆": "zero_shot",
@@ -39,11 +36,11 @@ def get_model(model_dir: str) -> CosyVoice2:
     """Load and cache CosyVoice2 models by directory."""
     return CosyVoice2(
         model_dir=model_dir,
-        load_jit=config_cosyvoice.get("load_jit", False),
-        load_trt=config_cosyvoice.get("load_trt", False),
-        load_vllm=config_cosyvoice.get("load_vllm", False),
-        fp16=config_default.get("use_fp16", True),
-        trt_concurrent=config_cosyvoice.get("trt_concurrent", 1),
+        load_jit=LOAD_JIT,
+        load_trt=LOAD_TRT,
+        load_vllm=LOAD_VLLM,
+        fp16=USE_FP16,
+        trt_concurrent=TRT_CONCURRENT,
     )
 
 
