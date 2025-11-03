@@ -180,59 +180,79 @@ def build_interface() -> gr.Blocks:
             """
         )
 
-        with gr.Row():
-            mode = gr.Radio(
-                choices=["zero_shot", "cross_lingual", "instruct"],
-                value="zero_shot",
-                label="推理模式",
-            )
-            speed = gr.Slider(
-                minimum=0.5,
-                maximum=2.0,
-                value=1.0,
-                step=0.05,
-                label="语速",
-            )
-            seed = gr.Number(
-                value=0,
-                precision=0,
-                label="随机种子",
-            )
-
-        text = gr.Textbox(
-            label="待合成文本",
-            lines=4,
-            placeholder="请输入需要合成的文本",
-        )
-
-        with gr.Row():
-            prompt_text = gr.Textbox(
-                label="参考文本 (零样本模式必填)",
-                value=DEFAULT_PROMPT_TEXT,
-                lines=2,
-            )
-            instruct_text = gr.Textbox(
-                label="指令文本 (指令模式必填)",
-                placeholder="示例: 用四川话说这句话",
-                lines=2,
-            )
-
-        prompt_audio = gr.Audio(
-            label="参考音频 (默认使用提供的示例音频)",
-            sources=["upload"],
-            type="filepath",
-            value=DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else None,
-        )
-
         model_loaded_state = gr.State(False)
 
         with gr.Row():
-            load_button = gr.Button("加载模型")
-            generate_button = gr.Button("生成语音", interactive=False)
-            stop_button = gr.Button("停止生成", variant="stop")
+            # 左侧：控制面板
+            with gr.Column(scale=1):
+                gr.Markdown("### 控制面板")
+                
+                mode = gr.Radio(
+                    choices=["zero_shot", "cross_lingual", "instruct"],
+                    value="zero_shot",
+                    label="推理模式",
+                )
+                
+                text = gr.Textbox(
+                    label="待合成文本",
+                    lines=4,
+                    placeholder="请输入需要合成的文本",
+                )
+                
+                prompt_text = gr.Textbox(
+                    label="参考文本 (零样本模式必填)",
+                    value=DEFAULT_PROMPT_TEXT,
+                    lines=2,
+                )
+                
+                instruct_text = gr.Textbox(
+                    label="指令文本 (指令模式必填)",
+                    placeholder="示例: 用四川话说这句话",
+                    lines=2,
+                )
+                
+                prompt_audio = gr.Audio(
+                    label="参考音频",
+                    sources=["upload"],
+                    type="filepath",
+                    value=DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else None,
+                )
+                
+                speed = gr.Slider(
+                    minimum=0.5,
+                    maximum=2.0,
+                    value=1.0,
+                    step=0.05,
+                    label="语速",
+                )
+                
+                seed = gr.Number(
+                    value=0,
+                    precision=0,
+                    label="随机种子",
+                )
+                
+                with gr.Row():
+                    load_button = gr.Button("加载模型", scale=1)
+                    generate_button = gr.Button("生成语音", interactive=False, scale=1)
+                
+                stop_button = gr.Button("停止生成", variant="stop")
 
-        audio_output = gr.Audio(label="生成语音", type="numpy", autoplay=False)
-        status_output = gr.Textbox(label="状态", interactive=False)
+            # 右侧：输出面板
+            with gr.Column(scale=1):
+                gr.Markdown("### 输出结果")
+                
+                status_output = gr.Textbox(
+                    label="状态",
+                    interactive=False,
+                    lines=2,
+                )
+                
+                audio_output = gr.Audio(
+                    label="生成语音",
+                    type="numpy",
+                    autoplay=False,
+                )
 
         load_button.click(
             fn=load_model,

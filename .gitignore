@@ -8,6 +8,7 @@ __pycache__
 outputs
 .qoder
 .github
+.vscode
 .trae
 .gradio
 .kiro
