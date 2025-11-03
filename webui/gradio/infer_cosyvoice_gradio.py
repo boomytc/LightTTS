@@ -27,6 +27,12 @@ DEFAULT_MODEL_DIR = config_cosyvoice.get("model_dir", "models/CosyVoice2-0.5B")
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
 DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呦。"
 
+MODE_MAPPING = {
+    "零样本克隆": "zero_shot",
+    "跨语言克隆": "cross_lingual",
+    "指令控制": "instruct",
+}
+
 
 @lru_cache(maxsize=2)
 def get_model(model_dir: str) -> CosyVoice2:
@@ -91,6 +97,8 @@ def generate_speech(
     text = (text or "").strip()
     prompt_text = (prompt_text or "").strip()
     instruct_text = (instruct_text or "").strip()
+    
+    mode_key = MODE_MAPPING.get(mode, mode)
 
     if not model_loaded:
         return None, "请先加载模型。"
@@ -98,11 +106,11 @@ def generate_speech(
     if not text:
         return None, "请输入待合成文本。"
 
-    if mode == "zero_shot" and not prompt_text:
-        return None, "零样本模式需要提供参考文本。"
+    if mode_key == "zero_shot" and not prompt_text:
+        return None, "零样本克隆模式需要提供参考文本。"
 
-    if mode == "instruct" and not instruct_text:
-        return None, "指令模式需要提供指令文本。"
+    if mode_key == "instruct" and not instruct_text:
+        return None, "指令控制模式需要提供指令文本。"
 
     try:
         seed = int(seed)
@@ -122,7 +130,7 @@ def generate_speech(
         return None, f"模型加载失败: {exc}"
 
     try:
-        if mode == "zero_shot":
+        if mode_key == "zero_shot":
             result = cosyvoice.inference_zero_shot(
                 text,
                 prompt_text,
@@ -130,14 +138,14 @@ def generate_speech(
                 stream=False,
                 speed=speed,
             )
-        elif mode == "cross_lingual":
+        elif mode_key == "cross_lingual":
             result = cosyvoice.inference_cross_lingual(
                 text,
                 prompt_speech_16k,
                 stream=False,
                 speed=speed,
             )
-        elif mode == "instruct":
+        elif mode_key == "instruct":
             result = cosyvoice.inference_instruct2(
                 text,
                 instruct_text,
@@ -173,19 +181,21 @@ def stop_generation_message():
 
 def update_ui_visibility(mode: str):
     """Update UI component visibility based on selected mode."""
-    if mode == "zero_shot":
+    mode_key = MODE_MAPPING.get(mode, mode)
+    
+    if mode_key == "zero_shot":
         return (
             gr.update(visible=True),   # prompt_audio
             gr.update(visible=True),   # prompt_text
             gr.update(visible=False),  # instruct_text
         )
-    elif mode == "cross_lingual":
+    elif mode_key == "cross_lingual":
         return (
             gr.update(visible=True),   # prompt_audio
             gr.update(visible=False),  # prompt_text
             gr.update(visible=False),  # instruct_text
         )
-    elif mode == "instruct":
+    elif mode_key == "instruct":
         return (
             gr.update(visible=True),   # prompt_audio
             gr.update(visible=False),  # prompt_text
@@ -211,10 +221,9 @@ def build_interface() -> gr.Blocks:
                 gr.Markdown("### 控制面板")
                 
                 mode = gr.Radio(
-                    choices=["zero_shot", "cross_lingual", "instruct"],
-                    value="zero_shot",
+                    choices=["零样本克隆", "跨语言克隆", "指令控制"],
+                    value="零样本克隆",
                     label="推理模式",
-                    info="zero_shot: 零样本克隆 | cross_lingual: 跨语言克隆 | instruct: 指令控制",
                 )
                 
                 text = gr.Textbox(
@@ -232,17 +241,19 @@ def build_interface() -> gr.Blocks:
                 )
                 
                 prompt_text = gr.Textbox(
-                    label="参考文本 (零样本模式)",
+                    label="参考文本",
                     value=DEFAULT_PROMPT_TEXT,
                     lines=2,
                     visible=True,
+                    info="零样本克隆模式需要提供参考音频对应的文本",
                 )
                 
                 instruct_text = gr.Textbox(
-                    label="指令文本 (指令模式)",
+                    label="指令文本",
                     placeholder="示例: 用四川话说这句话",
                     lines=2,
                     visible=False,
+                    info="指令控制模式用于控制语音风格、情感、方言等",
                 )
                 
                 speed = gr.Slider(
