@@ -30,9 +30,6 @@ MODE_MAPPING = {
     "指令控制": "instruct",
 }
 
-_model_cache = {}
-
-
 @lru_cache(maxsize=2)
 def get_model(model_dir: str = DEFAULT_MODEL_DIR, device: str = "cuda") -> CosyVoice2:
     """Load and cache CosyVoice2 models by configuration."""

@@ -19,9 +19,6 @@ USE_CUDA_KERNEL = False
 
 EMO_LABELS = ["高兴", "愤怒", "悲伤", "恐惧", "反感", "低落", "惊讶", "自然"]
 
-_model_cache = {}
-
-
 @lru_cache(maxsize=1)
 def get_model(device: str = DEVICE) -> IndexTTS2:
     """Load and cache IndexTTS2 model."""

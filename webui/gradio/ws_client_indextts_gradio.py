@@ -1,15 +1,13 @@
+import asyncio
+import io
+import json
 import os
 import sys
-import asyncio
-import json
-from typing import Optional, Tuple
 
 import gradio as gr
 import numpy as np
 import websockets
-import io
 import torchaudio
-import torch
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if project_root not in sys.path:
