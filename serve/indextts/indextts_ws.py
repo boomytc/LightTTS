@@ -216,12 +216,52 @@ class IndexTTSWebSocketServer:
 
 
 async def main():
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="IndexTTS WebSocket 流式语音合成服务",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument(
+        "--model-dir",
+        type=str,
+        default="models/IndexTTS-2",
+        help="IndexTTS 模型目录路径"
+    )
+    parser.add_argument(
+        "--cfg-path",
+        type=str,
+        default="models/IndexTTS-2/config.yaml",
+        help="IndexTTS 配置文件路径"
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        choices=["cuda", "cpu"],
+        help="运行设备（cuda 或 cpu）"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="服务器绑定地址"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8770,
+        help="服务器端口号"
+    )
+    
+    args = parser.parse_args()
+    
     server = IndexTTSWebSocketServer(
-        model_dir="models/IndexTTS-2",
-        cfg_path="models/IndexTTS-2/config.yaml",
-        device="cuda" if torch.cuda.is_available() else "cpu",
-        host="0.0.0.0",
-        port=8770,
+        model_dir=args.model_dir,
+        cfg_path=args.cfg_path,
+        device=args.device,
+        host=args.host,
+        port=args.port,
     )
     await server.start_server()
 
