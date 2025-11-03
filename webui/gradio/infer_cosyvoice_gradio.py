@@ -171,6 +171,29 @@ def stop_generation_message():
     return "生成已停止。"
 
 
+def update_ui_visibility(mode: str):
+    """Update UI component visibility based on selected mode."""
+    if mode == "zero_shot":
+        return (
+            gr.update(visible=True),   # prompt_audio
+            gr.update(visible=True),   # prompt_text
+            gr.update(visible=False),  # instruct_text
+        )
+    elif mode == "cross_lingual":
+        return (
+            gr.update(visible=True),   # prompt_audio
+            gr.update(visible=False),  # prompt_text
+            gr.update(visible=False),  # instruct_text
+        )
+    elif mode == "instruct":
+        return (
+            gr.update(visible=True),   # prompt_audio
+            gr.update(visible=False),  # prompt_text
+            gr.update(visible=True),   # instruct_text
+        )
+    return gr.update(), gr.update(), gr.update()
+
+
 def build_interface() -> gr.Blocks:
     with gr.Blocks(title="CosyVoice2 语音合成") as demo:
         gr.Markdown(
@@ -191,6 +214,7 @@ def build_interface() -> gr.Blocks:
                     choices=["zero_shot", "cross_lingual", "instruct"],
                     value="zero_shot",
                     label="推理模式",
+                    info="zero_shot: 零样本克隆 | cross_lingual: 跨语言克隆 | instruct: 指令控制",
                 )
                 
                 text = gr.Textbox(
@@ -199,23 +223,26 @@ def build_interface() -> gr.Blocks:
                     placeholder="请输入需要合成的文本",
                 )
                 
-                prompt_text = gr.Textbox(
-                    label="参考文本 (零样本模式必填)",
-                    value=DEFAULT_PROMPT_TEXT,
-                    lines=2,
-                )
-                
-                instruct_text = gr.Textbox(
-                    label="指令文本 (指令模式必填)",
-                    placeholder="示例: 用四川话说这句话",
-                    lines=2,
-                )
-                
                 prompt_audio = gr.Audio(
                     label="参考音频",
                     sources=["upload"],
                     type="filepath",
                     value=DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else None,
+                    visible=True,
+                )
+                
+                prompt_text = gr.Textbox(
+                    label="参考文本 (零样本模式)",
+                    value=DEFAULT_PROMPT_TEXT,
+                    lines=2,
+                    visible=True,
+                )
+                
+                instruct_text = gr.Textbox(
+                    label="指令文本 (指令模式)",
+                    placeholder="示例: 用四川话说这句话",
+                    lines=2,
+                    visible=False,
                 )
                 
                 speed = gr.Slider(
@@ -253,6 +280,12 @@ def build_interface() -> gr.Blocks:
                     type="numpy",
                     autoplay=False,
                 )
+
+        mode.change(
+            fn=update_ui_visibility,
+            inputs=[mode],
+            outputs=[prompt_audio, prompt_text, instruct_text],
+        )
 
         load_button.click(
             fn=load_model,
