@@ -766,7 +766,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         selected_voice = self.get_selected_voice_for_synthesis()
         if selected_voice:
             source_path = selected_voice.get('source', '')
-            if os.path.exists(source_path):
+            if Path(source_path).exists():
                 self.media_player.setSource(QUrl.fromLocalFile(source_path)) 
                 self.media_player.play() 
                 self.log_text.append(f"播放: {selected_voice.get('key', '')}")
