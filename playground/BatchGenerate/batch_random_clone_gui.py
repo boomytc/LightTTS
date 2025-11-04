@@ -67,6 +67,32 @@ MIN_SPEED = 0.5
 MAX_SPEED = 2.0
 SPEED_STEP = 0.1
 
+class ModelLoadWorker(QObject):
+    """模型加载工作线程"""
+    status_updated = Signal(str)
+    log_updated = Signal(str)
+    finished = Signal(object)  # 返回加载的模型对象
+    error = Signal(str)
+    
+    def __init__(self, model_dir):
+        super().__init__()
+        self.model_dir = model_dir
+    
+    def load_model(self):
+        """加载模型"""
+        try:
+            self.status_updated.emit("正在加载模型...")
+            self.log_updated.emit(f"正在加载CosyVoice2模型: {self.model_dir}")
+            cosyvoice = CosyVoice2(self.model_dir)
+            self.log_updated.emit("模型加载完成")
+            self.status_updated.emit("模型加载完成")
+            self.finished.emit(cosyvoice)
+        except Exception as e:
+            error_msg = f"模型加载失败: {str(e)}"
+            self.log_updated.emit(error_msg)
+            self.status_updated.emit(error_msg)
+            self.error.emit(error_msg)
+
 class SynthesisWorker(QObject):
     """语音合成工作线程"""
     progress_updated = Signal(int)
@@ -75,10 +101,10 @@ class SynthesisWorker(QObject):
     stats_updated = Signal(int, int, int)  # total, completed, failed
     finished = Signal(int, int)  # success_count, total_count
     
-    def __init__(self, model_dir, clone_src_dir, input_dir, output_dir, 
+    def __init__(self, cosyvoice, clone_src_dir, input_dir, output_dir, 
                  speed=DEFAULT_SPEED, seed=None, sample_rate=DEFAULT_OUTPUT_SAMPLE_RATE):
         super().__init__()
-        self.model_dir = model_dir
+        self.cosyvoice = cosyvoice
         self.clone_src_dir = clone_src_dir
         self.input_dir = input_dir
         self.output_dir = output_dir
@@ -171,12 +197,6 @@ class SynthesisWorker(QObject):
             # 创建输出目录
             Path(self.output_dir).mkdir(parents=True, exist_ok=True)
             
-            # 初始化CosyVoice2模型
-            self.status_updated.emit("正在加载模型...")
-            self.log_updated.emit(f"正在加载CosyVoice2模型: {self.model_dir}")
-            cosyvoice = CosyVoice2(self.model_dir)
-            self.log_updated.emit("模型加载完成")
-            
             # 获取prompt音频文本对
             self.status_updated.emit("获取prompt音频文本对...")
             prompt_pairs = self.get_prompt_pairs(self.clone_src_dir)
@@ -235,7 +255,7 @@ class SynthesisWorker(QObject):
                 
                 # 合成音频
                 synthesized_audio = self.synthesize_audio(
-                    cosyvoice=cosyvoice,
+                    cosyvoice=self.cosyvoice,
                     tts_text=tts_text,
                     prompt_text=prompt_text,
                     prompt_wav_path=prompt_audio_path
@@ -278,6 +298,9 @@ class BatchCloneGUI(QMainWindow):
         super().__init__()
         self.worker_thread = None
         self.worker = None
+        self.model_load_thread = None
+        self.model_load_worker = None
+        self.cosyvoice_model = None
         self.init_ui()
         
     def init_ui(self):
@@ -300,6 +323,10 @@ class BatchCloneGUI(QMainWindow):
         # 进度信息面板
         progress_panel = self.create_progress_panel()
         main_layout.addWidget(progress_panel)
+        
+        # 模型状态面板
+        model_status_panel = self.create_model_status_panel()
+        main_layout.addWidget(model_status_panel)
         
         # 控制按钮
         button_layout = self.create_button_layout()
@@ -406,6 +433,43 @@ class BatchCloneGUI(QMainWindow):
         
         return control_widget
     
+    def create_model_status_panel(self):
+        """创建模型状态面板"""
+        model_widget = QGroupBox("模型状态")
+        layout = QHBoxLayout(model_widget)
+        layout.setSpacing(15)
+        
+        # 模型状态标签
+        self.model_status_label = QLabel("模型状态: 未加载")
+        self.model_status_label.setFont(QFont("Arial", 11))
+        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        layout.addWidget(self.model_status_label)
+        
+        layout.addStretch()
+        
+        # 加载模型按钮
+        self.load_model_btn = QPushButton("加载模型")
+        self.load_model_btn.clicked.connect(self.load_model)
+        self.load_model_btn.setFixedSize(120, 35)
+        self.load_model_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                font-size: 13px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;
+            }
+        """)
+        layout.addWidget(self.load_model_btn)
+        
+        return model_widget
+    
     def create_progress_panel(self):
         """创建进度信息面板"""
         progress_widget = QGroupBox("任务进度")
@@ -504,6 +568,7 @@ class BatchCloneGUI(QMainWindow):
         # 开始合成按钮
         self.start_btn = QPushButton("开始合成")
         self.start_btn.clicked.connect(self.start_synthesis)
+        self.start_btn.setEnabled(False)  # 初始禁用，需要先加载模型
         self.start_btn.setFixedSize(120, 40)
         self.start_btn.setStyleSheet("""
             QPushButton {
@@ -555,7 +620,57 @@ class BatchCloneGUI(QMainWindow):
             self.log_text.setVisible(True)
             self.toggle_log_btn.setText("隐藏详细日志")
     
-
+    def load_model(self):
+        """加载模型"""
+        # 验证模型路径
+        if not Path(self.model_dir_edit.text()).exists():
+            QMessageBox.warning(self, "错误", "模型路径不存在！")
+            return
+        
+        # 禁用加载按钮
+        self.load_model_btn.setEnabled(False)
+        self.model_status_label.setText("模型状态: 加载中...")
+        self.model_status_label.setStyleSheet("color: #ffc107; font-weight: bold;")
+        
+        # 创建模型加载线程
+        self.model_load_thread = QThread()
+        self.model_load_worker = ModelLoadWorker(self.model_dir_edit.text())
+        
+        # 连接信号
+        self.model_load_worker.status_updated.connect(self.status_label.setText)
+        self.model_load_worker.log_updated.connect(self.log_text.append)
+        self.model_load_worker.finished.connect(self.on_model_loaded)
+        self.model_load_worker.error.connect(self.on_model_load_error)
+        
+        # 移动到线程并启动
+        self.model_load_worker.moveToThread(self.model_load_thread)
+        self.model_load_thread.started.connect(self.model_load_worker.load_model)
+        self.model_load_thread.start()
+    
+    def on_model_loaded(self, model):
+        """模型加载完成"""
+        self.cosyvoice_model = model
+        self.model_status_label.setText("模型状态: 已加载")
+        self.model_status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        self.start_btn.setEnabled(True)
+        self.load_model_btn.setEnabled(True)
+        
+        # 清理线程
+        if self.model_load_thread:
+            self.model_load_thread.quit()
+            self.model_load_thread.wait()
+    
+    def on_model_load_error(self, error_msg):
+        """模型加载失败"""
+        self.model_status_label.setText("模型状态: 加载失败")
+        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        self.load_model_btn.setEnabled(True)
+        QMessageBox.critical(self, "错误", error_msg)
+        
+        # 清理线程
+        if self.model_load_thread:
+            self.model_load_thread.quit()
+            self.model_load_thread.wait()
     
     def select_model_dir(self):
         """选择模型目录"""
@@ -585,11 +700,12 @@ class BatchCloneGUI(QMainWindow):
     
     def start_synthesis(self):
         """开始合成"""
-        # 验证输入
-        if not Path(self.model_dir_edit.text()).exists():
-            QMessageBox.warning(self, "错误", "模型路径不存在！")
+        # 验证模型是否已加载
+        if self.cosyvoice_model is None:
+            QMessageBox.warning(self, "错误", "请先加载模型！")
             return
         
+        # 验证输入
         if not Path(self.clone_src_edit.text()).exists():
             QMessageBox.warning(self, "错误", "Clone源文件夹不存在！")
             return
@@ -612,7 +728,7 @@ class BatchCloneGUI(QMainWindow):
         # 创建工作线程
         self.worker_thread = QThread()
         self.worker = SynthesisWorker(
-            model_dir=self.model_dir_edit.text(),
+            cosyvoice=self.cosyvoice_model,
             clone_src_dir=self.clone_src_edit.text(),
             input_dir=self.input_dir_edit.text(),
             output_dir=self.output_dir_edit.text(),
