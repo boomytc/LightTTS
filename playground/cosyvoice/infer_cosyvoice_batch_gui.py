@@ -51,11 +51,6 @@ DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 MAX_VAL = 0.8
 PROMPT_SAMPLE_RATE = 16000
 DEFAULT_OUTPUT_SAMPLE_RATE = 22050
-
-# ============ 音频后处理参数 ============
-AUDIO_TRIM_TOP_DB = 60
-AUDIO_HOP_LENGTH = 220
-AUDIO_WIN_LENGTH = 440
 AUDIO_SILENCE_DURATION = 0.2
 
 # ============ 文件扩展名 ============
@@ -64,9 +59,6 @@ TEXT_EXTENSIONS = ['.txt']
 # ============ 合成参数 ============
 DEFAULT_SPEED = 1.0
 DEFAULT_SEED = -1
-MIN_SPEED = 0.5
-MAX_SPEED = 2.0
-SPEED_STEP = 0.1
 
 class ModelLoadWorker(QObject):
     """模型加载工作线程"""
@@ -117,12 +109,12 @@ class VoiceSynthesisWorker(QObject):
     def stop(self):
         self.is_running = False
     
-    def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
+    def postprocess(self, speech):
         """音频后处理"""
         speech, _ = librosa.effects.trim(
-            speech, top_db=top_db,
-            frame_length=win_length,
-            hop_length=hop_length
+            speech, top_db=60,
+            frame_length=440,
+            hop_length=220
         )
         if speech.abs().max() > MAX_VAL:
             speech = speech / speech.abs().max() * MAX_VAL
@@ -373,8 +365,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         params_layout.addWidget(QLabel("语音速度:"), 0, 0)
         self.speed_spinbox = QDoubleSpinBox()
-        self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
-        self.speed_spinbox.setSingleStep(SPEED_STEP)
+        self.speed_spinbox.setRange(0.5, 2.0)
+        self.speed_spinbox.setSingleStep(0.1)
         self.speed_spinbox.setValue(DEFAULT_SPEED)
         params_layout.addWidget(self.speed_spinbox, 0, 1)
         
