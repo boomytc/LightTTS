@@ -154,6 +154,7 @@ class CosyVoiceWebSocketServer:
         self.port = port
         self.model = None
         self.task_manager = TaskManager(cleanup_interval=300)  # 5分钟清理一次
+        self.inference_semaphore = asyncio.Semaphore(1)  # 全局推理队列，同时只允许1个推理
 
     def load_model(self):
         """加载模型（自动适配设备）"""
@@ -346,81 +347,102 @@ class CosyVoiceWebSocketServer:
                 # 设置随机种子
                 set_all_random_seed(int(seed))
 
-                # 更新任务状态为运行中
-                await self.task_manager.update_status(task_id, TaskStatus.RUNNING)
-
-                # 发送开始标记
+                # 发送排队消息
                 await websocket.send(json.dumps({
-                    "type": "start",
+                    "type": "queued",
                     "task_id": task_id,
                     "session_id": session_id,
-                    "message": "开始生成音频"
+                    "message": "任务已加入队列，等待处理"
                 }, ensure_ascii=False))
 
-                # 根据模式调用推理并实时流式发送
-                result_generator = None
-                try:
-                    if mode == "zero_shot":
-                        result_generator = model.inference_zero_shot(
-                            text,
-                            prompt_text,
-                            prompt_audio,
-                            stream=True,  # 流式生成
-                            speed=float(speed),
-                        )
-                    elif mode == "cross_lingual":
-                        result_generator = model.inference_cross_lingual(
-                            text,
-                            prompt_audio,
-                            stream=True,
-                            speed=float(speed),
-                        )
-                    elif mode == "instruct":
-                        result_generator = model.inference_instruct2(
-                            text,
-                            instruct_text,
-                            prompt_audio,
-                            stream=True,
-                            speed=float(speed),
-                        )
+                # 进入推理队列（全局锁，保证同时只有一个推理）
+                async with self.inference_semaphore:
+                    # 更新任务状态为运行中
+                    await self.task_manager.update_status(task_id, TaskStatus.RUNNING)
 
-                    # 实时流式发送音频片段
-                    if result_generator is not None:
-                        segment_count = 0
-                        for segment in result_generator:
-                            audio_tensor = segment.get("tts_speech")
-                            if audio_tensor is None:
-                                continue
+                    # 发送开始标记
+                    await websocket.send(json.dumps({
+                        "type": "start",
+                        "task_id": task_id,
+                        "session_id": session_id,
+                        "message": "开始生成音频"
+                    }, ensure_ascii=False))
 
-                            # 将音频转换为 WAV 格式的字节流
-                            audio_numpy = audio_tensor.squeeze(0).cpu().numpy()
-                            buffer = io.BytesIO()
-                            torchaudio.save(
-                                buffer,
-                                torch.from_numpy(audio_numpy).unsqueeze(0),
-                                model.sample_rate,
-                                format="wav"
+                    # 根据模式调用推理并实时流式发送
+                    result_generator = None
+                    try:
+                        if mode == "zero_shot":
+                            result_generator = model.inference_zero_shot(
+                                text,
+                                prompt_text,
+                                prompt_audio,
+                                stream=True,  # 流式生成
+                                speed=float(speed),
                             )
-                            buffer.seek(0)
-                            audio_bytes = buffer.read()
+                        elif mode == "cross_lingual":
+                            result_generator = model.inference_cross_lingual(
+                                text,
+                                prompt_audio,
+                                stream=True,
+                                speed=float(speed),
+                            )
+                        elif mode == "instruct":
+                            result_generator = model.inference_instruct2(
+                                text,
+                                instruct_text,
+                                prompt_audio,
+                                stream=True,
+                                speed=float(speed),
+                            )
 
-                            # 立即发送二进制音频数据（边生成边发送）
-                            await websocket.send(audio_bytes)
-                            segment_count += 1
+                        # 实时流式发送音频片段
+                        if result_generator is not None:
+                            segment_count = 0
+                            for segment in result_generator:
+                                audio_tensor = segment.get("tts_speech")
+                                if audio_tensor is None:
+                                    continue
 
-                        # 合成完成，更新任务状态
-                        await self.task_manager.update_status(task_id, TaskStatus.COMPLETED)
-                        
-                        # 发送结束标记
-                        await websocket.send(json.dumps({
-                            "type": "end",
-                            "task_id": task_id,
-                            "session_id": session_id,
-                            "message": "生成完成",
-                            "segments": segment_count
-                        }, ensure_ascii=False))
-                    else:
-                        error_msg = "无效的模式"
+                                # 将音频转换为 WAV 格式的字节流
+                                audio_numpy = audio_tensor.squeeze(0).cpu().numpy()
+                                buffer = io.BytesIO()
+                                torchaudio.save(
+                                    buffer,
+                                    torch.from_numpy(audio_numpy).unsqueeze(0),
+                                    model.sample_rate,
+                                    format="wav"
+                                )
+                                buffer.seek(0)
+                                audio_bytes = buffer.read()
+
+                                # 立即发送二进制音频数据（边生成边发送）
+                                await websocket.send(audio_bytes)
+                                segment_count += 1
+
+                            # 合成完成，更新任务状态
+                            await self.task_manager.update_status(task_id, TaskStatus.COMPLETED)
+                            
+                            # 发送结束标记
+                            await websocket.send(json.dumps({
+                                "type": "end",
+                                "task_id": task_id,
+                                "session_id": session_id,
+                                "message": "生成完成",
+                                "segments": segment_count
+                            }, ensure_ascii=False))
+                        else:
+                            error_msg = "无效的模式"
+                            await self.task_manager.update_status(task_id, TaskStatus.FAILED, error_msg)
+                            await websocket.send(
+                                json.dumps({
+                                    "status": "error",
+                                    "task_id": task_id,
+                                    "session_id": session_id,
+                                    "message": error_msg
+                                }, ensure_ascii=False)
+                            )
+                    except Exception as e:
+                        error_msg = f"推理失败: {str(e)}"
                         await self.task_manager.update_status(task_id, TaskStatus.FAILED, error_msg)
                         await websocket.send(
                             json.dumps({
@@ -430,18 +452,7 @@ class CosyVoiceWebSocketServer:
                                 "message": error_msg
                             }, ensure_ascii=False)
                         )
-                except Exception as e:
-                    error_msg = f"推理失败: {str(e)}"
-                    await self.task_manager.update_status(task_id, TaskStatus.FAILED, error_msg)
-                    await websocket.send(
-                        json.dumps({
-                            "status": "error",
-                            "task_id": task_id,
-                            "session_id": session_id,
-                            "message": error_msg
-                        }, ensure_ascii=False)
-                    )
-                    continue
+                        continue
 
         except websockets.exceptions.ConnectionClosed:
             # 客户端中断连接
@@ -477,6 +488,7 @@ class CosyVoiceWebSocketServer:
         print(f"\n🚀 服务器已就绪，等待客户端连接...")
         print(f"   - 会话管理: 已启用")
         print(f"   - 任务追踪: 已启用")
+        print(f"   - 推理队列: 已启用（同时处理 1 个请求）")
         print(f"   - 自动清理: 每 {self.task_manager.cleanup_interval} 秒")
         async with websockets.serve(self.websocket_handler, self.host, self.port, max_size=None):
             await asyncio.Future()  # 运行直到手动停止
