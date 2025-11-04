@@ -40,20 +40,30 @@ class CosyVoiceWebSocketServer:
         self.model = None
 
     def load_model(self):
-        """加载模型"""
+        """加载模型（自动适配设备）"""
         if self.model is None:
-            print("正在加载 CosyVoice 模型...")
-            is_cuda = self.device == "cuda" and torch.cuda.is_available()
+            # 设备自适应：如果指定 cuda 但不可用，自动降级到 cpu
+            if self.device == "cuda" and not torch.cuda.is_available():
+                print("⚠️  CUDA 不可用，自动切换到 CPU")
+                self.device = "cpu"
+            
+            is_cuda = self.device == "cuda"
+            
+            print(f"正在加载 CosyVoice 模型 [设备: {self.device}]...")
+            if is_cuda:
+                print(f"   GPU: {torch.cuda.get_device_name(0)}")
+                print(f"   显存: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.1f} GB")
+            
             self.model = CosyVoice2(
                 model_dir=self.model_dir,
                 load_jit=False,
                 load_trt=False,
                 load_vllm=False,
-                fp16=is_cuda,
+                fp16=is_cuda,  # 仅 CUDA 启用 FP16
                 trt_concurrent=1,
                 device=self.device,
             )
-            print(f"✅ CosyVoice 模型加载完成 [设备: {self.device}]")
+            print(f"✅ CosyVoice 模型加载完成 [设备: {self.device}, FP16: {is_cuda}]")
         return self.model
 
     def load_prompt_audio(self, prompt_audio_path: str) -> torch.Tensor:
@@ -248,7 +258,7 @@ async def main():
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
         choices=["cuda", "cpu"],
-        help="运行设备（cuda 或 cpu）"
+        help="运行设备（cuda 或 cpu，如果 cuda 不可用会自动降级到 cpu）"
     )
     parser.add_argument(
         "--host",
