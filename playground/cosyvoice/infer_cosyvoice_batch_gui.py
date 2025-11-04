@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 
 current_script_path = Path(__file__).resolve()
-batch_generate_dir = current_script_path.parent
-playground_dir = batch_generate_dir.parent
+cosyvoice_dir = current_script_path.parent
+playground_dir = cosyvoice_dir.parent
 project_root = playground_dir.parent
 
 project_root_str = str(project_root)
@@ -42,9 +42,9 @@ warnings.filterwarnings("ignore", category=UserWarning)
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 
 # ============ 目录配置 ============
-DEFAULT_INPUT_DIR = "BatchGenerate/texts"
-DEFAULT_OUTPUT_DIR = "BatchGenerate/voice_output"
-DB_CLONE_DIR_NAME = "BatchGenerate/DB_clone"
+DEFAULT_INPUT_DIR = "playground/cosyvoice/texts"
+DEFAULT_OUTPUT_DIR = "playground/cosyvoice/voice_output"
+DB_CLONE_DIR_NAME = "DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 
 # ============ 音频参数 ============
@@ -72,7 +72,7 @@ class ModelLoadWorker(QObject):
     """模型加载工作线程"""
     status_updated = Signal(str)
     log_updated = Signal(str)
-    finished = Signal(object)  # 返回加载的模型对象
+    finished = Signal(object)
     error = Signal(str)
     
     def __init__(self, model_dir):
@@ -99,7 +99,7 @@ class VoiceSynthesisWorker(QObject):
     progress_updated = Signal(int)
     status_updated = Signal(str)
     log_updated = Signal(str)
-    finished = Signal(int, int)  # success_count, total_count
+    finished = Signal(int, int)
     
     def __init__(self, cosyvoice, voice_data, input_dir, output_dir, 
                  speed=DEFAULT_SPEED, seed=None, sample_rate=DEFAULT_OUTPUT_SAMPLE_RATE):
@@ -154,19 +154,16 @@ class VoiceSynthesisWorker(QObject):
     def load_voice(self):
         """加载音色"""
         try:
-            # 加载音色
             prompt_audio_path = self.voice_data.get('source', '')
             if not Path(prompt_audio_path).exists():
                 self.log_updated.emit(f"错误: 音频文件不存在: {prompt_audio_path}")
                 return False
             
-            # 检查音频采样率
             audio_info = torchaudio.info(prompt_audio_path)
             if audio_info.sample_rate < PROMPT_SAMPLE_RATE:
                 self.log_updated.emit(f"错误: 音频采样率过低 ({audio_info.sample_rate} Hz)，需要至少 {PROMPT_SAMPLE_RATE} Hz")
                 return False
             
-            # 加载并处理prompt音频
             self.status_updated.emit("正在加载音色...")
             self.log_updated.emit(f"正在处理音色: {self.voice_data.get('key', 'Unknown')}")
             self.log_updated.emit(f"音频采样率: {audio_info.sample_rate} Hz")
@@ -200,15 +197,12 @@ class VoiceSynthesisWorker(QObject):
     def run_synthesis(self):
         """执行批量合成"""
         try:
-            # 创建输出目录
             Path(self.output_dir).mkdir(parents=True, exist_ok=True)
             
-            # 加载音色
             if not self.load_voice():
                 self.status_updated.emit("音色加载失败")
                 return
             
-            # 获取输入文本文件
             self.status_updated.emit("获取文本文件列表...")
             input_text_files = self.get_input_text_files(self.input_dir)
             if not input_text_files:
@@ -217,7 +211,6 @@ class VoiceSynthesisWorker(QObject):
             
             self.log_updated.emit(f"找到 {len(input_text_files)} 个待合成的文本文件")
             
-            # 批量合成
             success_count = 0
             total_count = len(input_text_files)
             
@@ -230,7 +223,6 @@ class VoiceSynthesisWorker(QObject):
                 self.status_updated.emit(f"处理进度: {i+1}/{total_count}")
                 self.progress_updated.emit(int((i / total_count) * 100))
                 
-                # 读取待合成的文本
                 tts_text = self.read_text_file(input_text_file)
                 if not tts_text:
                     self.log_updated.emit(f"警告: 无法读取文本文件 {input_text_file}，跳过")
@@ -240,15 +232,12 @@ class VoiceSynthesisWorker(QObject):
                 self.log_updated.emit(f"正在合成: {filename}")
                 self.log_updated.emit(f"文本内容: {tts_text[:50]}...")
                 
-                # 合成音频
                 synthesized_audio = self.synthesize_audio(tts_text)
                 
                 if synthesized_audio is not None:
-                    # 保存合成的音频
                     input_basename = Path(input_text_file).stem
                     output_audio_path = str(Path(self.output_dir) / f"{input_basename}.wav")
                     
-                    # 保存为wav文件
                     torchaudio.save(
                         output_audio_path,
                         torch.from_numpy(synthesized_audio).unsqueeze(0),
@@ -290,34 +279,28 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
         self.media_player.setAudioOutput(self.audio_output)
+        self.media_player.errorOccurred.connect(self.on_player_error)
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 音色选择与批量语音合成系统")
         self.setGeometry(100, 100, 1200, 800)
         
-        # 创建中央控件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # 创建主布局
         main_layout = QHBoxLayout(central_widget)
         
-        # 创建分割器
         splitter = QSplitter(Qt.Horizontal) 
         main_layout.addWidget(splitter)
         
-        # 左侧主面板
         main_panel = self.create_main_panel()
         splitter.addWidget(main_panel)
         
-        # 右侧日志面板
         log_panel = self.create_log_panel()
         splitter.addWidget(log_panel)
         
-        # 设置分割器比例
         splitter.setSizes([700, 500])
         
-        # 初始化音色下拉框
         QTimer.singleShot(100, self.refresh_voice_combo)
     
     def create_main_panel(self):
@@ -325,13 +308,11 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         main_widget = QWidget()
         layout = QVBoxLayout(main_widget)
         
-        # 标题
         title_label = QLabel("音色选择与批量语音合成")
         title_label.setFont(QFont("Arial", 16, QFont.Bold)) 
         title_label.setAlignment(Qt.AlignCenter)   
         layout.addWidget(title_label)
         
-        # 模型设置组
         model_group = QGroupBox("模型设置")
         model_layout = QGridLayout(model_group)
         
@@ -344,7 +325,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addWidget(model_group)
         
-        # 音色选择组
         voice_select_group = QGroupBox("音色选择")
         voice_select_layout = QGridLayout(voice_select_group)
         
@@ -356,13 +336,11 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         refresh_combo_btn.clicked.connect(self.refresh_voice_combo)
         voice_select_layout.addWidget(refresh_combo_btn, 0, 2)
         
-        # 播放选择的音色
         self.play_voice_btn = QPushButton("🔊 播放音色")
         self.play_voice_btn.clicked.connect(self.play_selected_voice)
         self.play_voice_btn.setEnabled(False)
         voice_select_layout.addWidget(self.play_voice_btn, 0, 3)
         
-        # 显示选择的音色信息
         voice_select_layout.addWidget(QLabel("音色信息:"), 1, 0)
         self.combo_voice_info_label = QLabel("请选择音色")
         self.combo_voice_info_label.setWordWrap(True)
@@ -371,11 +349,9 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addWidget(voice_select_group)
         
-        # 批量合成设置组
         batch_group = QGroupBox("批量合成设置")
         batch_layout = QGridLayout(batch_group)
         
-        # 输入文本文件夹
         batch_layout.addWidget(QLabel("输入文本文件夹:"), 0, 0)
         self.input_dir_edit = QLineEdit(DEFAULT_INPUT_DIR)
         batch_layout.addWidget(self.input_dir_edit, 0, 1)
@@ -383,7 +359,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         input_dir_btn.clicked.connect(self.select_input_dir)
         batch_layout.addWidget(input_dir_btn, 0, 2)
         
-        # 输出文件夹
         batch_layout.addWidget(QLabel("输出文件夹:"), 1, 0)
         self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
         batch_layout.addWidget(self.output_dir_edit, 1, 1)
@@ -393,11 +368,9 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addWidget(batch_group)
         
-        # 参数设置组
         params_group = QGroupBox("参数设置")
         params_layout = QGridLayout(params_group)
         
-        # 语音速度
         params_layout.addWidget(QLabel("语音速度:"), 0, 0)
         self.speed_spinbox = QDoubleSpinBox()
         self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
@@ -405,7 +378,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.speed_spinbox.setValue(DEFAULT_SPEED)
         params_layout.addWidget(self.speed_spinbox, 0, 1)
         
-        # 随机种子
         params_layout.addWidget(QLabel("随机种子:"), 1, 0)
         self.seed_spinbox = QSpinBox()
         self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
@@ -413,7 +385,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.seed_spinbox.setSpecialValueText("随机")
         params_layout.addWidget(self.seed_spinbox, 1, 1)
         
-        # 采样率
         params_layout.addWidget(QLabel("采样率:"), 2, 0)
         self.sample_rate_spinbox = QSpinBox()
         self.sample_rate_spinbox.setRange(16000, 48000)
@@ -423,16 +394,14 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addWidget(params_group)
         
-        # 模型状态面板
         model_status_panel = self.create_model_status_panel()
         layout.addWidget(model_status_panel)
         
-        # 控制按钮
         btn_layout = QHBoxLayout()
         
         self.start_btn = QPushButton("🚀 开始批量合成")
         self.start_btn.clicked.connect(self.start_synthesis)
-        self.start_btn.setEnabled(False)  # 初始禁用，需要先加载模型
+        self.start_btn.setEnabled(False)
         btn_layout.addWidget(self.start_btn)
         
         self.stop_btn = QPushButton("⏹️ 停止合成")
@@ -442,12 +411,10 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addLayout(btn_layout)
         
-        # 进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         layout.addWidget(self.progress_bar)
         
-        # 状态标签
         self.status_label = QLabel("就绪")
         layout.addWidget(self.status_label)
         
@@ -460,7 +427,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         layout = QHBoxLayout(model_widget)
         layout.setSpacing(15)
         
-        # 模型状态标签
         self.model_status_label = QLabel("模型状态: 未加载")
         self.model_status_label.setFont(QFont("Arial", 11))
         self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
@@ -468,7 +434,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addStretch()
         
-        # 加载模型按钮
         self.load_model_btn = QPushButton("加载模型")
         self.load_model_btn.clicked.connect(self.load_model)
         self.load_model_btn.setFixedSize(120, 35)
@@ -505,20 +470,16 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.log_text.setFont(QFont("Consolas", 9))
         layout.addWidget(self.log_text)
         
-        # 按钮布局
         btn_layout = QHBoxLayout()
         
-        # 清除日志按钮
         clear_btn = QPushButton("清除日志")
         clear_btn.clicked.connect(self.clear_log)
         btn_layout.addWidget(clear_btn)
         
-        # 查看音色数据库按钮
         view_db_btn = QPushButton("查看音色数据库")
         view_db_btn.clicked.connect(self.view_voice_database)
         btn_layout.addWidget(view_db_btn)
         
-        # 打开音色管理器按钮
         manage_btn = QPushButton("打开音色管理器")
         manage_btn.clicked.connect(self.open_voice_manager)
         btn_layout.addWidget(manage_btn)
@@ -547,27 +508,22 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def load_model(self):
         """加载模型"""
-        # 验证模型路径
         if not Path(self.model_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "模型路径不存在！")
             return
         
-        # 禁用加载按钮
         self.load_model_btn.setEnabled(False)
         self.model_status_label.setText("模型状态: 加载中...")
         self.model_status_label.setStyleSheet("color: #ffc107; font-weight: bold;")
         
-        # 创建模型加载线程
         self.model_load_thread = QThread()
         self.model_load_worker = ModelLoadWorker(self.model_dir_edit.text())
         
-        # 连接信号
         self.model_load_worker.status_updated.connect(self.status_label.setText)
         self.model_load_worker.log_updated.connect(self.log_text.append)
         self.model_load_worker.finished.connect(self.on_model_loaded)
         self.model_load_worker.error.connect(self.on_model_load_error)
         
-        # 移动到线程并启动
         self.model_load_worker.moveToThread(self.model_load_thread)
         self.model_load_thread.started.connect(self.model_load_worker.load_model)
         self.model_load_thread.start()
@@ -580,7 +536,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.start_btn.setEnabled(True)
         self.load_model_btn.setEnabled(True)
         
-        # 清理线程
         if self.model_load_thread:
             self.model_load_thread.quit()
             self.model_load_thread.wait()
@@ -592,7 +547,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.load_model_btn.setEnabled(True)
         QMessageBox.critical(self, "错误", error_msg)
         
-        # 清理线程
         if self.model_load_thread:
             self.model_load_thread.quit()
             self.model_load_thread.wait()
@@ -603,7 +557,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / "BatchGenerate" / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
@@ -641,7 +595,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         try:
             import subprocess
             
-            script_path = batch_generate_dir / "voice_register_manager_gui.py"
+            script_path = playground_dir / "BatchGenerate" / "voice_register_manager_gui.py"
             
             if not script_path.exists():
                 self.log_text.append(f"错误: 脚本不存在: {script_path}")
@@ -655,37 +609,30 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
         except Exception as e:
             self.log_text.append(f"启动失败: {e}")
-            self.log_text.append(f"请手动运行: python {batch_generate_dir / 'voice_register_manager_gui.py'}")
+            self.log_text.append(f"请手动运行: python {playground_dir / 'BatchGenerate' / 'voice_register_manager_gui.py'}")
     
     def start_synthesis(self):
         """开始批量合成"""
-        # 验证模型是否已加载
         if self.cosyvoice_model is None:
             QMessageBox.warning(self, "错误", "请先加载模型！")
             return
         
-        # 验证音色选择
         selected_voice = self.get_selected_voice_for_synthesis()
         if not selected_voice:
             QMessageBox.warning(self, "错误", "请先选择一个音色！")
             return
         
-        # 验证输入输出目录
         if not Path(self.input_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "输入文本文件夹不存在！")
             return
         
-        # 禁用按钮
         self.start_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         
-        # 重置进度条
         self.progress_bar.setValue(0)
         
-        # 获取参数
         seed = self.seed_spinbox.value() if self.seed_spinbox.value() != -1 else None
         
-        # 使用选择的音色创建工作线程
         self.worker_thread = QThread()
         self.worker = VoiceSynthesisWorker(
             cosyvoice=self.cosyvoice_model,
@@ -697,13 +644,11 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             sample_rate=self.sample_rate_spinbox.value()
         )
         
-        # 连接信号
         self.worker.progress_updated.connect(self.progress_bar.setValue)
         self.worker.status_updated.connect(self.status_label.setText)
         self.worker.log_updated.connect(self.log_text.append)
         self.worker.finished.connect(self.synthesis_finished)
         
-        # 移动到线程并启动
         self.worker.moveToThread(self.worker_thread)
         self.worker_thread.started.connect(self.worker.run_synthesis)
         self.worker_thread.start()
@@ -711,7 +656,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     def get_selected_voice_for_synthesis(self):
         """获取批量合成选择的音色"""
         current_index = self.voice_combo.currentIndex()
-        if current_index > 0:  # 跳过"请选择音色..."
+        if current_index > 0:
             return self.voice_combo.itemData(current_index)
         return None
     
@@ -724,11 +669,9 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def synthesis_finished(self, success_count, total_count):
         """合成完成"""
-        # 重新启用按钮
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         
-        # 清理线程
         if self.worker_thread and self.worker_thread.isRunning():
             self.worker_thread.quit()
             self.worker_thread.wait()
@@ -741,7 +684,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """刷新音色下拉框"""
         current_text = self.voice_combo.currentText()
         
-        # 断开旧的信号连接
         try:
             self.voice_combo.currentTextChanged.disconnect()
         except:
@@ -749,13 +691,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         self.voice_combo.clear()
         
-        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / "BatchGenerate" / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
             self.voice_combo.addItem("请选择音色...")
             self.combo_voice_info_label.setText("数据库为空，请先注册音色")
-            # 重新连接信号
             self.voice_combo.currentTextChanged.connect(self.on_voice_combo_changed)
             return
         
@@ -767,16 +708,13 @@ class VoiceBatchSynthesisGUI(QMainWindow):
                         entry = json.loads(line.strip())
                         voices.append(entry)
             
-            # 添加选项
             self.voice_combo.addItem("请选择音色...")
             for voice in voices:
                 voice_key = voice.get('key', 'Unknown')
                 self.voice_combo.addItem(voice_key)
-                # 存储完整数据到ComboBox
                 index = self.voice_combo.count() - 1
                 self.voice_combo.setItemData(index, voice)
             
-            # 恢复选择
             if current_text:
                 index = self.voice_combo.findText(current_text)
                 if index >= 0:
@@ -787,7 +725,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         except Exception as e:
             self.log_text.append(f"刷新音色下拉框失败: {str(e)}")
         
-        # 重新连接选择变化信号
         self.voice_combo.currentTextChanged.connect(self.on_voice_combo_changed)
     
     def on_voice_combo_changed(self, text):
@@ -797,9 +734,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             self.play_voice_btn.setEnabled(False)
             return
         
-        # 获取选择的音色数据
         current_index = self.voice_combo.currentIndex()
-        if current_index > 0:  # 跳过"请选择音色..."
+        if current_index > 0:
             voice_data = self.voice_combo.itemData(current_index)
             if voice_data:
                 info_text = f"音色: {voice_data.get('key', 'N/A')}\n"
@@ -814,16 +750,35 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         if selected_voice:
             source_path = selected_voice.get('source', '')
             if Path(source_path).exists():
+                self.media_player.stop()
                 self.media_player.setSource(QUrl.fromLocalFile(source_path)) 
                 self.media_player.play() 
                 self.log_text.append(f"播放: {selected_voice.get('key', '')}")
             else:
                 QMessageBox.warning(self, "错误", "音频文件不存在！")
+    
+    def on_player_error(self, error):
+        """处理播放器错误"""
+        self.log_text.append(f"播放器错误: {self.media_player.errorString()}")
+    
+    def closeEvent(self, event):
+        """窗口关闭事件"""
+        if self.media_player:
+            self.media_player.stop()
+        
+        if self.worker_thread and self.worker_thread.isRunning():
+            self.worker_thread.quit()
+            self.worker_thread.wait(3000)
+        
+        if self.model_load_thread and self.model_load_thread.isRunning():
+            self.model_load_thread.quit()
+            self.model_load_thread.wait(3000)
+        
+        event.accept()
 
 def main():
     app = QApplication(sys.argv)
     
-    # 设置应用程序样式
     app.setStyle('Fusion')
     
     window = VoiceBatchSynthesisGUI()
@@ -832,4 +787,4 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == '__main__':
-    main() 
+    main()
