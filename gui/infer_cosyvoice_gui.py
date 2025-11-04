@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
     QGroupBox, QMessageBox, QDoubleSpinBox, QSpinBox, QComboBox,
     QFormLayout, QHBoxLayout
 )
-from PySide6.QtCore import Qt, QThread, QObject, Signal
+from PySide6.QtCore import Qt, QThread, QObject, Signal, QUrl
 from PySide6.QtGui import QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
@@ -530,6 +530,10 @@ class SingleSynthesisGUI(QMainWindow):
         self.synth_thread.start()
 
     def on_synth_finished(self, output_path: str):
+        # 清除播放器缓存，确保下次播放时加载新文件
+        self.media_player.stop()
+        self.media_player.setSource(QUrl())
+        
         self.last_output_path = output_path
         self.start_btn.setEnabled(True)
         self.play_btn.setEnabled(True)
@@ -549,9 +553,15 @@ class SingleSynthesisGUI(QMainWindow):
 
     def play_output(self):
         if self.last_output_path and Path(self.last_output_path).exists():
-            from PySide6.QtCore import QUrl
+            # 停止当前播放
             self.media_player.stop()
+            # 清除旧的音频源，强制重新加载文件
+            self.media_player.setSource(QUrl())
+            # 等待清除完成
+            QApplication.processEvents()
+            # 设置新的音频源
             self.media_player.setSource(QUrl.fromLocalFile(self.last_output_path))
+            # 开始播放
             self.media_player.play()
         else:
             QMessageBox.warning(self, "错误", "没有可播放的输出文件")

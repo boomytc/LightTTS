@@ -787,9 +787,16 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         if selected_voice:
             source_path = selected_voice.get('source', '')
             if Path(source_path).exists():
+                # 停止当前播放
                 self.media_player.stop()
-                self.media_player.setSource(QUrl.fromLocalFile(source_path)) 
-                self.media_player.play() 
+                # 清除旧的音频源，强制重新加载文件
+                self.media_player.setSource(QUrl())
+                # 等待清除完成
+                QApplication.processEvents()
+                # 设置新的音频源
+                self.media_player.setSource(QUrl.fromLocalFile(source_path))
+                # 开始播放
+                self.media_player.play()
                 self.log_text.append(f"播放: {selected_voice.get('key', '')}")
             else:
                 QMessageBox.warning(self, "错误", "音频文件不存在！")
