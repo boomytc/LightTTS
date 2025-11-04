@@ -1,16 +1,16 @@
 import sys
 import os
 
-_current_script_absolute_path = os.path.abspath(__file__)
-_batch_generate_dir = os.path.dirname(_current_script_absolute_path)
-_project_root = os.path.dirname(_batch_generate_dir)
+current_script_absolute_path = os.path.abspath(__file__)
+batch_generate_dir = os.path.dirname(current_script_absolute_path)
+project_root = os.path.dirname(batch_generate_dir)
 
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-_matcha_tts_path = os.path.join(_project_root, 'Matcha-TTS')
-if os.path.isdir(_matcha_tts_path) and _matcha_tts_path not in sys.path:
-    sys.path.insert(1, _matcha_tts_path)
+matcha_tts_path = os.path.join(project_root, 'Matcha-TTS')
+if os.path.isdir(matcha_tts_path) and matcha_tts_path not in sys.path:
+    sys.path.insert(1, matcha_tts_path)
 
 import random
 import glob

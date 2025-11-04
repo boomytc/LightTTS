@@ -1,16 +1,16 @@
 import sys
 import os
 
-_current_script_absolute_path = os.path.abspath(__file__)
-_batch_generate_dir = os.path.dirname(_current_script_absolute_path)
-_project_root = os.path.dirname(_batch_generate_dir)
+current_script_absolute_path = os.path.abspath(__file__)
+batch_generate_dir = os.path.dirname(current_script_absolute_path)
+project_root = os.path.dirname(batch_generate_dir)
 
-if _project_root not in sys.path:
-    sys.path.insert(0, _project_root)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-_matcha_tts_path = os.path.join(_project_root, 'Matcha-TTS')
-if os.path.isdir(_matcha_tts_path) and _matcha_tts_path not in sys.path:
-    sys.path.insert(1, _matcha_tts_path)
+matcha_tts_path = os.path.join(project_root, 'Matcha-TTS')
+if os.path.isdir(matcha_tts_path) and matcha_tts_path not in sys.path:
+    sys.path.insert(1, matcha_tts_path)
 
 import torch
 import torchaudio
@@ -69,7 +69,7 @@ class VoiceRegisterWorker(QObject):
         self.prompt_speech_16k = None
         
         # DB_clone 路径设置
-        self.db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        self.db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         self.db_clone_jsonl = os.path.join(self.db_clone_dir, DB_CLONE_JSONL_NAME)
     
     def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
@@ -470,7 +470,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         self.log_text.append("=== 音色数据库内容 ===")
@@ -577,7 +577,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """刷新音色列表"""
         self.voice_list_widget.clear()
         
-        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
@@ -688,7 +688,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def is_voice_key_exists(self, voice_key):
         """检查音色键名是否已存在"""
-        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
@@ -708,7 +708,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def update_voice_key_in_db(self, old_key, new_key):
         """更新数据库中的音色键名"""
-        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
@@ -738,7 +738,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def delete_voice_from_db(self, voice_key):
         """从数据库中删除音色"""
-        db_clone_dir = os.path.join(_project_root, DB_CLONE_DIR_NAME)
+        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
         db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
         
         if not os.path.exists(db_clone_jsonl):
