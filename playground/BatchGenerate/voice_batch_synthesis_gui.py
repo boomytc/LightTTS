@@ -60,13 +60,6 @@ AUDIO_SILENCE_DURATION = 0.2
 # 支持的文件扩展名
 TEXT_EXTENSIONS = ['.txt']
 
-# 默认合成参数
-DEFAULT_SPEED = 1.0
-DEFAULT_SEED = -1
-MIN_SPEED = 0.5
-MAX_SPEED = 2.0
-SPEED_STEP = 0.1
-
 class VoiceSynthesisWorker(QObject):
     """音色批量合成工作线程"""
     progress_updated = Signal(int)
