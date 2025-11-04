@@ -2,8 +2,7 @@ import sys
 from pathlib import Path
 
 current_script_path = Path(__file__).resolve()
-batch_generate_dir = current_script_path.parent
-playground_dir = batch_generate_dir.parent
+playground_dir = current_script_path.parent
 project_root = playground_dir.parent
 
 project_root_str = str(project_root)
@@ -62,8 +61,8 @@ class VoiceRegisterWorker(QObject):
         self.prompt_text = prompt_text
         self.voice_key = voice_key
         
-        # DB_clone 路径设置为脚本所在目录下
-        self.db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        # DB_clone 路径设置为 playground 目录下
+        self.db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         self.db_clone_jsonl = self.db_clone_dir / DB_CLONE_JSONL_NAME
     
     def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
@@ -447,7 +446,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
@@ -550,7 +549,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """刷新音色列表"""
         self.voice_list_widget.clear()
         
-        db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
@@ -663,7 +662,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def is_voice_key_exists(self, voice_key):
         """检查音色键名是否已存在"""
-        db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
@@ -683,7 +682,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def update_voice_key_in_db(self, old_key, new_key):
         """更新数据库中的音色键名"""
-        db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
@@ -713,7 +712,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def delete_voice_from_db(self, voice_key):
         """从数据库中删除音色"""
-        db_clone_dir = batch_generate_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
@@ -781,4 +780,4 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == '__main__':
-    main() 
+    main()
