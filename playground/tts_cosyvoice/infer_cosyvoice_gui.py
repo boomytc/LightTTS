@@ -21,7 +21,8 @@ import torchaudio
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QProgressBar,
-    QGroupBox, QMessageBox, QDoubleSpinBox, QSpinBox, QComboBox
+    QGroupBox, QMessageBox, QDoubleSpinBox, QSpinBox, QComboBox,
+    QFormLayout, QHBoxLayout
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 from PySide6.QtGui import QFont
@@ -252,131 +253,174 @@ class SingleSynthesisGUI(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("LightTTS 单音频语音合成")
-        self.setGeometry(120, 120, 900, 650)
+        self.setGeometry(120, 120, 900, 480)
 
         central = QWidget()
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
+        root_layout.setSpacing(10)
+        root_layout.setContentsMargins(15, 15, 15, 15)
 
         # 模型设置
         model_group = QGroupBox("模型设置")
-        model_layout = QGridLayout(model_group)
+        model_layout = QGridLayout()
+        model_layout.setSpacing(8)
+        model_layout.setColumnStretch(1, 1)
+        model_group.setLayout(model_layout)
+
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
         self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         model_layout.addWidget(self.model_dir_edit, 0, 1)
         self.model_browse_btn = QPushButton("浏览")
+        self.model_browse_btn.setFixedWidth(70)
         self.model_browse_btn.clicked.connect(self.select_model_dir)
         model_layout.addWidget(self.model_browse_btn, 0, 2)
 
-        self.model_status_label = QLabel("模型状态: 未加载")
-        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
-        model_layout.addWidget(self.model_status_label, 1, 0, 1, 2)
-        self.load_model_btn = QPushButton("加载模型")
-        self.load_model_btn.clicked.connect(self.load_model)
-        model_layout.addWidget(self.load_model_btn, 1, 2)
-
-        # 设备选择
-        model_layout.addWidget(QLabel("运行设备:"), 2, 0)
+        model_layout.addWidget(QLabel("运行设备:"), 1, 0)
         self.device_combo = QComboBox()
         self.device_combo.addItems(["cuda", "cpu"])
         self.device_combo.setCurrentText("cuda" if torch.cuda.is_available() else "cpu")
-        model_layout.addWidget(self.device_combo, 2, 1)
+        device_row = QHBoxLayout()
+        device_row.setContentsMargins(0, 0, 0, 0)
+        device_row.addWidget(self.device_combo)
+        device_row.addStretch()
+        model_layout.addLayout(device_row, 1, 1)
+
+        self.load_model_btn = QPushButton("加载模型")
+        self.load_model_btn.setFixedWidth(100)
+        self.load_model_btn.clicked.connect(self.load_model)
+        model_layout.addWidget(self.load_model_btn, 1, 2)
+
+        self.model_status_label = QLabel("未加载")
+        self.model_status_label.setStyleSheet("color: #dc3545;")
+        model_layout.addWidget(self.model_status_label, 2, 0, 1, 3)
+
         root_layout.addWidget(model_group)
 
-        # 音色与文本
+        # 参数输入
         io_group = QGroupBox("参数输入")
-        io_layout = QGridLayout(io_group)
+        io_layout = QFormLayout()
+        io_layout.setSpacing(12)
+        io_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        io_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
+        io_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        io_layout.setContentsMargins(12, 12, 12, 12)
+        io_group.setLayout(io_layout)
 
-        # 模式选择
-        io_layout.addWidget(QLabel("推理模式:"), 0, 0)
         self.mode_combo = QComboBox()
         self.mode_combo.addItems(list(MODE_MAPPING.keys()))
         self.mode_combo.setCurrentText("零样本克隆")
         self.mode_combo.currentTextChanged.connect(self.on_mode_changed)
-        io_layout.addWidget(self.mode_combo, 0, 1, 1, 2)
 
-        # 音色音频
-        io_layout.addWidget(QLabel("音色音频:"), 1, 0)
-        self.prompt_audio_edit = QLineEdit()
-        self.prompt_audio_edit.setText(DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else "")
-        io_layout.addWidget(self.prompt_audio_edit, 1, 1)
-        self.prompt_audio_btn = QPushButton("选择")
-        self.prompt_audio_btn.clicked.connect(self.select_prompt_audio)
-        io_layout.addWidget(self.prompt_audio_btn, 1, 2)
-
-        # 音色文本（零样本模式）
-        self.prompt_text_label = QLabel("音色文本:")
-        io_layout.addWidget(self.prompt_text_label, 2, 0)
-        self.prompt_text_edit = QLineEdit()
-        self.prompt_text_edit.setText(DEFAULT_PROMPT_TEXT)
-        io_layout.addWidget(self.prompt_text_edit, 2, 1, 1, 2)
-
-        # 指令文本（指令模式）
-        self.instruct_text_label = QLabel("指令文本:")
-        io_layout.addWidget(self.instruct_text_label, 3, 0)
-        self.instruct_text_edit = QLineEdit()
-        io_layout.addWidget(self.instruct_text_edit, 3, 1, 1, 2)
-
-        # 合成文本
-        io_layout.addWidget(QLabel("合成文本:"), 4, 0)
-        self.tts_text_edit = QLineEdit()
-        io_layout.addWidget(self.tts_text_edit, 4, 1, 1, 2)
-
-        # 语速和随机种子
-        io_layout.addWidget(QLabel("语速:"), 5, 0)
         self.speed_spinbox = QDoubleSpinBox()
         self.speed_spinbox.setRange(0.5, 2.0)
         self.speed_spinbox.setSingleStep(0.05)
         self.speed_spinbox.setValue(DEFAULT_SPEED)
-        io_layout.addWidget(self.speed_spinbox, 5, 1)
+        self.speed_spinbox.setFixedWidth(90)
 
-        io_layout.addWidget(QLabel("随机种子:"), 5, 2)
         self.seed_spinbox = QSpinBox()
         self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
         self.seed_spinbox.setValue(DEFAULT_SEED)
         self.seed_spinbox.setSpecialValueText("随机")
-        io_layout.addWidget(self.seed_spinbox, 5, 3)
+        self.seed_spinbox.setFixedWidth(120)
 
-        # 输出设置
-        io_layout.addWidget(QLabel("输出文件名:"), 6, 0)
+        mode_row_widget = QWidget()
+        mode_row_layout = QHBoxLayout(mode_row_widget)
+        mode_row_layout.setContentsMargins(0, 0, 0, 0)
+        mode_row_layout.setSpacing(12)
+        mode_row_layout.addWidget(self.mode_combo)
+        mode_row_layout.addSpacing(12)
+        mode_row_layout.addWidget(QLabel("语速:"))
+        mode_row_layout.addWidget(self.speed_spinbox)
+        mode_row_layout.addSpacing(12)
+        mode_row_layout.addWidget(QLabel("随机种子:"))
+        mode_row_layout.addWidget(self.seed_spinbox)
+        mode_row_layout.addStretch()
+        io_layout.addRow("推理模式:", mode_row_widget)
+
+        self.prompt_audio_edit = QLineEdit()
+        self.prompt_audio_edit.setText(DEFAULT_PROMPT_WAV if os.path.isfile(DEFAULT_PROMPT_WAV) else "")
+        self.prompt_audio_btn = QPushButton("选择")
+        self.prompt_audio_btn.setFixedWidth(70)
+        self.prompt_audio_btn.clicked.connect(self.select_prompt_audio)
+        prompt_audio_row = QWidget()
+        prompt_audio_layout = QHBoxLayout(prompt_audio_row)
+        prompt_audio_layout.setContentsMargins(0, 0, 0, 0)
+        prompt_audio_layout.setSpacing(8)
+        prompt_audio_layout.addWidget(self.prompt_audio_edit)
+        prompt_audio_layout.addWidget(self.prompt_audio_btn)
+        io_layout.addRow("音色音频:", prompt_audio_row)
+
+        self.prompt_text_label = QLabel("音色文本:")
+        self.prompt_text_edit = QLineEdit()
+        self.prompt_text_edit.setText(DEFAULT_PROMPT_TEXT)
+        io_layout.addRow(self.prompt_text_label, self.prompt_text_edit)
+
+        self.instruct_text_label = QLabel("指令文本:")
+        self.instruct_text_edit = QLineEdit()
+        io_layout.addRow(self.instruct_text_label, self.instruct_text_edit)
+
+        self.tts_text_edit = QLineEdit()
+        io_layout.addRow("合成文本:", self.tts_text_edit)
+
         self.output_name_edit = QLineEdit("single.wav")
-        io_layout.addWidget(self.output_name_edit, 6, 1)
+        io_layout.addRow("输出文件:", self.output_name_edit)
 
-        io_layout.addWidget(QLabel("输出目录:"), 7, 0)
         self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
-        io_layout.addWidget(self.output_dir_edit, 7, 1)
         self.output_browse_btn = QPushButton("浏览")
+        self.output_browse_btn.setFixedWidth(70)
         self.output_browse_btn.clicked.connect(self.select_output_dir)
-        io_layout.addWidget(self.output_browse_btn, 7, 2)
+        output_dir_row = QWidget()
+        output_dir_layout = QHBoxLayout(output_dir_row)
+        output_dir_layout.setContentsMargins(0, 0, 0, 0)
+        output_dir_layout.setSpacing(8)
+        output_dir_layout.addWidget(self.output_dir_edit)
+        output_dir_layout.addWidget(self.output_browse_btn)
+        io_layout.addRow("输出目录:", output_dir_row)
 
         root_layout.addWidget(io_group)
 
-        # 控制与进度
+        # 合成控制
         ctrl_group = QGroupBox("合成控制")
-        ctrl_layout = QGridLayout(ctrl_group)
+        ctrl_layout = QVBoxLayout()
+        ctrl_layout.setSpacing(8)
+        ctrl_layout.setContentsMargins(12, 12, 12, 12)
+        ctrl_group.setLayout(ctrl_layout)
 
         self.status_label = QLabel("就绪")
-        ctrl_layout.addWidget(self.status_label, 0, 0, 1, 3)
+        self.status_label.setStyleSheet("color: #666;")
+        self.status_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        ctrl_layout.addWidget(self.status_label)
 
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
-        ctrl_layout.addWidget(self.progress_bar, 1, 0, 1, 3)
+        self.progress_bar.setFixedHeight(22)
+        ctrl_layout.addWidget(self.progress_bar)
 
-        self.start_btn = QPushButton("🚀 开始合成")
+        # 按钮行：开始合成 + 播放输出
+        button_row = QHBoxLayout()
+        button_row.setContentsMargins(0, 0, 0, 0)
+        button_row.setSpacing(12)
+
+        self.start_btn = QPushButton("开始合成")
+        self.start_btn.setFixedHeight(35)
         self.start_btn.clicked.connect(self.start_synthesis)
         self.start_btn.setEnabled(False)
-        ctrl_layout.addWidget(self.start_btn, 2, 0)
+        button_row.addWidget(self.start_btn)
 
-        self.play_btn = QPushButton("🔊 播放输出")
+        self.play_btn = QPushButton("播放输出")
+        self.play_btn.setFixedHeight(35)
         self.play_btn.clicked.connect(self.play_output)
         self.play_btn.setEnabled(False)
-        ctrl_layout.addWidget(self.play_btn, 2, 1)
+        button_row.addWidget(self.play_btn)
+        button_row.addStretch()
+
+        ctrl_layout.addLayout(button_row)
 
         root_layout.addWidget(ctrl_group)
-
-        root_layout.addStretch()
+        self.on_mode_changed(self.mode_combo.currentText())
 
     # ===== 交互方法 =====
     def select_model_dir(self):
@@ -400,8 +444,8 @@ class SingleSynthesisGUI(QMainWindow):
             return
 
         self.load_model_btn.setEnabled(False)
-        self.model_status_label.setText("模型状态: 加载中...")
-        self.model_status_label.setStyleSheet("color: #ffc107; font-weight: bold;")
+        self.model_status_label.setText("加载中...")
+        self.model_status_label.setStyleSheet("color: #ffc107;")
 
         self.model_load_thread = QThread()
         self.model_load_worker = ModelLoadWorker(self.model_dir_edit.text(), self.device_combo.currentText())
@@ -417,8 +461,8 @@ class SingleSynthesisGUI(QMainWindow):
 
     def on_model_loaded(self, model: CosyVoice2):
         self.cosyvoice_model = model
-        self.model_status_label.setText("模型状态: 已加载")
-        self.model_status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        self.model_status_label.setText("已加载")
+        self.model_status_label.setStyleSheet("color: #28a745;")
         self.start_btn.setEnabled(True)
         self.load_model_btn.setEnabled(True)
         if self.model_load_thread:
@@ -426,8 +470,8 @@ class SingleSynthesisGUI(QMainWindow):
             self.model_load_thread.wait()
 
     def on_model_load_error(self, msg: str):
-        self.model_status_label.setText("模型状态: 加载失败")
-        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        self.model_status_label.setText("加载失败")
+        self.model_status_label.setStyleSheet("color: #dc3545;")
         self.load_model_btn.setEnabled(True)
         QMessageBox.critical(self, "错误", msg)
         if self.model_load_thread:
