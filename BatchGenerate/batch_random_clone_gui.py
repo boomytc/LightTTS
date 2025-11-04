@@ -95,9 +95,9 @@ class SynthesisWorker(QObject):
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > MAX_VAL:
-            speech = speech / speech.abs().max() * MAX_VAL
-        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
+        if speech.abs().max() > MAX_VAL:  # type: ignore
+            speech = speech / speech.abs().max() * MAX_VAL  # type: ignore
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)  # type: ignore
         return speech
     
     def get_prompt_pairs(self, clone_src_dir):
@@ -277,7 +277,7 @@ class BatchCloneGUI(QMainWindow):
         main_layout = QHBoxLayout(central_widget)
         
         # 创建分割器
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Horizontal)  # type: ignore
         main_layout.addWidget(splitter)
         
         # 左侧控制面板
@@ -298,8 +298,8 @@ class BatchCloneGUI(QMainWindow):
         
         # 标题
         title_label = QLabel("批量克隆语音合成")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 16, QFont.Bold))  # type: ignore
+        title_label.setAlignment(Qt.AlignCenter)  # type: ignore
         layout.addWidget(title_label)
         
         # 文件夹选择组
@@ -403,7 +403,7 @@ class BatchCloneGUI(QMainWindow):
         layout = QVBoxLayout(log_widget)
         
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold))
+        log_label.setFont(QFont("Arial", 12, QFont.Bold))  # type: ignore
         layout.addWidget(log_label)
         
         self.log_text = QTextEdit()
