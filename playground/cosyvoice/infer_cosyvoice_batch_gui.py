@@ -46,6 +46,7 @@ DEFAULT_INPUT_DIR = "playground/cosyvoice/texts"
 DEFAULT_OUTPUT_DIR = "playground/cosyvoice/voice_output"
 DB_CLONE_DIR_NAME = "DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
+VOICE_MANAGER_SCRIPT = "playground/voice_manager_gui.py"
 
 # ============ 音频参数 ============
 MAX_VAL = 0.8
@@ -92,6 +93,8 @@ class VoiceSynthesisWorker(QObject):
     status_updated = Signal(str)
     log_updated = Signal(str)
     finished = Signal(int, int)
+    current_file_updated = Signal(str)
+    progress_count_updated = Signal(int, int)
     
     def __init__(self, cosyvoice, voice_data, input_dir, output_dir, 
                  speed=DEFAULT_SPEED, seed=None, sample_rate=DEFAULT_OUTPUT_SAMPLE_RATE):
@@ -212,17 +215,16 @@ class VoiceSynthesisWorker(QObject):
                 if not self.is_running:
                     break
                 
-                self.status_updated.emit(f"处理进度: {i+1}/{total_count}")
+                filename = Path(input_text_file).name
+                self.current_file_updated.emit(filename)
+                self.progress_count_updated.emit(i + 1, total_count)
+                self.status_updated.emit(f"正在合成: {filename}")
                 self.progress_updated.emit(int((i / total_count) * 100))
                 
                 tts_text = self.read_text_file(input_text_file)
                 if not tts_text:
-                    self.log_updated.emit(f"警告: 无法读取文本文件 {input_text_file}，跳过")
+                    self.log_updated.emit(f"⚠ 跳过: {filename} (无法读取)")
                     continue
-                
-                filename = Path(input_text_file).name
-                self.log_updated.emit(f"正在合成: {filename}")
-                self.log_updated.emit(f"文本内容: {tts_text[:50]}...")
                 
                 synthesized_audio = self.synthesize_audio(tts_text)
                 
@@ -236,10 +238,11 @@ class VoiceSynthesisWorker(QObject):
                         self.sample_rate
                     )
                     
-                    self.log_updated.emit(f"✓ 合成成功: {Path(output_audio_path).name}")
+                    self.log_updated.emit(f"✓ {filename}")
                     success_count += 1
                 else:
-                    self.log_updated.emit(f"✗ 合成失败: {filename}")
+                    self.log_updated.emit(f"✗ {filename} (合成失败)")
+                    success_count += 1
             
             self.progress_updated.emit(100)
             self.status_updated.emit("批量合成完成!")
@@ -291,7 +294,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         log_panel = self.create_log_panel()
         splitter.addWidget(log_panel)
         
-        splitter.setSizes([700, 500])
+        splitter.setSizes([900, 300])
         
         QTimer.singleShot(100, self.refresh_voice_combo)
     
@@ -403,12 +406,40 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addLayout(btn_layout)
         
+        progress_group = QGroupBox("合成进度")
+        progress_layout = QVBoxLayout(progress_group)
+        
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
-        layout.addWidget(self.progress_bar)
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("%p%")
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid grey;
+                border-radius: 5px;
+                text-align: center;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QProgressBar::chunk {
+                background-color: #28a745;
+            }
+        """)
+        progress_layout.addWidget(self.progress_bar)
+        
+        self.current_file_label = QLabel("当前文件: -")
+        self.current_file_label.setFont(QFont("Arial", 10))
+        progress_layout.addWidget(self.current_file_label)
+        
+        self.progress_count_label = QLabel("进度: 0/0")
+        self.progress_count_label.setFont(QFont("Arial", 10))
+        progress_layout.addWidget(self.progress_count_label)
         
         self.status_label = QLabel("就绪")
-        layout.addWidget(self.status_label)
+        self.status_label.setFont(QFont("Arial", 10))
+        progress_layout.addWidget(self.status_label)
+        
+        layout.addWidget(progress_group)
         
         layout.addStretch()
         return main_widget
@@ -453,9 +484,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         log_widget = QWidget()
         layout = QVBoxLayout(log_widget)
         
+        log_header = QHBoxLayout()
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold)) 
-        layout.addWidget(log_label)
+        log_label.setFont(QFont("Arial", 11, QFont.Bold)) 
+        log_header.addWidget(log_label)
+        log_header.addStretch()
+        layout.addLayout(log_header)
         
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
@@ -549,7 +583,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = playground_dir / "BatchGenerate" / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
@@ -587,7 +621,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         try:
             import subprocess
             
-            script_path = playground_dir / "BatchGenerate" / "voice_register_manager_gui.py"
+            script_path = project_root / VOICE_MANAGER_SCRIPT
             
             if not script_path.exists():
                 self.log_text.append(f"错误: 脚本不存在: {script_path}")
@@ -601,7 +635,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
         except Exception as e:
             self.log_text.append(f"启动失败: {e}")
-            self.log_text.append(f"请手动运行: python {playground_dir / 'BatchGenerate' / 'voice_register_manager_gui.py'}")
+            self.log_text.append(f"请手动运行: python {VOICE_MANAGER_SCRIPT}")
     
     def start_synthesis(self):
         """开始批量合成"""
@@ -640,6 +674,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.worker.status_updated.connect(self.status_label.setText)
         self.worker.log_updated.connect(self.log_text.append)
         self.worker.finished.connect(self.synthesis_finished)
+        self.worker.current_file_updated.connect(self.update_current_file)
+        self.worker.progress_count_updated.connect(self.update_progress_count)
         
         self.worker.moveToThread(self.worker_thread)
         self.worker_thread.started.connect(self.worker.run_synthesis)
@@ -659,10 +695,19 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.synthesis_finished(0, 0)
         self.log_text.append("用户手动停止合成")
     
+    def update_current_file(self, filename):
+        """更新当前文件显示"""
+        self.current_file_label.setText(f"当前文件: {filename}")
+    
+    def update_progress_count(self, current, total):
+        """更新进度计数"""
+        self.progress_count_label.setText(f"进度: {current}/{total}")
+    
     def synthesis_finished(self, success_count, total_count):
         """合成完成"""
         self.start_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
+        self.current_file_label.setText("当前文件: -")
         
         if self.worker_thread and self.worker_thread.isRunning():
             self.worker_thread.quit()
@@ -683,7 +728,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         self.voice_combo.clear()
         
-        db_clone_dir = playground_dir / "BatchGenerate" / DB_CLONE_DIR_NAME
+        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
