@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QGridLayout, QLabel, QLineEdit, 
                                QPushButton, QFileDialog, QProgressBar, QTextEdit,
                                QSpinBox, QDoubleSpinBox, QGroupBox, QMessageBox,
-                               QSplitter)
+                               QComboBox)
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 from PySide6.QtGui import QFont
 
@@ -71,6 +71,7 @@ class SynthesisWorker(QObject):
     progress_updated = Signal(int)
     status_updated = Signal(str)
     log_updated = Signal(str)
+    stats_updated = Signal(int, int, int)  # total, completed, failed
     finished = Signal(int, int)  # success_count, total_count
     
     def __init__(self, model_dir, clone_src_dir, input_dir, output_dir, 
@@ -193,19 +194,26 @@ class SynthesisWorker(QObject):
             
             # 批量合成
             success_count = 0
+            failed_count = 0
             total_count = len(input_text_files)
+            
+            # 发送初始统计信息
+            self.stats_updated.emit(total_count, 0, 0)
             
             for i, input_text_file in enumerate(input_text_files):
                 if not self.is_running:
                     break
                 
-                self.status_updated.emit(f"处理进度: {i+1}/{total_count}")
+                input_basename = os.path.splitext(os.path.basename(input_text_file))[0]
+                self.status_updated.emit(f"正在处理: {input_basename} ({i+1}/{total_count})")
                 self.progress_updated.emit(int((i / total_count) * 100))
                 
                 # 读取待合成的文本
                 tts_text = self.read_text_file(input_text_file)
                 if not tts_text:
                     self.log_updated.emit(f"警告: 无法读取文本文件 {input_text_file}，跳过")
+                    failed_count += 1
+                    self.stats_updated.emit(total_count, success_count, failed_count)
                     continue
                 
                 self.log_updated.emit(f"待合成文本: {tts_text[:50]}...")
@@ -216,6 +224,8 @@ class SynthesisWorker(QObject):
                 
                 if not prompt_text:
                     self.log_updated.emit(f"警告: 无法读取prompt文本文件 {prompt_text_path}，跳过")
+                    failed_count += 1
+                    self.stats_updated.emit(total_count, success_count, failed_count)
                     continue
                 
                 self.log_updated.emit(f"使用prompt音频: {os.path.basename(prompt_audio_path)}")
@@ -231,7 +241,6 @@ class SynthesisWorker(QObject):
                 
                 if synthesized_audio is not None:
                     # 保存合成的音频
-                    input_basename = os.path.splitext(os.path.basename(input_text_file))[0]
                     output_audio_path = os.path.join(self.output_dir, f"{input_basename}.wav")
                     
                     # 保存为wav文件
@@ -245,6 +254,10 @@ class SynthesisWorker(QObject):
                     success_count += 1
                 else:
                     self.log_updated.emit(f"✗ 合成失败: {input_text_file}")
+                    failed_count += 1
+                
+                # 更新统计信息
+                self.stats_updated.emit(total_count, success_count, failed_count)
             
             self.progress_updated.emit(100)
             self.status_updated.emit("批量合成完成!")
@@ -267,74 +280,83 @@ class BatchCloneGUI(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 批量克隆语音合成系统")
-        self.setGeometry(100, 100, 1000, 700)
+        self.setGeometry(100, 100, 800, 650)
         
         # 创建中央控件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         # 创建主布局
-        main_layout = QHBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.setSpacing(10)
         
-        # 创建分割器
-        splitter = QSplitter(Qt.Horizontal) 
-        main_layout.addWidget(splitter)
-        
-        # 左侧控制面板
+        # 控制面板
         control_panel = self.create_control_panel()
-        splitter.addWidget(control_panel)
+        main_layout.addWidget(control_panel)
         
-        # 右侧日志面板
-        log_panel = self.create_log_panel()
-        splitter.addWidget(log_panel)
+        # 进度信息面板
+        progress_panel = self.create_progress_panel()
+        main_layout.addWidget(progress_panel)
         
-        # 设置分割器比例
-        splitter.setSizes([400, 600])
+        # 控制按钮
+        button_layout = self.create_button_layout()
+        main_layout.addLayout(button_layout)
     
     def create_control_panel(self):
         """创建控制面板"""
         control_widget = QWidget()
         layout = QVBoxLayout(control_widget)
+        layout.setSpacing(10)
         
-        # 标题
-        title_label = QLabel("批量克隆语音合成")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold)) 
-        title_label.setAlignment(Qt.AlignCenter) 
-        layout.addWidget(title_label)
-        
-        # 文件夹选择组
+        # 文件夹设置组
         folders_group = QGroupBox("文件夹设置")
         folders_layout = QGridLayout(folders_group)
+        folders_layout.setColumnStretch(1, 1)
+        folders_layout.setHorizontalSpacing(10)
+        folders_layout.setVerticalSpacing(8)
         
         # 模型路径
-        folders_layout.addWidget(QLabel("模型路径:"), 0, 0)
+        model_label = QLabel("模型路径:")
+        model_label.setMinimumWidth(110)
+        folders_layout.addWidget(model_label, 0, 0)
         self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         folders_layout.addWidget(self.model_dir_edit, 0, 1)
         model_dir_btn = QPushButton("浏览")
+        model_dir_btn.setFixedWidth(70)
         model_dir_btn.clicked.connect(self.select_model_dir)
         folders_layout.addWidget(model_dir_btn, 0, 2)
         
         # Clone源文件夹
-        folders_layout.addWidget(QLabel("Clone源文件夹:"), 1, 0)
+        clone_label = QLabel("Clone源文件夹:")
+        clone_label.setMinimumWidth(110)
+        folders_layout.addWidget(clone_label, 1, 0)
         self.clone_src_edit = QLineEdit(DEFAULT_CLONE_SRC_DIR)
         folders_layout.addWidget(self.clone_src_edit, 1, 1)
         clone_src_btn = QPushButton("浏览")
+        clone_src_btn.setFixedWidth(70)
         clone_src_btn.clicked.connect(self.select_clone_src_dir)
         folders_layout.addWidget(clone_src_btn, 1, 2)
         
         # 输入文本文件夹
-        folders_layout.addWidget(QLabel("输入文本文件夹:"), 2, 0)
+        input_label = QLabel("输入文本文件夹:")
+        input_label.setMinimumWidth(110)
+        folders_layout.addWidget(input_label, 2, 0)
         self.input_dir_edit = QLineEdit(DEFAULT_INPUT_DIR)
         folders_layout.addWidget(self.input_dir_edit, 2, 1)
         input_dir_btn = QPushButton("浏览")
+        input_dir_btn.setFixedWidth(70)
         input_dir_btn.clicked.connect(self.select_input_dir)
         folders_layout.addWidget(input_dir_btn, 2, 2)
         
         # 输出文件夹
-        folders_layout.addWidget(QLabel("输出文件夹:"), 3, 0)
+        output_label = QLabel("输出文件夹:")
+        output_label.setMinimumWidth(110)
+        folders_layout.addWidget(output_label, 3, 0)
         self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
         folders_layout.addWidget(self.output_dir_edit, 3, 1)
         output_dir_btn = QPushButton("浏览")
+        output_dir_btn.setFixedWidth(70)
         output_dir_btn.clicked.connect(self.select_output_dir)
         folders_layout.addWidget(output_dir_btn, 3, 2)
         
@@ -342,81 +364,196 @@ class BatchCloneGUI(QMainWindow):
         
         # 参数设置组
         params_group = QGroupBox("参数设置")
-        params_layout = QGridLayout(params_group)
+        params_layout = QHBoxLayout(params_group)
+        params_layout.setSpacing(15)
         
         # 语音速度
-        params_layout.addWidget(QLabel("语音速度:"), 0, 0)
+        params_layout.addWidget(QLabel("语音速度:"))
         self.speed_spinbox = QDoubleSpinBox()
         self.speed_spinbox.setRange(MIN_SPEED, MAX_SPEED)
         self.speed_spinbox.setSingleStep(SPEED_STEP)
         self.speed_spinbox.setValue(DEFAULT_SPEED)
-        params_layout.addWidget(self.speed_spinbox, 0, 1)
+        self.speed_spinbox.setSuffix("x")
+        self.speed_spinbox.setFixedWidth(80)
+        params_layout.addWidget(self.speed_spinbox)
+        
+        params_layout.addSpacing(20)
         
         # 随机种子
-        params_layout.addWidget(QLabel("随机种子:"), 1, 0)
+        params_layout.addWidget(QLabel("随机种子:"))
         self.seed_spinbox = QSpinBox()
         self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
         self.seed_spinbox.setValue(DEFAULT_SEED)
         self.seed_spinbox.setSpecialValueText("随机")
-        params_layout.addWidget(self.seed_spinbox, 1, 1)
+        self.seed_spinbox.setFixedWidth(100)
+        params_layout.addWidget(self.seed_spinbox)
+        
+        params_layout.addSpacing(20)
         
         # 采样率
-        params_layout.addWidget(QLabel("采样率:"), 2, 0)
-        self.sample_rate_spinbox = QSpinBox()
-        self.sample_rate_spinbox.setRange(MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
-        self.sample_rate_spinbox.setSingleStep(SAMPLE_RATE_STEP)
-        self.sample_rate_spinbox.setValue(DEFAULT_OUTPUT_SAMPLE_RATE)
-        params_layout.addWidget(self.sample_rate_spinbox, 2, 1)
+        params_layout.addWidget(QLabel("采样率:"))
+        self.sample_rate_combo = QComboBox()
+        self.sample_rate_combo.addItems(["16000 Hz", "22050 Hz"])
+        self.sample_rate_combo.setCurrentText("22050 Hz")
+        self.sample_rate_combo.setFixedWidth(110)
+        params_layout.addWidget(self.sample_rate_combo)
+        
+        params_layout.addStretch()
         
         layout.addWidget(params_group)
         
-        # 控制按钮
-        btn_layout = QHBoxLayout()
+        return control_widget
+    
+    def create_progress_panel(self):
+        """创建进度信息面板"""
+        progress_widget = QGroupBox("任务进度")
+        layout = QVBoxLayout(progress_widget)
+        layout.setSpacing(10)
         
-        self.start_btn = QPushButton("开始合成")
-        self.start_btn.clicked.connect(self.start_synthesis)
-        btn_layout.addWidget(self.start_btn)
+        # 进度统计信息
+        stats_layout = QHBoxLayout()
         
-        self.stop_btn = QPushButton("停止合成")
-        self.stop_btn.clicked.connect(self.stop_synthesis)
-        self.stop_btn.setEnabled(False)
-        btn_layout.addWidget(self.stop_btn)
+        # 总任务数
+        self.total_label = QLabel("总任务: 0")
+        self.total_label.setFont(QFont("Arial", 11))
+        stats_layout.addWidget(self.total_label)
         
-        layout.addLayout(btn_layout)
+        stats_layout.addSpacing(30)
+        
+        # 已完成
+        self.completed_label = QLabel("已完成: 0")
+        self.completed_label.setFont(QFont("Arial", 11))
+        self.completed_label.setStyleSheet("color: #28a745;")
+        stats_layout.addWidget(self.completed_label)
+        
+        stats_layout.addSpacing(30)
+        
+        # 失败数
+        self.failed_label = QLabel("失败: 0")
+        self.failed_label.setFont(QFont("Arial", 11))
+        self.failed_label.setStyleSheet("color: #dc3545;")
+        stats_layout.addWidget(self.failed_label)
+        
+        stats_layout.addStretch()
+        
+        layout.addLayout(stats_layout)
         
         # 进度条
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
+        self.progress_bar.setFormat("%p%")
+        self.progress_bar.setMinimumHeight(30)
+        self.progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 2px solid #ccc;
+                border-radius: 5px;
+                text-align: center;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QProgressBar::chunk {
+                background-color: #4CAF50;
+                border-radius: 3px;
+            }
+        """)
         layout.addWidget(self.progress_bar)
         
-        # 状态标签
+        # 当前状态
         self.status_label = QLabel("就绪")
+        self.status_label.setFont(QFont("Arial", 10))
+        self.status_label.setStyleSheet("""
+            padding: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            color: #495057;
+        """)
+        self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
         
-        layout.addStretch()
-        
-        return control_widget
-    
-    def create_log_panel(self):
-        """创建日志面板"""
-        log_widget = QWidget()
-        layout = QVBoxLayout(log_widget)
-        
-        log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold)) 
-        layout.addWidget(log_label)
-        
+        # 详细日志（可折叠，默认隐藏）
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setFont(QFont("Consolas", 9))
+        self.log_text.setMaximumHeight(120)
+        self.log_text.setVisible(False)
         layout.addWidget(self.log_text)
         
-        # 清除日志按钮
-        clear_btn = QPushButton("清除日志")
-        clear_btn.clicked.connect(self.clear_log)
-        layout.addWidget(clear_btn)
+        # 显示/隐藏日志按钮
+        self.toggle_log_btn = QPushButton("显示详细日志")
+        self.toggle_log_btn.clicked.connect(self.toggle_log)
+        self.toggle_log_btn.setFixedHeight(25)
+        layout.addWidget(self.toggle_log_btn)
         
-        return log_widget
+        return progress_widget
+    
+    def create_button_layout(self):
+        """创建按钮布局"""
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        # 打开输出文件夹按钮
+        self.open_output_btn = QPushButton("打开输出文件夹")
+        self.open_output_btn.clicked.connect(self.open_output_folder)
+        self.open_output_btn.setFixedHeight(35)
+        btn_layout.addWidget(self.open_output_btn)
+        
+        btn_layout.addStretch()
+        
+        # 开始合成按钮
+        self.start_btn = QPushButton("开始合成")
+        self.start_btn.clicked.connect(self.start_synthesis)
+        self.start_btn.setFixedSize(120, 40)
+        self.start_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #007bff;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #0056b3;
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;
+            }
+        """)
+        btn_layout.addWidget(self.start_btn)
+        
+        # 停止合成按钮
+        self.stop_btn = QPushButton("停止合成")
+        self.stop_btn.clicked.connect(self.stop_synthesis)
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.setFixedSize(120, 40)
+        self.stop_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #dc3545;
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+            QPushButton:disabled {
+                background-color: #6c757d;
+            }
+        """)
+        btn_layout.addWidget(self.stop_btn)
+        
+        return btn_layout
+    
+    def toggle_log(self):
+        """切换日志显示"""
+        if self.log_text.isVisible():
+            self.log_text.setVisible(False)
+            self.toggle_log_btn.setText("显示详细日志")
+        else:
+            self.log_text.setVisible(True)
+            self.toggle_log_btn.setText("隐藏详细日志")
+    
+
     
     def select_model_dir(self):
         """选择模型目录"""
@@ -442,9 +579,7 @@ class BatchCloneGUI(QMainWindow):
         if dir_path:
             self.output_dir_edit.setText(dir_path)
     
-    def clear_log(self):
-        """清除日志"""
-        self.log_text.clear()
+
     
     def start_synthesis(self):
         """开始合成"""
@@ -470,6 +605,7 @@ class BatchCloneGUI(QMainWindow):
         
         # 获取参数
         seed = self.seed_spinbox.value() if self.seed_spinbox.value() != -1 else None
+        sample_rate = int(self.sample_rate_combo.currentText().split()[0])
         
         # 创建工作线程
         self.worker_thread = QThread()
@@ -480,13 +616,14 @@ class BatchCloneGUI(QMainWindow):
             output_dir=self.output_dir_edit.text(),
             speed=self.speed_spinbox.value(),
             seed=seed,
-            sample_rate=self.sample_rate_spinbox.value()
+            sample_rate=sample_rate
         )
         
         # 连接信号
         self.worker.progress_updated.connect(self.progress_bar.setValue)
         self.worker.status_updated.connect(self.status_label.setText)
         self.worker.log_updated.connect(self.log_text.append)
+        self.worker.stats_updated.connect(self.update_stats)
         self.worker.finished.connect(self.synthesis_finished)
         
         # 移动到线程并启动
@@ -500,6 +637,20 @@ class BatchCloneGUI(QMainWindow):
             self.worker.stop()
         self.synthesis_finished(0, 0)
         self.log_text.append("用户手动停止合成")
+    
+    def update_stats(self, total, completed, failed):
+        """更新统计信息"""
+        self.total_label.setText(f"总任务: {total}")
+        self.completed_label.setText(f"已完成: {completed}")
+        self.failed_label.setText(f"失败: {failed}")
+    
+    def open_output_folder(self):
+        """打开输出文件夹"""
+        output_dir = self.output_dir_edit.text()
+        if os.path.exists(output_dir):
+            os.system(f'xdg-open "{output_dir}"')
+        else:
+            QMessageBox.warning(self, "提示", "输出文件夹不存在！")
     
     def synthesis_finished(self, success_count, total_count):
         """合成完成"""
