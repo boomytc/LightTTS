@@ -1,19 +1,13 @@
+import os
 import sys
 from pathlib import Path
 
-current_script_path = Path(__file__).resolve()
-cosyvoice_dir = current_script_path.parent
-playground_dir = cosyvoice_dir.parent
-project_root = playground_dir.parent
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+matcha_path = os.path.join(project_root, 'Matcha-TTS')
+sys.path.insert(0, project_root)
+sys.path.insert(0, matcha_path)
 
-project_root_str = str(project_root)
-if project_root_str not in sys.path:
-    sys.path.insert(0, project_root_str)
-
-matcha_tts_path = project_root / 'Matcha-TTS'
-matcha_tts_path_str = str(matcha_tts_path)
-if matcha_tts_path.is_dir() and matcha_tts_path_str not in sys.path:
-    sys.path.insert(1, matcha_tts_path_str)
+playground_dir = Path(project_root) / 'playground'
 
 import torch
 import torchaudio
@@ -38,6 +32,9 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import onnxruntime as ort
+ort.set_default_logger_severity(3)
+
 # ============ 模型配置 ============
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 
@@ -47,6 +44,9 @@ DEFAULT_OUTPUT_DIR = "playground/tts_cosyvoice/voice_output"
 DB_CLONE_DIR_NAME = "DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 VOICE_MANAGER_SCRIPT = "playground/voice_manager_gui.py"
+
+# 根据 project_root 设置 playground_dir
+project_root_path = Path(project_root)
 
 # ============ 音频参数 ============
 MAX_VAL = 0.8
@@ -583,7 +583,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = project_root_path / "playground" / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
@@ -621,7 +621,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         try:
             import subprocess
             
-            script_path = project_root / VOICE_MANAGER_SCRIPT
+            script_path = project_root_path / VOICE_MANAGER_SCRIPT
             
             if not script_path.exists():
                 self.log_text.append(f"错误: 脚本不存在: {script_path}")
@@ -629,7 +629,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
             process = subprocess.Popen(
                 [sys.executable, str(script_path)],
-                cwd=str(project_root)
+                cwd=str(project_root_path)
             )
             self.log_text.append(f"已启动音色管理器 (PID: {process.pid})")
             
@@ -728,7 +728,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         self.voice_combo.clear()
         
-        db_clone_dir = playground_dir / DB_CLONE_DIR_NAME
+        db_clone_dir = project_root_path / "playground" / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
