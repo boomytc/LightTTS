@@ -67,13 +67,6 @@ MIN_SPEED = 0.5
 MAX_SPEED = 2.0
 SPEED_STEP = 0.1
 
-# 默认合成参数
-DEFAULT_SPEED = 1.0
-DEFAULT_SEED = -1
-MIN_SPEED = 0.5
-MAX_SPEED = 2.0
-SPEED_STEP = 0.1
-
 class VoiceSynthesisWorker(QObject):
     """音色批量合成工作线程"""
     progress_updated = Signal(int)
@@ -529,7 +522,6 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """打开音色管理器"""
         try:
             import subprocess
-            import shlex
             
             script_path = os.path.join(batch_generate_dir, "voice_register_manager_gui.py")
             
@@ -582,9 +574,9 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
     def _try_alternative_launch(self, script_path):
         """尝试备用的启动方法"""
+        import subprocess
+        
         try:
-            import subprocess
-            
             # 方法1：尝试使用python命令
             try:
                 cmd = ["python", script_path]
