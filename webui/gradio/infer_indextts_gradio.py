@@ -21,7 +21,7 @@ EMO_LABELS = ["高兴", "愤怒", "悲伤", "恐惧", "反感", "低落", "惊�
 
 @lru_cache(maxsize=1)
 def get_model(device: str = DEVICE) -> IndexTTS2:
-    """Load and cache IndexTTS2 model."""
+    """加载并缓存 IndexTTS2 模型。"""
     # 根据设备类型自动配置加载参数
     is_cuda = device.startswith("cuda")
     
@@ -35,7 +35,7 @@ def get_model(device: str = DEVICE) -> IndexTTS2:
 
 
 def update_ui_visibility(emo_mode: str):
-    """Update UI component visibility based on emotion control mode."""
+    """根据情感控制模式更新UI组件可见性。"""
     if emo_mode == "无情感控制":
         return (
             gr.update(visible=False),  # emo_audio
@@ -88,7 +88,7 @@ def generate_speech(
     device: str,
     model_loaded: bool,
 ):
-    """Run IndexTTS2 inference and return audio + status message."""
+    """运行 IndexTTS2 推理并返回音频 + 状态消息。"""
     text = (text or "").strip()
     emo_text = (emo_text or "").strip()
 
@@ -148,7 +148,7 @@ def generate_speech(
 
 
 def load_model(device: str, model_loaded: bool):
-    """Load the IndexTTS2 model and enable generation once ready."""
+    """加载 IndexTTS2 模型并为字幕控制更新启用。"""
     if model_loaded:
         return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
 

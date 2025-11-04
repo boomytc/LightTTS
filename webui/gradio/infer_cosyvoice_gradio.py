@@ -32,7 +32,7 @@ MODE_MAPPING = {
 
 @lru_cache(maxsize=2)
 def get_model(model_dir: str = DEFAULT_MODEL_DIR, device: str = "cuda") -> CosyVoice2:
-    """Load and cache CosyVoice2 models by configuration."""
+    """根据配置加载并缓存 CosyVoice2 模型。"""
     # 根据设备类型自动配置加载参数
     is_cuda = device == "cuda" and torch.cuda.is_available()
     
@@ -48,7 +48,7 @@ def get_model(model_dir: str = DEFAULT_MODEL_DIR, device: str = "cuda") -> CosyV
 
 
 def prepare_prompt_audio(prompt_audio_path: str) -> torch.Tensor:
-    """Validate and load the reference prompt audio."""
+    """验证并加载参考提示音频。"""
     if not prompt_audio_path:
         prompt_audio_path = DEFAULT_PROMPT_WAV
 
@@ -67,7 +67,7 @@ def prepare_prompt_audio(prompt_audio_path: str) -> torch.Tensor:
 
 
 def merge_segments(segments) -> torch.Tensor:
-    """Concatenate generated audio segments into a single waveform."""
+    """将生成的音频片段合并成单一波形。"""
     audio_tensors = []
     for segment in segments:
         tensor = segment.get("tts_speech")
@@ -94,7 +94,7 @@ def generate_speech(
     device: str,
     model_loaded: bool,
 ):
-    """Run CosyVoice inference and return audio + status message."""
+    """运行 CosyVoice 推理并返回音频 + 状态消息。"""
     text = (text or "").strip()
     prompt_text = (prompt_text or "").strip()
     instruct_text = (instruct_text or "").strip()
@@ -165,7 +165,7 @@ def generate_speech(
 
 
 def load_model(device: str, model_loaded: bool):
-    """Load the CosyVoice model and enable generation once ready."""
+    """加载 CosyVoice 模型并为字幕控制更新启用。"""
     if model_loaded:
         return "模型已加载，无需重复加载。", True, gr.update(interactive=True)
 
@@ -181,7 +181,7 @@ def stop_generation_message():
 
 
 def update_ui_visibility(mode: str):
-    """Update UI component visibility based on selected mode."""
+    """根据选中模式更新UI组件可见性。"""
     mode_key = MODE_MAPPING.get(mode, mode)
     
     if mode_key == "zero_shot":
