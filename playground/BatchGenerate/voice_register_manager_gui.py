@@ -68,8 +68,6 @@ class VoiceRegisterWorker(QObject):
         self.prompt_audio_path = prompt_audio_path
         self.prompt_text = prompt_text
         self.voice_key = voice_key
-        self.cosyvoice = None
-        self.prompt_speech_16k = None
         
         # DB_clone 路径设置
         self.db_clone_dir = project_root / DB_CLONE_DIR_NAME
@@ -153,13 +151,8 @@ class VoiceRegisterWorker(QObject):
     def register_voice(self):
         """注册音色"""
         try:
-            # 初始化CosyVoice2模型
-            self.status_updated.emit("正在加载模型...")
-            self.log_updated.emit(f"正在加载CosyVoice2模型: {self.model_dir}")
-            self.cosyvoice = CosyVoice2(self.model_dir)
-            self.log_updated.emit("模型加载完成")
-            
             # 验证prompt音频
+            self.status_updated.emit("正在验证音频...")
             if not Path(self.prompt_audio_path).exists():
                 self.log_updated.emit(f"错误: 音频文件不存在: {self.prompt_audio_path}")
                 return False
@@ -171,12 +164,12 @@ class VoiceRegisterWorker(QObject):
                 return False
             
             # 加载并处理prompt音频
-            self.status_updated.emit("正在注册音色...")
             self.log_updated.emit(f"正在处理音频: {Path(self.prompt_audio_path).name}")
             self.log_updated.emit(f"音频采样率: {audio_info.sample_rate} Hz")
             self.log_updated.emit(f"音频时长: {audio_info.num_frames / audio_info.sample_rate:.2f} 秒")
+            self.log_updated.emit("音频验证完成")
             
-            self.prompt_speech_16k = self.postprocess(load_wav(self.prompt_audio_path, PROMPT_SAMPLE_RATE))
+            prompt_speech_16k = self.postprocess(load_wav(self.prompt_audio_path, PROMPT_SAMPLE_RATE))
             
             # 保存音色到数据库
             self.status_updated.emit("正在保存音色到数据库...")

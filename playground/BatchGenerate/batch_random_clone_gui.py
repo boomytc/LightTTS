@@ -37,19 +37,18 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# 全局常量配置
-MAX_VAL = 0.8
+# 模型配置
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
+
+# 目录配置
 DEFAULT_CLONE_SRC_DIR = "BatchGenerate/clone_src_wav"
 DEFAULT_INPUT_DIR = "BatchGenerate/texts"
 DEFAULT_OUTPUT_DIR = "BatchGenerate/output"
 
-# 音频处理参数
+# 音频参数
 PROMPT_SAMPLE_RATE = 16000
 DEFAULT_OUTPUT_SAMPLE_RATE = 22050
-MIN_SAMPLE_RATE = 16000
-MAX_SAMPLE_RATE = 48000
-SAMPLE_RATE_STEP = 1000
+MAX_VAL = 0.8
 
 # 音频后处理参数
 AUDIO_TRIM_TOP_DB = 60
@@ -57,11 +56,11 @@ AUDIO_HOP_LENGTH = 220
 AUDIO_WIN_LENGTH = 440
 AUDIO_SILENCE_DURATION = 0.2
 
-# 支持的文件扩展名
+# 文件扩展名
 AUDIO_EXTENSIONS = ['.wav', '.mp3', '.flac', '.m4a', '.ogg']
 TEXT_EXTENSIONS = ['.txt']
 
-# 默认合成参数
+# 合成参数
 DEFAULT_SPEED = 1.0
 DEFAULT_SEED = -1
 MIN_SPEED = 0.5

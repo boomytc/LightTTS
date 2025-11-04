@@ -38,31 +38,30 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# 全局常量配置
-MAX_VAL = 0.8
+# ============ 模型配置 ============
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
+
+# ============ 目录配置 ============
 DEFAULT_INPUT_DIR = "BatchGenerate/texts"
 DEFAULT_OUTPUT_DIR = "BatchGenerate/voice_output"
 DB_CLONE_DIR_NAME = "BatchGenerate/DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 
-# 音频处理参数
+# ============ 音频参数 ============
+MAX_VAL = 0.8
 PROMPT_SAMPLE_RATE = 16000
 DEFAULT_OUTPUT_SAMPLE_RATE = 22050
-MIN_SAMPLE_RATE = 16000
-MAX_SAMPLE_RATE = 48000
-SAMPLE_RATE_STEP = 1000
 
-# 音频后处理参数
+# ============ 音频后处理参数 ============
 AUDIO_TRIM_TOP_DB = 60
 AUDIO_HOP_LENGTH = 220
 AUDIO_WIN_LENGTH = 440
 AUDIO_SILENCE_DURATION = 0.2
 
-# 支持的文件扩展名
+# ============ 文件扩展名 ============
 TEXT_EXTENSIONS = ['.txt']
 
-# 默认合成参数
+# ============ 合成参数 ============
 DEFAULT_SPEED = 1.0
 DEFAULT_SEED = -1
 MIN_SPEED = 0.5
@@ -395,8 +394,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         # 采样率
         params_layout.addWidget(QLabel("采样率:"), 2, 0)
         self.sample_rate_spinbox = QSpinBox()
-        self.sample_rate_spinbox.setRange(MIN_SAMPLE_RATE, MAX_SAMPLE_RATE)
-        self.sample_rate_spinbox.setSingleStep(SAMPLE_RATE_STEP)
+        self.sample_rate_spinbox.setRange(16000, 48000)
+        self.sample_rate_spinbox.setSingleStep(1000)
         self.sample_rate_spinbox.setValue(DEFAULT_OUTPUT_SAMPLE_RATE)
         params_layout.addWidget(self.sample_rate_spinbox, 2, 1)
         
@@ -525,90 +524,22 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """打开音色管理器"""
         try:
             import subprocess
-            import os
             
             script_path = batch_generate_dir / "voice_register_manager_gui.py"
             
-            # 检查脚本是否存在
             if not script_path.exists():
-                self.log_text.append(f"错误: 音色管理器脚本不存在: {script_path}")
+                self.log_text.append(f"错误: 脚本不存在: {script_path}")
                 return
             
-            # 获取当前Python解释器路径
-            python_executable = sys.executable
-            
-            # 检查是否在conda环境中
-            in_conda = ('conda' in python_executable.lower() or 
-                       'anaconda' in python_executable.lower() or
-                       'CONDA_DEFAULT_ENV' in os.environ)
-            
-            # 如果当前Python解释器不是conda环境中的，尝试使用conda环境的python
-            if in_conda and ('Cursor' in python_executable or 'vscode' in python_executable.lower()):
-                # 在IDE中但有conda环境，尝试直接使用python命令
-                self.log_text.append("检测到在IDE中运行，尝试使用conda环境的python")
-                self._try_alternative_launch(script_path)
-                    
-            else:
-                # 使用当前Python解释器
-                try:
-                    cmd = [python_executable, str(script_path)]
-                    self.log_text.append(f"启动命令: {' '.join(cmd)}")
-                    
-                    # 在后台启动音色管理器
-                    import os
-                    process = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        cwd=str(project_root),
-                        env=os.environ.copy()
-                    )
-                    
-                    self.log_text.append("已启动音色管理器")
-                    self.log_text.append(f"进程ID: {process.pid}")
-                    
-                except subprocess.SubprocessError as se:
-                    self.log_text.append(f"使用sys.executable启动失败: {str(se)}")
-                    # 尝试备用方法
-                    self._try_alternative_launch(script_path)
-                
-        except Exception as e:
-            self.log_text.append(f"启动音色管理器失败: {str(e)}")
-            self.log_text.append("请尝试手动运行音色管理器:")
-            self.log_text.append(f"python {script_path}") 
-            
-    def _try_alternative_launch(self, script_path):
-        """尝试备用的启动方法"""
-        try:
-            import subprocess
-            
-            script_path_str = str(script_path)
-            project_root_str = str(project_root)
-            
-            # 方法1：尝试使用python命令
-            try:
-                cmd = ["python", script_path_str]
-                process = subprocess.Popen(cmd, cwd=project_root_str)
-                self.log_text.append("使用备用方法启动音色管理器成功")
-                self.log_text.append(f"进程ID: {process.pid}")
-                return
-            except FileNotFoundError:
-                pass
-            
-            # 方法2：尝试使用python3命令
-            try:
-                cmd = ["python3", script_path_str]
-                process = subprocess.Popen(cmd, cwd=project_root_str)
-                self.log_text.append("使用python3命令启动音色管理器成功")
-                self.log_text.append(f"进程ID: {process.pid}")
-                return
-            except FileNotFoundError:
-                pass
-                
-            self.log_text.append("所有启动方法都失败了")
+            process = subprocess.Popen(
+                [sys.executable, str(script_path)],
+                cwd=str(project_root)
+            )
+            self.log_text.append(f"已启动音色管理器 (PID: {process.pid})")
             
         except Exception as e:
-            self.log_text.append(f"备用启动方法也失败: {str(e)}")
+            self.log_text.append(f"启动失败: {e}")
+            self.log_text.append(f"请手动运行: python {batch_generate_dir / 'voice_register_manager_gui.py'}")
     
     def start_synthesis(self):
         """开始批量合成"""
