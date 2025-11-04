@@ -98,9 +98,9 @@ class VoiceSynthesisWorker(QObject):
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > MAX_VAL: # type: ignore
-            speech = speech / speech.abs().max() * MAX_VAL # type: ignore
-        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1) # type: ignore
+        if speech.abs().max() > MAX_VAL:
+            speech = speech / speech.abs().max() * MAX_VAL
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
         return speech
     
     def read_text_file(self, text_file):
@@ -169,7 +169,7 @@ class VoiceSynthesisWorker(QObject):
         try:
             result = None
             prompt_text = self.voice_data.get('target', '')
-            for i in self.cosyvoice.inference_zero_shot(tts_text, prompt_text, self.prompt_speech_16k, stream=False, speed=self.speed): # type: ignore
+            for i in self.cosyvoice.inference_zero_shot(tts_text, prompt_text, self.prompt_speech_16k, stream=False, speed=self.speed):
                 result = i['tts_speech'].numpy().flatten()
             return result
         except Exception as e:
@@ -279,7 +279,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         main_layout = QHBoxLayout(central_widget)
         
         # 创建分割器
-        splitter = QSplitter(Qt.Horizontal)  # type: ignore
+        splitter = QSplitter(Qt.Horizontal) 
         main_layout.addWidget(splitter)
         
         # 左侧主面板
@@ -303,8 +303,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         # 标题
         title_label = QLabel("音色选择与批量语音合成")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))  # type: ignore
-        title_label.setAlignment(Qt.AlignCenter)    # type: ignore
+        title_label.setFont(QFont("Arial", 16, QFont.Bold)) 
+        title_label.setAlignment(Qt.AlignCenter)   
         layout.addWidget(title_label)
         
         # 模型设置组
@@ -431,7 +431,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         layout = QVBoxLayout(log_widget)
         
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold))  # type: ignore
+        log_label.setFont(QFont("Arial", 12, QFont.Bold)) 
         layout.addWidget(log_label)
         
         self.log_text = QTextEdit()
@@ -571,7 +571,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         except Exception as e:
             self.log_text.append(f"启动音色管理器失败: {str(e)}")
             self.log_text.append("请尝试手动运行音色管理器:")
-            self.log_text.append(f"python {script_path}")  # type: ignore
+            self.log_text.append(f"python {script_path}") 
             
     def _try_alternative_launch(self, script_path):
         """尝试备用的启动方法"""
@@ -760,8 +760,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         if selected_voice:
             source_path = selected_voice.get('source', '')
             if os.path.exists(source_path):
-                self.media_player.setSource(QUrl.fromLocalFile(source_path))  # type: ignore
-                self.media_player.play()  # type: ignore
+                self.media_player.setSource(QUrl.fromLocalFile(source_path)) 
+                self.media_player.play() 
                 self.log_text.append(f"播放: {selected_voice.get('key', '')}")
             else:
                 QMessageBox.warning(self, "错误", "音频文件不存在！")
