@@ -79,9 +79,9 @@ class VoiceRegisterWorker(QObject):
             frame_length=win_length,
             hop_length=hop_length
         )
-        if speech.abs().max() > MAX_VAL:
-            speech = speech / speech.abs().max() * MAX_VAL
-        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)
+        if speech.abs().max() > MAX_VAL: # type: ignore
+            speech = speech / speech.abs().max() * MAX_VAL # type: ignore
+        speech = torch.concat([speech, torch.zeros(1, int(PROMPT_SAMPLE_RATE * AUDIO_SILENCE_DURATION))], dim=1)    # type: ignore
         return speech
     
     def save_voice_to_db(self, voice_key, original_audio_path, prompt_text):
@@ -222,7 +222,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         main_layout = QHBoxLayout(central_widget)
         
         # 创建分割器
-        splitter = QSplitter(Qt.Horizontal)
+        splitter = QSplitter(Qt.Horizontal) # type: ignore
         main_layout.addWidget(splitter)
         
         # 左侧标签页面板
@@ -260,8 +260,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 标题
         title_label = QLabel("音色注册")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 16, QFont.Bold)) # type: ignore
+        title_label.setAlignment(Qt.AlignCenter) # type: ignore
         layout.addWidget(title_label)
         
         # 模型设置组
@@ -330,8 +330,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 标题
         title_label = QLabel("音色管理")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 16, QFont.Bold)) # type: ignore
+        title_label.setAlignment(Qt.AlignCenter) # type: ignore
         layout.addWidget(title_label)
         
         # 音色列表组
@@ -406,7 +406,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         layout = QVBoxLayout(log_widget)
         
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold))
+        log_label.setFont(QFont("Arial", 12, QFont.Bold)) # type: ignore
         layout.addWidget(log_label)
         
         self.log_text = QTextEdit()
@@ -460,8 +460,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """播放音频文件"""
         audio_path = self.audio_file_edit.text()
         if audio_path and os.path.exists(audio_path):
-            self.media_player.setSource(QUrl.fromLocalFile(audio_path))
-            self.media_player.play()
+            self.media_player.setSource(QUrl.fromLocalFile(audio_path)) # type: ignore
+            self.media_player.play() # type: ignore
             self.log_text.append(f"正在播放: {os.path.basename(audio_path)}")
     
     def clear_log(self):
@@ -594,7 +594,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
             
             for voice in voices:
                 item = QListWidgetItem(voice.get('key', 'Unknown'))
-                item.setData(Qt.UserRole, voice)  # 存储完整数据
+                item.setData(Qt.UserRole, voice)  # 存储完整数据 # type: ignore
                 self.voice_list_widget.addItem(item)
                 
             self.log_text.append(f"刷新音色列表完成，共 {len(voices)} 个音色")
@@ -606,7 +606,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """音色选择改变"""
         current_item = self.voice_list_widget.currentItem()
         if current_item:
-            voice_data = current_item.data(Qt.UserRole)
+            voice_data = current_item.data(Qt.UserRole) # type: ignore
             self.selected_voice_data = voice_data
             
             # 更新显示信息
@@ -638,8 +638,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         if self.selected_voice_data:
             source_path = self.selected_voice_data.get('source', '')
             if os.path.exists(source_path):
-                self.media_player.setSource(QUrl.fromLocalFile(source_path))
-                self.media_player.play()
+                self.media_player.setSource(QUrl.fromLocalFile(source_path)) # type: ignore
+                self.media_player.play() # type: ignore
                 self.log_text.append(f"播放: {self.selected_voice_data.get('key', '')}")
             else:
                 QMessageBox.warning(self, "错误", "音频文件不存在！")
@@ -676,10 +676,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
         reply = QMessageBox.question(
             self, "确认删除", 
             f"确定要删除音色 '{voice_key}' 吗？\n\n这将同时删除音频文件和数据库记录。",
-            QMessageBox.Yes | QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No # type: ignore
         )
         
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.Yes: # type: ignore
             if self.delete_voice_from_db(voice_key):
                 self.log_text.append(f"音色删除成功: '{voice_key}'")
                 self.refresh_voice_list()
