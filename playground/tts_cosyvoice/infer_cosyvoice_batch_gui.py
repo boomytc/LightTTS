@@ -42,8 +42,8 @@ warnings.filterwarnings("ignore", category=UserWarning)
 DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 
 # ============ 目录配置 ============
-DEFAULT_INPUT_DIR = "playground/cosyvoice/texts"
-DEFAULT_OUTPUT_DIR = "playground/cosyvoice/voice_output"
+DEFAULT_INPUT_DIR = "playground/tts_cosyvoice/texts"
+DEFAULT_OUTPUT_DIR = "playground/tts_cosyvoice/voice_output"
 DB_CLONE_DIR_NAME = "DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 VOICE_MANAGER_SCRIPT = "playground/voice_manager_gui.py"

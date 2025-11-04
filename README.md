@@ -87,10 +87,10 @@ python playground/voxcpm/infer_voxcpm_cli.py --text "测试" --model_dir models/
 - Gradio Web UI：`python demo/voxcpm/demo_webui.py`
 
 ### CosyVoice2
-- 脚本示例：`python playground/cosyvoice/infer_cosyvoice.py`
+- 脚本示例：`python playground/tts_cosyvoice/infer_cosyvoice.py`
 - CLI：
   ```bash
-  python playground/cosyvoice/infer_cosyvoice_cli.py --mode zero_shot --text "收到好友从远方寄来的生日礼物..." --output outputs/cosyvoice.wav
+  python playground/tts_cosyvoice/infer_cosyvoice_cli.py --mode zero_shot --text "收到好友从远方寄来的生日礼物..." --output outputs/cosyvoice.wav
   ```
 - Gradio Web UI：`python demo/cosyvoice/demo_webui_cosyvoice2.py`（支持零样本、跨语言、指令模式切换）
 - 其它 demo：`demo/cosyvoice/demo_cosyvoice2.py`、`demo/cosyvoice/inference.py`
