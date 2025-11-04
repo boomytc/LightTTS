@@ -54,6 +54,7 @@ class VoiceRegisterWorker(QObject):
     status_updated = Signal(str)
     log_updated = Signal(str)
     voice_registered = Signal(str)  # 音色注册完成信号
+    finished = Signal()  # 工作完成信号
     
     def __init__(self, prompt_audio_path, prompt_text, voice_key=""):
         super().__init__()
@@ -181,6 +182,8 @@ class VoiceRegisterWorker(QObject):
         except Exception as e:
             self.log_updated.emit(f"音色注册失败: {str(e)}")
             return False
+        finally:
+            self.finished.emit()
 
 class VoiceRegisterManagerGUI(QMainWindow):
     def __init__(self):
@@ -198,6 +201,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         self.media_player = QMediaPlayer()
         self.audio_output = QAudioOutput()
         self.media_player.setAudioOutput(self.audio_output)
+        self.media_player.errorOccurred.connect(self.on_player_error)
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 音色注册与管理系统")
@@ -430,9 +434,12 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """播放音频文件"""
         audio_path = self.audio_file_edit.text()
         if audio_path and Path(audio_path).exists():
+            self.media_player.stop()
             self.media_player.setSource(QUrl.fromLocalFile(audio_path))
             self.media_player.play()
             self.log_text.append(f"正在播放: {Path(audio_path).name}")
+        else:
+            QMessageBox.warning(self, "错误", "音频文件不存在！")
     
     def clear_log(self):
         """清除日志"""
@@ -495,6 +502,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         self.worker.status_updated.connect(self.log_text.append)
         self.worker.log_updated.connect(self.log_text.append)
         self.worker.voice_registered.connect(self.voice_registered)
+        self.worker.finished.connect(self.worker_thread.quit)
         
         # 移动到线程并启动
         self.worker.moveToThread(self.worker_thread)
@@ -604,6 +612,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         if self.selected_voice_data:
             source_path = self.selected_voice_data.get('source', '')
             if Path(source_path).exists():
+                self.media_player.stop()
                 self.media_player.setSource(QUrl.fromLocalFile(source_path))
                 self.media_player.play()
                 self.log_text.append(f"播放: {self.selected_voice_data.get('key', '')}")
@@ -742,6 +751,23 @@ class VoiceRegisterManagerGUI(QMainWindow):
         except Exception as e:
             self.log_text.append(f"删除音色失败: {str(e)}")
             return False
+    
+    def on_player_error(self, error):
+        """处理播放器错误"""
+        self.log_text.append(f"播放器错误: {self.media_player.errorString()}")
+    
+    def closeEvent(self, event):
+        """窗口关闭事件"""
+        # 停止音频播放
+        if self.media_player:
+            self.media_player.stop()
+        
+        # 清理工作线程
+        if self.worker_thread and self.worker_thread.isRunning():
+            self.worker_thread.quit()
+            self.worker_thread.wait(3000)  # 等待最多3秒
+        
+        event.accept()
 
 def main():
     app = QApplication(sys.argv)
