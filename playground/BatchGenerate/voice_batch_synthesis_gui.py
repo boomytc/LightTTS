@@ -3,7 +3,8 @@ import os
 
 current_script_absolute_path = os.path.abspath(__file__)
 batch_generate_dir = os.path.dirname(current_script_absolute_path)
-project_root = os.path.dirname(batch_generate_dir)
+playground_dir = os.path.dirname(batch_generate_dir)
+project_root = os.path.dirname(playground_dir)
 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -522,6 +523,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """打开音色管理器"""
         try:
             import subprocess
+            import shlex
             
             script_path = os.path.join(batch_generate_dir, "voice_register_manager_gui.py")
             
@@ -574,9 +576,9 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
     def _try_alternative_launch(self, script_path):
         """尝试备用的启动方法"""
-        import subprocess
-        
         try:
+            import subprocess
+            
             # 方法1：尝试使用python命令
             try:
                 cmd = ["python", script_path]

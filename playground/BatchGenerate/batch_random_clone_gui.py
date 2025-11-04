@@ -3,7 +3,8 @@ import os
 
 current_script_absolute_path = os.path.abspath(__file__)
 batch_generate_dir = os.path.dirname(current_script_absolute_path)
-project_root = os.path.dirname(batch_generate_dir)
+playground_dir = os.path.dirname(batch_generate_dir)
+project_root = os.path.dirname(playground_dir)
 
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
