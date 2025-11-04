@@ -10,11 +10,6 @@ project_root_str = str(project_root)
 if project_root_str not in sys.path:
     sys.path.insert(0, project_root_str)
 
-matcha_tts_path = project_root / 'Matcha-TTS'
-matcha_tts_path_str = str(matcha_tts_path)
-if matcha_tts_path.is_dir() and matcha_tts_path_str not in sys.path:
-    sys.path.insert(1, matcha_tts_path_str)
-
 import torch
 import torchaudio
 import librosa
@@ -32,7 +27,6 @@ from PySide6.QtCore import Qt, QThread, QObject, Signal, QTimer, QUrl
 from PySide6.QtGui import QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
-from cosyvoice.cli.cosyvoice import CosyVoice2
 from cosyvoice.utils.file_utils import load_wav
 
 # 禁用警告
@@ -42,7 +36,6 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 # 全局常量配置
 MAX_VAL = 0.8
-DEFAULT_MODEL_DIR = "models/CosyVoice2-0.5B"
 DB_CLONE_DIR_NAME = "BatchGenerate/DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
 
@@ -62,9 +55,8 @@ class VoiceRegisterWorker(QObject):
     log_updated = Signal(str)
     voice_registered = Signal(str)  # 音色注册完成信号
     
-    def __init__(self, model_dir, prompt_audio_path, prompt_text, voice_key=""):
+    def __init__(self, prompt_audio_path, prompt_text, voice_key=""):
         super().__init__()
-        self.model_dir = model_dir
         self.prompt_audio_path = prompt_audio_path
         self.prompt_text = prompt_text
         self.voice_key = voice_key
@@ -261,19 +253,6 @@ class VoiceRegisterManagerGUI(QMainWindow):
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
         
-        # 模型设置组
-        model_group = QGroupBox("模型设置")
-        model_layout = QGridLayout(model_group)
-        
-        model_layout.addWidget(QLabel("模型路径:"), 0, 0)
-        self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
-        model_layout.addWidget(self.model_dir_edit, 0, 1)
-        model_dir_btn = QPushButton("浏览")
-        model_dir_btn.clicked.connect(self.select_model_dir)
-        model_layout.addWidget(model_dir_btn, 0, 2)
-        
-        layout.addWidget(model_group)
-        
         # 音色注册组
         voice_group = QGroupBox("音色注册")
         voice_layout = QGridLayout(voice_group)
@@ -428,12 +407,6 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         return log_widget
     
-    def select_model_dir(self):
-        """选择模型目录"""
-        dir_path = QFileDialog.getExistingDirectory(self, "选择模型目录")
-        if dir_path:
-            self.model_dir_edit.setText(dir_path)
-    
     def select_audio_file(self):
         """选择音频文件"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -513,7 +486,6 @@ class VoiceRegisterManagerGUI(QMainWindow):
         # 创建工作线程（仅用于注册音色）
         self.worker_thread = QThread()
         self.worker = VoiceRegisterWorker(
-            model_dir=self.model_dir_edit.text(),
             prompt_audio_path=self.audio_file_edit.text(),
             prompt_text=self.prompt_text_edit.toPlainText(),
             voice_key=self.voice_key_edit.text()
@@ -551,10 +523,6 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def validate_voice_inputs(self):
         """验证音色相关输入"""
-        if not Path(self.model_dir_edit.text()).exists():
-            QMessageBox.warning(self, "错误", "模型路径不存在！")
-            return False
-        
         if not self.audio_file_edit.text():
             QMessageBox.warning(self, "错误", "请选择音频文件！")
             return False
