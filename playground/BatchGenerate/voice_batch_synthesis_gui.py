@@ -1,19 +1,20 @@
 import sys
-import os
+from pathlib import Path
 
-current_script_absolute_path = os.path.abspath(__file__)
-batch_generate_dir = os.path.dirname(current_script_absolute_path)
-playground_dir = os.path.dirname(batch_generate_dir)
-project_root = os.path.dirname(playground_dir)
+current_script_path = Path(__file__).resolve()
+batch_generate_dir = current_script_path.parent
+playground_dir = batch_generate_dir.parent
+project_root = playground_dir.parent
 
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+project_root_str = str(project_root)
+if project_root_str not in sys.path:
+    sys.path.insert(0, project_root_str)
 
-matcha_tts_path = os.path.join(project_root, 'Matcha-TTS')
-if os.path.isdir(matcha_tts_path) and matcha_tts_path not in sys.path:
-    sys.path.insert(1, matcha_tts_path)
+matcha_tts_path = project_root / 'Matcha-TTS'
+matcha_tts_path_str = str(matcha_tts_path)
+if matcha_tts_path.is_dir() and matcha_tts_path_str not in sys.path:
+    sys.path.insert(1, matcha_tts_path_str)
 
-import glob
 import torch
 import torchaudio
 import librosa
@@ -119,9 +120,10 @@ class VoiceSynthesisWorker(QObject):
     def get_input_text_files(self, input_dir):
         """获取输入目录中的所有文本文件"""
         text_files = []
+        input_path = Path(input_dir)
         
         for text_ext in TEXT_EXTENSIONS:
-            text_files.extend(glob.glob(os.path.join(input_dir, f"*{text_ext}")))
+            text_files.extend([str(f) for f in input_path.glob(f"*{text_ext}")])
         
         return text_files
     
@@ -136,7 +138,7 @@ class VoiceSynthesisWorker(QObject):
             
             # 加载音色
             prompt_audio_path = self.voice_data.get('source', '')
-            if not os.path.exists(prompt_audio_path):
+            if not Path(prompt_audio_path).exists():
                 self.log_updated.emit(f"错误: 音频文件不存在: {prompt_audio_path}")
                 return False
             
@@ -181,7 +183,7 @@ class VoiceSynthesisWorker(QObject):
         """执行批量合成"""
         try:
             # 创建输出目录
-            os.makedirs(self.output_dir, exist_ok=True)
+            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
             
             # 加载音色
             if not self.load_voice():
@@ -216,7 +218,7 @@ class VoiceSynthesisWorker(QObject):
                     self.log_updated.emit(f"警告: 无法读取文本文件 {input_text_file}，跳过")
                     continue
                 
-                filename = os.path.basename(input_text_file)
+                filename = Path(input_text_file).name
                 self.log_updated.emit(f"正在合成: {filename}")
                 self.log_updated.emit(f"文本内容: {tts_text[:50]}...")
                 
@@ -225,8 +227,8 @@ class VoiceSynthesisWorker(QObject):
                 
                 if synthesized_audio is not None:
                     # 保存合成的音频
-                    input_basename = os.path.splitext(os.path.basename(input_text_file))[0]
-                    output_audio_path = os.path.join(self.output_dir, f"{input_basename}.wav")
+                    input_basename = Path(input_text_file).stem
+                    output_audio_path = str(Path(self.output_dir) / f"{input_basename}.wav")
                     
                     # 保存为wav文件
                     torchaudio.save(
@@ -235,7 +237,7 @@ class VoiceSynthesisWorker(QObject):
                         self.sample_rate
                     )
                     
-                    self.log_updated.emit(f"✓ 合成成功: {os.path.basename(output_audio_path)}")
+                    self.log_updated.emit(f"✓ 合成成功: {Path(output_audio_path).name}")
                     success_count += 1
                 else:
                     self.log_updated.emit(f"✗ 合成失败: {filename}")
@@ -486,12 +488,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             self.log_text.append("数据库文件不存在，还没有注册任何音色")
             return
         
@@ -523,12 +525,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """打开音色管理器"""
         try:
             import subprocess
-            import shlex
+            import os
             
-            script_path = os.path.join(batch_generate_dir, "voice_register_manager_gui.py")
+            script_path = batch_generate_dir / "voice_register_manager_gui.py"
             
             # 检查脚本是否存在
-            if not os.path.exists(script_path):
+            if not script_path.exists():
                 self.log_text.append(f"错误: 音色管理器脚本不存在: {script_path}")
                 return
             
@@ -549,15 +551,16 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             else:
                 # 使用当前Python解释器
                 try:
-                    cmd = [python_executable, script_path]
+                    cmd = [python_executable, str(script_path)]
                     self.log_text.append(f"启动命令: {' '.join(cmd)}")
                     
                     # 在后台启动音色管理器
+                    import os
                     process = subprocess.Popen(
                         cmd,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        cwd=project_root,
+                        cwd=str(project_root),
                         env=os.environ.copy()
                     )
                     
@@ -579,10 +582,13 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         try:
             import subprocess
             
+            script_path_str = str(script_path)
+            project_root_str = str(project_root)
+            
             # 方法1：尝试使用python命令
             try:
-                cmd = ["python", script_path]
-                process = subprocess.Popen(cmd, cwd=project_root)
+                cmd = ["python", script_path_str]
+                process = subprocess.Popen(cmd, cwd=project_root_str)
                 self.log_text.append("使用备用方法启动音色管理器成功")
                 self.log_text.append(f"进程ID: {process.pid}")
                 return
@@ -591,8 +597,8 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             
             # 方法2：尝试使用python3命令
             try:
-                cmd = ["python3", script_path]
-                process = subprocess.Popen(cmd, cwd=project_root)
+                cmd = ["python3", script_path_str]
+                process = subprocess.Popen(cmd, cwd=project_root_str)
                 self.log_text.append("使用python3命令启动音色管理器成功")
                 self.log_text.append(f"进程ID: {process.pid}")
                 return
@@ -613,12 +619,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
             return
         
         # 验证模型路径
-        if not os.path.exists(self.model_dir_edit.text()):
+        if not Path(self.model_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "模型路径不存在！")
             return
         
         # 验证输入输出目录
-        if not os.path.exists(self.input_dir_edit.text()):
+        if not Path(self.input_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "输入文本文件夹不存在！")
             return
         
@@ -696,10 +702,10 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         self.voice_combo.clear()
         
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             self.voice_combo.addItem("请选择音色...")
             self.combo_voice_info_label.setText("数据库为空，请先注册音色")
             # 重新连接信号

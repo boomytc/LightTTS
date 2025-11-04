@@ -1,17 +1,19 @@
 import sys
-import os
+from pathlib import Path
 
-current_script_absolute_path = os.path.abspath(__file__)
-batch_generate_dir = os.path.dirname(current_script_absolute_path)
-playground_dir = os.path.dirname(batch_generate_dir)
-project_root = os.path.dirname(playground_dir)
+current_script_path = Path(__file__).resolve()
+batch_generate_dir = current_script_path.parent
+playground_dir = batch_generate_dir.parent
+project_root = playground_dir.parent
 
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+project_root_str = str(project_root)
+if project_root_str not in sys.path:
+    sys.path.insert(0, project_root_str)
 
-matcha_tts_path = os.path.join(project_root, 'Matcha-TTS')
-if os.path.isdir(matcha_tts_path) and matcha_tts_path not in sys.path:
-    sys.path.insert(1, matcha_tts_path)
+matcha_tts_path = project_root / 'Matcha-TTS'
+matcha_tts_path_str = str(matcha_tts_path)
+if matcha_tts_path.is_dir() and matcha_tts_path_str not in sys.path:
+    sys.path.insert(1, matcha_tts_path_str)
 
 import torch
 import torchaudio
@@ -70,8 +72,8 @@ class VoiceRegisterWorker(QObject):
         self.prompt_speech_16k = None
         
         # DB_clone 路径设置
-        self.db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        self.db_clone_jsonl = os.path.join(self.db_clone_dir, DB_CLONE_JSONL_NAME)
+        self.db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        self.db_clone_jsonl = self.db_clone_dir / DB_CLONE_JSONL_NAME
     
     def postprocess(self, speech, top_db=AUDIO_TRIM_TOP_DB, hop_length=AUDIO_HOP_LENGTH, win_length=AUDIO_WIN_LENGTH):
         """音频后处理"""
@@ -89,11 +91,12 @@ class VoiceRegisterWorker(QObject):
         """保存音色到数据库"""
         try:
             # 创建 DB_clone 目录
-            os.makedirs(self.db_clone_dir, exist_ok=True)
+            self.db_clone_dir.mkdir(parents=True, exist_ok=True)
             
             # 生成新的音频文件名
-            original_filename = os.path.basename(original_audio_path)
-            name_part, ext = os.path.splitext(original_filename)
+            original_path = Path(original_audio_path)
+            name_part = original_path.stem
+            ext = original_path.suffix
             
             # 如果没有提供voice_key，使用文件名加时间戳
             if not voice_key.strip():
@@ -103,11 +106,11 @@ class VoiceRegisterWorker(QObject):
             # 生成唯一的文件名避免冲突
             saved_filename = f"{voice_key}{ext}"
             counter = 1
-            while os.path.exists(os.path.join(self.db_clone_dir, saved_filename)):
+            while (self.db_clone_dir / saved_filename).exists():
                 saved_filename = f"{voice_key}_{counter}{ext}"
                 counter += 1
             
-            saved_audio_path = os.path.join(self.db_clone_dir, saved_filename)
+            saved_audio_path = self.db_clone_dir / saved_filename
             
             # 复制音频文件到 DB_clone 目录
             shutil.copy2(original_audio_path, saved_audio_path)
@@ -126,7 +129,7 @@ class VoiceRegisterWorker(QObject):
             # 创建数据库条目
             db_entry = {
                 "key": voice_key,
-                "source": saved_audio_path,  # 使用完整路径
+                "source": str(saved_audio_path),  # 使用完整路径
                 "source_len": source_len,
                 "target": prompt_text,
                 "target_len": target_len,
@@ -135,13 +138,13 @@ class VoiceRegisterWorker(QObject):
             }
             
             # 写入到 JSONL 文件
-            with open(self.db_clone_jsonl, 'a', encoding='utf-8') as f:
+            with self.db_clone_jsonl.open('a', encoding='utf-8') as f:
                 f.write(json.dumps(db_entry, ensure_ascii=False) + '\n')
             
             self.log_updated.emit(f"音色数据库已更新: {voice_key}")
             self.log_updated.emit(f"数据库文件: {self.db_clone_jsonl}")
             
-            return saved_audio_path, voice_key
+            return str(saved_audio_path), voice_key
             
         except Exception as e:
             self.log_updated.emit(f"保存音色到数据库失败: {str(e)}")
@@ -157,7 +160,7 @@ class VoiceRegisterWorker(QObject):
             self.log_updated.emit("模型加载完成")
             
             # 验证prompt音频
-            if not os.path.exists(self.prompt_audio_path):
+            if not Path(self.prompt_audio_path).exists():
                 self.log_updated.emit(f"错误: 音频文件不存在: {self.prompt_audio_path}")
                 return False
             
@@ -169,7 +172,7 @@ class VoiceRegisterWorker(QObject):
             
             # 加载并处理prompt音频
             self.status_updated.emit("正在注册音色...")
-            self.log_updated.emit(f"正在处理音频: {os.path.basename(self.prompt_audio_path)}")
+            self.log_updated.emit(f"正在处理音频: {Path(self.prompt_audio_path).name}")
             self.log_updated.emit(f"音频采样率: {audio_info.sample_rate} Hz")
             self.log_updated.emit(f"音频时长: {audio_info.num_frames / audio_info.sample_rate:.2f} 秒")
             
@@ -449,7 +452,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
             self.play_audio_btn.setEnabled(True)
             
             # 自动填充音色键名（使用文件名，用户可以修改）
-            filename = os.path.splitext(os.path.basename(file_path))[0]
+            filename = Path(file_path).stem
             if not self.voice_key_edit.text():  # 只在为空时自动填充
                 self.voice_key_edit.setText(filename)
             
@@ -460,10 +463,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
     def play_audio(self):
         """播放音频文件"""
         audio_path = self.audio_file_edit.text()
-        if audio_path and os.path.exists(audio_path):
+        if audio_path and Path(audio_path).exists():
             self.media_player.setSource(QUrl.fromLocalFile(audio_path))
             self.media_player.play()
-            self.log_text.append(f"正在播放: {os.path.basename(audio_path)}")
+            self.log_text.append(f"正在播放: {Path(audio_path).name}")
     
     def clear_log(self):
         """清除日志"""
@@ -471,12 +474,12 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         self.log_text.append("=== 音色数据库内容 ===")
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             self.log_text.append("数据库文件不存在，还没有注册任何音色")
             return
         
@@ -555,7 +558,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def validate_voice_inputs(self):
         """验证音色相关输入"""
-        if not os.path.exists(self.model_dir_edit.text()):
+        if not Path(self.model_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "模型路径不存在！")
             return False
         
@@ -563,7 +566,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
             QMessageBox.warning(self, "错误", "请选择音频文件！")
             return False
         
-        if not os.path.exists(self.audio_file_edit.text()):
+        if not Path(self.audio_file_edit.text()).exists():
             QMessageBox.warning(self, "错误", "音频文件不存在！")
             return False
         
@@ -578,10 +581,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """刷新音色列表"""
         self.voice_list_widget.clear()
         
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             self.log_text.append("数据库文件不存在")
             return
         
@@ -612,7 +615,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
             
             # 更新显示信息
             self.selected_key_label.setText(voice_data.get('key', 'N/A'))
-            self.selected_source_label.setText(os.path.basename(voice_data.get('source', 'N/A')))
+            source_path = voice_data.get('source', 'N/A')
+            self.selected_source_label.setText(Path(source_path).name if source_path != 'N/A' else 'N/A')
             self.selected_target_label.setText(voice_data.get('target', 'N/A'))
             self.selected_length_label.setText(f"{voice_data.get('source_len', 0)}ms")
             self.selected_time_label.setText(voice_data.get('created_time', 'N/A'))
@@ -638,7 +642,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """播放选择的音色"""
         if self.selected_voice_data:
             source_path = self.selected_voice_data.get('source', '')
-            if os.path.exists(source_path):
+            if Path(source_path).exists():
                 self.media_player.setSource(QUrl.fromLocalFile(source_path))
                 self.media_player.play()
                 self.log_text.append(f"播放: {self.selected_voice_data.get('key', '')}")
@@ -689,10 +693,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def is_voice_key_exists(self, voice_key):
         """检查音色键名是否已存在"""
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             return False
         
         try:
@@ -709,10 +713,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def update_voice_key_in_db(self, old_key, new_key):
         """更新数据库中的音色键名"""
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             return False
         
         try:
@@ -739,10 +743,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def delete_voice_from_db(self, voice_key):
         """从数据库中删除音色"""
-        db_clone_dir = os.path.join(project_root, DB_CLONE_DIR_NAME)
-        db_clone_jsonl = os.path.join(db_clone_dir, DB_CLONE_JSONL_NAME)
+        db_clone_dir = project_root / DB_CLONE_DIR_NAME
+        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
-        if not os.path.exists(db_clone_jsonl):
+        if not db_clone_jsonl.exists():
             return False
         
         try:
@@ -765,9 +769,9 @@ class VoiceRegisterManagerGUI(QMainWindow):
                     f.write(json.dumps(voice, ensure_ascii=False) + '\n')
             
             # 删除音频文件
-            if deleted_source_path and os.path.exists(deleted_source_path):
+            if deleted_source_path and Path(deleted_source_path).exists():
                 try:
-                    os.remove(deleted_source_path)
+                    Path(deleted_source_path).unlink()
                     self.log_text.append(f"删除音频文件: {deleted_source_path}")
                 except Exception as e:
                     self.log_text.append(f"删除音频文件失败: {str(e)}")

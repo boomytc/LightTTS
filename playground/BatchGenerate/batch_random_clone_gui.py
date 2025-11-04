@@ -1,20 +1,21 @@
 import sys
-import os
+from pathlib import Path
 
-current_script_absolute_path = os.path.abspath(__file__)
-batch_generate_dir = os.path.dirname(current_script_absolute_path)
-playground_dir = os.path.dirname(batch_generate_dir)
-project_root = os.path.dirname(playground_dir)
+current_script_path = Path(__file__).resolve()
+batch_generate_dir = current_script_path.parent
+playground_dir = batch_generate_dir.parent
+project_root = playground_dir.parent
 
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+project_root_str = str(project_root)
+if project_root_str not in sys.path:
+    sys.path.insert(0, project_root_str)
 
-matcha_tts_path = os.path.join(project_root, 'Matcha-TTS')
-if os.path.isdir(matcha_tts_path) and matcha_tts_path not in sys.path:
-    sys.path.insert(1, matcha_tts_path)
+matcha_tts_path = project_root / 'Matcha-TTS'
+matcha_tts_path_str = str(matcha_tts_path)
+if matcha_tts_path.is_dir() and matcha_tts_path_str not in sys.path:
+    sys.path.insert(1, matcha_tts_path_str)
 
 import random
-import glob
 import torch
 import torchaudio
 import librosa
@@ -105,16 +106,16 @@ class SynthesisWorker(QObject):
     def get_prompt_pairs(self, clone_src_dir):
         """获取clone_src_dir中的音频文本对"""
         pairs = []
+        clone_src_path = Path(clone_src_dir)
         
         for audio_ext in AUDIO_EXTENSIONS:
-            audio_files = glob.glob(os.path.join(clone_src_dir, f"*{audio_ext}"))
-            for audio_file in audio_files:
-                base_name = os.path.splitext(os.path.basename(audio_file))[0]
+            for audio_file in clone_src_path.glob(f"*{audio_ext}"):
+                base_name = audio_file.stem
                 
                 for text_ext in TEXT_EXTENSIONS:
-                    text_file = os.path.join(clone_src_dir, f"{base_name}{text_ext}")
-                    if os.path.exists(text_file):
-                        pairs.append((audio_file, text_file))
+                    text_file = clone_src_path / f"{base_name}{text_ext}"
+                    if text_file.exists():
+                        pairs.append((str(audio_file), str(text_file)))
                         break
         
         return pairs
@@ -134,9 +135,10 @@ class SynthesisWorker(QObject):
     def get_input_text_files(self, input_dir):
         """获取输入目录中的所有文本文件"""
         text_files = []
+        input_path = Path(input_dir)
         
         for text_ext in TEXT_EXTENSIONS:
-            text_files.extend(glob.glob(os.path.join(input_dir, f"*{text_ext}")))
+            text_files.extend([str(f) for f in input_path.glob(f"*{text_ext}")])
         
         return text_files
     
@@ -168,7 +170,7 @@ class SynthesisWorker(QObject):
         """执行批量合成"""
         try:
             # 创建输出目录
-            os.makedirs(self.output_dir, exist_ok=True)
+            Path(self.output_dir).mkdir(parents=True, exist_ok=True)
             
             # 初始化CosyVoice2模型
             self.status_updated.emit("正在加载模型...")
@@ -205,7 +207,7 @@ class SynthesisWorker(QObject):
                 if not self.is_running:
                     break
                 
-                input_basename = os.path.splitext(os.path.basename(input_text_file))[0]
+                input_basename = Path(input_text_file).stem
                 self.status_updated.emit(f"正在处理: {input_basename} ({i+1}/{total_count})")
                 self.progress_updated.emit(int((i / total_count) * 100))
                 
@@ -229,7 +231,7 @@ class SynthesisWorker(QObject):
                     self.stats_updated.emit(total_count, success_count, failed_count)
                     continue
                 
-                self.log_updated.emit(f"使用prompt音频: {os.path.basename(prompt_audio_path)}")
+                self.log_updated.emit(f"使用prompt音频: {Path(prompt_audio_path).name}")
                 self.log_updated.emit(f"prompt文本: {prompt_text[:50]}...")
                 
                 # 合成音频
@@ -242,7 +244,7 @@ class SynthesisWorker(QObject):
                 
                 if synthesized_audio is not None:
                     # 保存合成的音频
-                    output_audio_path = os.path.join(self.output_dir, f"{input_basename}.wav")
+                    output_audio_path = str(Path(self.output_dir) / f"{input_basename}.wav")
                     
                     # 保存为wav文件
                     torchaudio.save(
@@ -585,15 +587,15 @@ class BatchCloneGUI(QMainWindow):
     def start_synthesis(self):
         """开始合成"""
         # 验证输入
-        if not os.path.exists(self.model_dir_edit.text()):
+        if not Path(self.model_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "模型路径不存在！")
             return
         
-        if not os.path.exists(self.clone_src_edit.text()):
+        if not Path(self.clone_src_edit.text()).exists():
             QMessageBox.warning(self, "错误", "Clone源文件夹不存在！")
             return
         
-        if not os.path.exists(self.input_dir_edit.text()):
+        if not Path(self.input_dir_edit.text()).exists():
             QMessageBox.warning(self, "错误", "输入文本文件夹不存在！")
             return
         
@@ -647,8 +649,9 @@ class BatchCloneGUI(QMainWindow):
     
     def open_output_folder(self):
         """打开输出文件夹"""
-        output_dir = self.output_dir_edit.text()
-        if os.path.exists(output_dir):
+        output_dir = Path(self.output_dir_edit.text())
+        if output_dir.exists():
+            import os
             os.system(f'xdg-open "{output_dir}"')
         else:
             QMessageBox.warning(self, "提示", "输出文件夹不存在！")
