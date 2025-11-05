@@ -12,7 +12,6 @@ import websockets
 import sounddevice as sd
 import io
 import torchaudio
-import torch
 
 
 SERVER_URI = "ws://127.0.0.1:8771"  # 如果在远程服务器运行，请改成服务器地址
