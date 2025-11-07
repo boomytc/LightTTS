@@ -6,6 +6,10 @@ const elements = {
     device: () => document.querySelector('input[name="device"]:checked'),
     text: document.getElementById('text'),
     promptAudio: document.getElementById('prompt-audio'),
+    promptAudioPreview: document.getElementById('prompt-audio-preview'),
+    uploadAudioBtn: document.getElementById('upload-audio-btn'),
+    useDefaultAudioBtn: document.getElementById('use-default-audio-btn'),
+    audioFileName: document.getElementById('audio-file-name'),
     promptText: document.getElementById('prompt-text'),
     cfgValue: document.getElementById('cfg-value'),
     cfgValueDisplay: document.getElementById('cfg-value-display'),
@@ -180,6 +184,39 @@ function base64ToBlob(base64, mimeType) {
 }
 
 
+async function loadDefaultAudio() {
+    try {
+        const response = await fetch('/api/default_audio');
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            elements.promptAudioPreview.src = url;
+            elements.promptAudioPreview.style.display = 'block';
+            elements.audioFileName.textContent = '当前使用：默认参考音频';
+        }
+    } catch (error) {
+        console.error('加载默认音频失败:', error);
+    }
+}
+
+
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        elements.promptAudioPreview.src = url;
+        elements.promptAudioPreview.style.display = 'block';
+        elements.audioFileName.textContent = `当前使用：${file.name}`;
+    }
+}
+
+
+function useDefaultAudio() {
+    elements.promptAudio.value = '';
+    loadDefaultAudio();
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
     elements.cfgValue.addEventListener('input', (e) => {
         elements.cfgValueDisplay.textContent = parseFloat(e.target.value).toFixed(1);
@@ -197,9 +234,18 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.retryThresholdDisplay.textContent = parseFloat(e.target.value).toFixed(1);
     });
     
+    elements.uploadAudioBtn.addEventListener('click', () => {
+        elements.promptAudio.click();
+    });
+    
+    elements.promptAudio.addEventListener('change', handleAudioUpload);
+    elements.useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
+    
     elements.loadBtn.addEventListener('click', loadModel);
     elements.generateBtn.addEventListener('click', generateSpeech);
     elements.stopBtn.addEventListener('click', stopGeneration);
+    
+    loadDefaultAudio();
     
     if (!navigator.gpu && !navigator.userAgent.includes('CUDA')) {
         document.getElementById('device-cpu').checked = true;
