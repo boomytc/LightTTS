@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexTTS2 语音合成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ IndexTTS2 语音合成演示</h1>
+            <p class="subtitle">支持多种情感控制方式：情感参考音频、情感向量、情感文本引导。</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 左侧：控制面板 -->
+            <div class="panel control-panel">
+                <h2>⚙️ 控制面板</h2>
+                
+                <div class="form-group">
+                    <label for="device">运行设备</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cuda" id="device-cuda" checked>
+                            <span>CUDA (GPU)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cpu" id="device-cpu">
+                            <span>CPU</span>
+                        </label>
+                    </div>
+                    <small class="help-text">选择模型运行的设备（CUDA 会自动启用 FP16 和 CUDA 核）</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="text">待合成文本</label>
+                    <textarea id="text" rows="4" placeholder="请输入需要合成的文本"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="prompt-audio">说话人参考音频</label>
+                    <input type="file" id="prompt-audio" accept="audio/*">
+                    {% if has_default_audio %}
+                    <small class="help-text">未上传时将使用默认参考音频</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="emo-mode">情感控制模式</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="emo-mode" value="none" id="emo-mode-none" checked>
+                            <span>无情感控制</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="emo-mode" value="audio" id="emo-mode-audio">
+                            <span>情感参考音频</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="emo-mode" value="vector" id="emo-mode-vector">
+                            <span>情感向量</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="emo-mode" value="text" id="emo-mode-text">
+                            <span>情感文本引导</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 情感参考音频模式 -->
+                <div class="form-group hidden" id="emo-audio-group">
+                    <label for="emo-audio">情感参考音频</label>
+                    <input type="file" id="emo-audio" accept="audio/*">
+                    <small class="help-text">用于控制语音情感</small>
+                </div>
+
+                <div class="form-group hidden" id="emo-alpha-group">
+                    <label for="emo-alpha">情感权重: <span id="emo-alpha-value">1.00</span></label>
+                    <input type="range" id="emo-alpha" min="0.0" max="1.0" step="0.05" value="1.0">
+                    <small class="help-text">影响强度 0.0-1.0</small>
+                </div>
+
+                <!-- 情感向量模式 -->
+                <div class="form-group hidden" id="emo-vector-group">
+                    <label>情感向量控制</label>
+                    <div class="emo-sliders">
+                        <div class="slider-item">
+                            <label for="emo-happy">高兴: <span id="emo-happy-value">0.00</span></label>
+                            <input type="range" id="emo-happy" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-angry">愤怒: <span id="emo-angry-value">0.00</span></label>
+                            <input type="range" id="emo-angry" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-sad">悲伤: <span id="emo-sad-value">0.00</span></label>
+                            <input type="range" id="emo-sad" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-afraid">恐惧: <span id="emo-afraid-value">0.00</span></label>
+                            <input type="range" id="emo-afraid" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-disgusted">反感: <span id="emo-disgusted-value">0.00</span></label>
+                            <input type="range" id="emo-disgusted" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-melancholic">低落: <span id="emo-melancholic-value">0.00</span></label>
+                            <input type="range" id="emo-melancholic" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-surprised">惊讶: <span id="emo-surprised-value">0.00</span></label>
+                            <input type="range" id="emo-surprised" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                        <div class="slider-item">
+                            <label for="emo-calm">自然: <span id="emo-calm-value">0.00</span></label>
+                            <input type="range" id="emo-calm" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 情感文本引导模式 -->
+                <div class="form-group hidden" id="emo-text-group">
+                    <label for="emo-text">情感引导文本</label>
+                    <textarea id="emo-text" rows="2" placeholder="示例: 我太开心了！"></textarea>
+                    <small class="help-text">根据文本自动分析情感</small>
+                </div>
+
+                <!-- 高级选项 -->
+                <details class="advanced-options">
+                    <summary>高级选项</summary>
+                    <div class="form-group">
+                        <label for="interval-silence">句子间静音时长 (ms): <span id="interval-silence-value">200</span></label>
+                        <input type="range" id="interval-silence" min="0" max="1000" step="50" value="200">
+                    </div>
+                    <div class="form-group">
+                        <label for="max-tokens">每段最大 Token 数: <span id="max-tokens-value">120</span></label>
+                        <input type="range" id="max-tokens" min="50" max="200" step="10" value="120">
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="use-random">
+                            <span>启用随机性（关闭以保证生成一致性）</span>
+                        </label>
+                    </div>
+                </details>
+
+                <div class="button-group">
+                    <button id="load-btn" class="btn btn-primary">加载模型</button>
+                    <button id="generate-btn" class="btn btn-success" disabled>生成语音</button>
+                    <button id="stop-btn" class="btn btn-danger">停止生成</button>
+                </div>
+            </div>
+
+            <!-- 右侧：输出面板 -->
+            <div class="panel output-panel">
+                <h2>📊 输出结果</h2>
+                
+                <div class="form-group">
+                    <label>状态</label>
+                    <div id="status" class="status-box">等待操作...</div>
+                </div>
+
+                <div class="form-group">
+                    <label>生成语音</label>
+                    <audio id="audio-output" controls class="audio-player" style="display: none;"></audio>
+                    <div id="audio-placeholder" class="audio-placeholder">
+                        <span>🎵</span>
+                        <p>音频将在生成后显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
