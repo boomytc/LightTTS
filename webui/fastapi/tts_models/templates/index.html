@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS 模型统一演示平台</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ TTS 模型统一演示平台</h1>
+            <p class="subtitle">支持 CosyVoice2、IndexTTS2、VoxCPM 三种语音合成模型</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 侧边栏：模型选择 -->
+            <div class="sidebar">
+                <h2>🔧 模型选择</h2>
+                <div class="model-selector">
+                    <label class="model-card" data-model="cosyvoice">
+                        <input type="radio" name="model" value="cosyvoice">
+                        <div class="model-card-content">
+                            <div class="model-icon">🎵</div>
+                            <h3>CosyVoice2</h3>
+                            <p>零样本克隆、跨语言、指令控制</p>
+                        </div>
+                    </label>
+                    
+                    <label class="model-card" data-model="indextts">
+                        <input type="radio" name="model" value="indextts">
+                        <div class="model-card-content">
+                            <div class="model-icon">🎭</div>
+                            <h3>IndexTTS2</h3>
+                            <p>情感控制、多种情感引导方式</p>
+                        </div>
+                    </label>
+                    
+                    <label class="model-card" data-model="voxcpm">
+                        <input type="radio" name="model" value="voxcpm">
+                        <div class="model-card-content">
+                            <div class="model-icon">🎤</div>
+                            <h3>VoxCPM</h3>
+                            <p>高质量语音生成、声音克隆</p>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label for="device">运行设备</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cuda" id="device-cuda" checked>
+                            <span>CUDA (GPU)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cpu" id="device-cpu">
+                            <span>CPU</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="load-btn" class="btn btn-primary" disabled>加载模型</button>
+            </div>
+
+            <!-- 主内容区 -->
+            <div class="content-wrapper">
+                <!-- 控制面板 -->
+                <div class="panel control-panel">
+                    <h2>⚙️ 控制面板</h2>
+                    
+                    <!-- 通用文本输入 -->
+                    <div class="form-group">
+                        <label for="text">待合成文本</label>
+                        <textarea id="text" rows="4" placeholder="请先选择模型并加载"></textarea>
+                    </div>
+
+                    <!-- CosyVoice 特定配置 -->
+                    <div id="config-cosyvoice" class="config-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="mode">推理模式</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="mode" value="zero_shot" checked>
+                                    <span>零样本克隆</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="mode" value="cross_lingual">
+                                    <span>跨语言克隆</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="mode" value="instruct">
+                                    <span>指令控制</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="prompt-audio-group-cosyvoice">
+                            <label for="prompt-audio-cosyvoice">参考音频</label>
+                            <div class="audio-upload-area">
+                                <input type="file" id="prompt-audio-cosyvoice" accept="audio/*" style="display: none;">
+                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                            </div>
+                            <audio class="prompt-audio-preview audio-preview" controls style="display: none;"></audio>
+                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
+                        </div>
+
+                        <div class="form-group" id="prompt-text-group">
+                            <label for="prompt-text">参考文本</label>
+                            <textarea id="prompt-text" rows="2">{{ default_prompt_text }}</textarea>
+                            <small class="help-text">零样本克隆模式需要提供参考音频对应的文本</small>
+                        </div>
+
+                        <div class="form-group hidden" id="instruct-text-group">
+                            <label for="instruct-text">指令文本</label>
+                            <textarea id="instruct-text" rows="2" placeholder="示例: 用四川话说这句话"></textarea>
+                            <small class="help-text">指令控制模式用于控制语音风格、情感、方言等</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="speed">语速: <span id="speed-value">1.00</span></label>
+                            <input type="range" id="speed" min="0.5" max="2.0" step="0.05" value="1.0">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="seed">随机种子</label>
+                            <input type="number" id="seed" value="0" step="1">
+                        </div>
+                    </div>
+
+                    <!-- IndexTTS 特定配置 -->
+                    <div id="config-indextts" class="config-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="prompt-audio-indextts">说话人参考音频</label>
+                            <div class="audio-upload-area">
+                                <input type="file" id="prompt-audio-indextts" accept="audio/*" style="display: none;">
+                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                            </div>
+                            <audio class="prompt-audio-preview audio-preview" controls style="display: none;"></audio>
+                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="emo-mode">情感控制模式</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="emo-mode" value="none" checked>
+                                    <span>无情感控制</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="emo-mode" value="audio">
+                                    <span>情感参考音频</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="emo-mode" value="vector">
+                                    <span>情感向量</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="emo-mode" value="text">
+                                    <span>情感文本引导</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group hidden" id="emo-audio-group">
+                            <label for="emo-audio">情感参考音频</label>
+                            <input type="file" id="emo-audio" accept="audio/*">
+                            <small class="help-text">用于控制语音情感</small>
+                        </div>
+
+                        <div class="form-group hidden" id="emo-alpha-group">
+                            <label for="emo-alpha">情感权重: <span id="emo-alpha-value">1.00</span></label>
+                            <input type="range" id="emo-alpha" min="0.0" max="1.0" step="0.05" value="1.0">
+                        </div>
+
+                        <div class="form-group hidden" id="emo-vector-group">
+                            <label>情感向量控制</label>
+                            <div class="emo-sliders">
+                                <div class="slider-item">
+                                    <label for="emo-happy">高兴: <span id="emo-happy-value">0.00</span></label>
+                                    <input type="range" id="emo-happy" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-angry">愤怒: <span id="emo-angry-value">0.00</span></label>
+                                    <input type="range" id="emo-angry" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-sad">悲伤: <span id="emo-sad-value">0.00</span></label>
+                                    <input type="range" id="emo-sad" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-afraid">恐惧: <span id="emo-afraid-value">0.00</span></label>
+                                    <input type="range" id="emo-afraid" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-disgusted">反感: <span id="emo-disgusted-value">0.00</span></label>
+                                    <input type="range" id="emo-disgusted" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-melancholic">低落: <span id="emo-melancholic-value">0.00</span></label>
+                                    <input type="range" id="emo-melancholic" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-surprised">惊讶: <span id="emo-surprised-value">0.00</span></label>
+                                    <input type="range" id="emo-surprised" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                                <div class="slider-item">
+                                    <label for="emo-calm">自然: <span id="emo-calm-value">0.00</span></label>
+                                    <input type="range" id="emo-calm" class="emo-slider" min="0.0" max="1.0" step="0.05" value="0.0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group hidden" id="emo-text-group">
+                            <label for="emo-text">情感引导文本</label>
+                            <textarea id="emo-text" rows="2" placeholder="示例: 我太开心了！"></textarea>
+                            <small class="help-text">根据文本自动分析情感</small>
+                        </div>
+
+                        <details class="advanced-options">
+                            <summary>高级选项</summary>
+                            <div class="form-group">
+                                <label for="interval-silence">句子间静音时长 (ms): <span id="interval-silence-value">200</span></label>
+                                <input type="range" id="interval-silence" min="0" max="1000" step="50" value="200">
+                            </div>
+                            <div class="form-group">
+                                <label for="max-tokens">每段最大 Token 数: <span id="max-tokens-value">120</span></label>
+                                <input type="range" id="max-tokens" min="50" max="200" step="10" value="120">
+                            </div>
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="use-random">
+                                    <span>启用随机性（关闭以保证生成一致性）</span>
+                                </label>
+                            </div>
+                        </details>
+                    </div>
+
+                    <!-- VoxCPM 特定配置 -->
+                    <div id="config-voxcpm" class="config-section" style="display: none;">
+                        <div class="form-group">
+                            <label for="prompt-audio-voxcpm">参考音频</label>
+                            <div class="audio-upload-area">
+                                <input type="file" id="prompt-audio-voxcpm" accept="audio/*" style="display: none;">
+                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                            </div>
+                            <audio class="prompt-audio-preview audio-preview" controls style="display: none;"></audio>
+                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="prompt-text-voxcpm">参考文本</label>
+                            <textarea id="prompt-text-voxcpm" rows="2">{{ default_prompt_text }}</textarea>
+                            <small class="help-text">参考音频对应的文本内容</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cfg-value">CFG 值（引导尺度）: <span id="cfg-value-display">2.0</span></label>
+                            <input type="range" id="cfg-value" min="1.0" max="3.0" step="0.1" value="2.0">
+                            <small class="help-text">值越高对提示遵循越好，但质量可能下降</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inference-timesteps">推理时间步数: <span id="timesteps-display">10</span></label>
+                            <input type="range" id="inference-timesteps" min="4" max="30" step="1" value="10">
+                            <small class="help-text">值越高质量越好，但速度越慢</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="normalize" checked>
+                                <span>启用文本标准化</span>
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="denoise" checked>
+                                <span>启用降噪</span>
+                            </label>
+                        </div>
+
+                        <details class="advanced-options">
+                            <summary>高级选项</summary>
+                            <div class="advanced-content">
+                                <div class="form-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="retry-badcase" checked>
+                                        <span>启用糟糕情况重试</span>
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label for="retry-max-times">最大重试次数: <span id="retry-times-display">3</span></label>
+                                    <input type="range" id="retry-max-times" min="1" max="10" step="1" value="3">
+                                </div>
+                                <div class="form-group">
+                                    <label for="retry-ratio-threshold">糟糕情况检测阈值: <span id="retry-threshold-display">6.0</span></label>
+                                    <input type="range" id="retry-ratio-threshold" min="3.0" max="10.0" step="0.5" value="6.0">
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="generate-btn" class="btn btn-success" disabled>生成语音</button>
+                        <button id="stop-btn" class="btn btn-danger">停止生成</button>
+                    </div>
+                </div>
+
+                <!-- 输出面板 -->
+                <div class="panel output-panel">
+                    <h2>📊 输出结果</h2>
+                    
+                    <div class="form-group">
+                        <label>状态</label>
+                        <div id="status" class="status-box">请选择模型并加载...</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>生成语音</label>
+                        <audio id="audio-output" controls class="audio-player" style="display: none;"></audio>
+                        <div id="audio-placeholder" class="audio-placeholder">
+                            <span>🎵</span>
+                            <p>音频将在生成后显示</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
