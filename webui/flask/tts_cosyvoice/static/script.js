@@ -9,6 +9,10 @@ const elements = {
     mode: () => document.querySelector('input[name="mode"]:checked'),
     text: document.getElementById('text'),
     promptAudio: document.getElementById('prompt-audio'),
+    promptAudioPreview: document.getElementById('prompt-audio-preview'),
+    uploadAudioBtn: document.getElementById('upload-audio-btn'),
+    useDefaultAudioBtn: document.getElementById('use-default-audio-btn'),
+    audioFileName: document.getElementById('audio-file-name'),
     promptText: document.getElementById('prompt-text'),
     instructText: document.getElementById('instruct-text'),
     speed: document.getElementById('speed'),
@@ -205,6 +209,39 @@ function base64ToBlob(base64, mimeType) {
     return new Blob([byteArray], { type: mimeType });
 }
 
+// 加载默认参考音频
+async function loadDefaultAudio() {
+    try {
+        const response = await fetch('/api/default_audio');
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            elements.promptAudioPreview.src = url;
+            elements.promptAudioPreview.style.display = 'block';
+            elements.audioFileName.textContent = '当前使用：默认参考音频';
+        }
+    } catch (error) {
+        console.error('加载默认音频失败:', error);
+    }
+}
+
+// 处理音频文件上传
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        elements.promptAudioPreview.src = url;
+        elements.promptAudioPreview.style.display = 'block';
+        elements.audioFileName.textContent = `当前使用：${file.name}`;
+    }
+}
+
+// 使用默认音频
+function useDefaultAudio() {
+    elements.promptAudio.value = '';
+    loadDefaultAudio();
+}
+
 // 事件监听
 document.addEventListener('DOMContentLoaded', () => {
     // 语速滑块
@@ -217,6 +254,14 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', updateUIVisibility);
     });
     
+    // 音频上传相关
+    elements.uploadAudioBtn.addEventListener('click', () => {
+        elements.promptAudio.click();
+    });
+    
+    elements.promptAudio.addEventListener('change', handleAudioUpload);
+    elements.useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
+    
     // 按钮事件
     elements.loadBtn.addEventListener('click', loadModel);
     elements.generateBtn.addEventListener('click', generateSpeech);
@@ -224,6 +269,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 初始化 UI
     updateUIVisibility();
+    
+    // 加载默认参考音频
+    loadDefaultAudio();
     
     // 自动检测 CUDA 可用性
     if (!navigator.gpu && !navigator.userAgent.includes('CUDA')) {

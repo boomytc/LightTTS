@@ -297,3 +297,36 @@ header h1 {
     animation: spin 0.6s linear infinite;
     margin-right: 8px;
 }
+
+.audio-upload-area {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: white;
+    color: #333;
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+    border-color: #999;
+    background: #f5f5f5;
+}
+
+.audio-preview {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#audio-file-name {
+    color: #48bb78;
+    font-weight: 500;
+}
