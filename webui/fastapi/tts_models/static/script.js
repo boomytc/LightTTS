@@ -343,7 +343,6 @@ document.querySelectorAll('.use-default-audio-btn').forEach(btn => {
         
         if (preview) {
             preview.src = '/api/default_audio';
-            preview.style.display = 'block';
         }
         
         if (fileName) {
@@ -364,7 +363,6 @@ document.querySelectorAll('input[type="file"][accept="audio/*"]').forEach(input 
             if (preview) {
                 const url = URL.createObjectURL(file);
                 preview.src = url;
-                preview.style.display = 'block';
             }
             
             if (fileName) {
