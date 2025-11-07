@@ -348,6 +348,19 @@ document.querySelectorAll('.use-default-audio-btn').forEach(btn => {
         if (fileName) {
             fileName.textContent = '当前使用：默认参考音频';
         }
+        
+        // 自动填充默认参考文本
+        const promptTextCosyvoice = document.getElementById('prompt-text');
+        const promptTextVoxcpm = document.getElementById('prompt-text-voxcpm');
+        const defaultPromptText = '希望你以后能够做的比我还好哟。';
+        
+        if (promptTextCosyvoice && parent.closest('#config-cosyvoice')) {
+            promptTextCosyvoice.value = defaultPromptText;
+        }
+        
+        if (promptTextVoxcpm && parent.closest('#config-voxcpm')) {
+            promptTextVoxcpm.value = defaultPromptText;
+        }
     });
 });
 

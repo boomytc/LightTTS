@@ -33,7 +33,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呀。"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好哟。"
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
