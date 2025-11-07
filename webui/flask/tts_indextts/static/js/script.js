@@ -1,8 +1,22 @@
 let currentGenerateRequest = null;
 
+const elements = {
+    promptAudio: document.getElementById('prompt-audio'),
+    promptAudioPreview: null,
+    uploadAudioBtn: null,
+    useDefaultAudioBtn: null,
+    audioFileName: null,
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+    elements.promptAudioPreview = document.getElementById('prompt-audio-preview');
+    elements.uploadAudioBtn = document.getElementById('upload-audio-btn');
+    elements.useDefaultAudioBtn = document.getElementById('use-default-audio-btn');
+    elements.audioFileName = document.getElementById('audio-file-name');
+    
     initializeEventListeners();
     updateSliderValues();
+    loadDefaultAudio();
 });
 
 function initializeEventListeners() {
@@ -18,6 +32,13 @@ function initializeEventListeners() {
     emoModeRadios.forEach(radio => {
         radio.addEventListener('change', updateEmoModeVisibility);
     });
+    
+    elements.uploadAudioBtn.addEventListener('click', () => {
+        elements.promptAudio.click();
+    });
+    
+    elements.promptAudio.addEventListener('change', handleAudioUpload);
+    elements.useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
     
     const emoAlpha = document.getElementById('emo-alpha');
     emoAlpha.addEventListener('input', function() {
@@ -259,4 +280,34 @@ function base64ToBlob(base64, mimeType) {
     
     const byteArray = new Uint8Array(byteNumbers);
     return new Blob([byteArray], { type: mimeType });
+}
+
+async function loadDefaultAudio() {
+    try {
+        const response = await fetch('/api/default_audio');
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            elements.promptAudioPreview.src = url;
+            elements.promptAudioPreview.style.display = 'block';
+            elements.audioFileName.textContent = '当前使用：默认参考音频';
+        }
+    } catch (error) {
+        console.error('加载默认音频失败:', error);
+    }
+}
+
+function handleAudioUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const url = URL.createObjectURL(file);
+        elements.promptAudioPreview.src = url;
+        elements.promptAudioPreview.style.display = 'block';
+        elements.audioFileName.textContent = `当前使用：${file.name}`;
+    }
+}
+
+function useDefaultAudio() {
+    elements.promptAudio.value = '';
+    loadDefaultAudio();
 }

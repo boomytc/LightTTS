@@ -40,10 +40,13 @@
 
                 <div class="form-group">
                     <label for="prompt-audio">说话人参考音频</label>
-                    <input type="file" id="prompt-audio" accept="audio/*">
-                    {% if has_default_audio %}
-                    <small class="help-text">未上传时将使用默认参考音频</small>
-                    {% endif %}
+                    <div class="audio-upload-area">
+                        <input type="file" id="prompt-audio" accept="audio/*" style="display: none;">
+                        <button type="button" id="upload-audio-btn" class="btn-secondary">📁 选择音频文件</button>
+                        <button type="button" id="use-default-audio-btn" class="btn-secondary">🔄 使用默认音频</button>
+                    </div>
+                    <audio id="prompt-audio-preview" controls class="audio-preview" style="display: none;"></audio>
+                    <small class="help-text" id="audio-file-name">当前使用：默认参考音频</small>
                 </div>
 
                 <div class="form-group">
