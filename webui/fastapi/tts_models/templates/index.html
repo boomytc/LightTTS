@@ -6,7 +6,7 @@
     <title>TTS 模型统一演示平台</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body data-default-prompt-text="{{ default_prompt_text }}" data-has-default-audio="{{ 'true' if has_default_audio else 'false' }}">
     <div class="container">
         <header>
             <h1>🎙️ TTS 模型统一演示平台</h1>
@@ -100,10 +100,16 @@
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-cosyvoice" accept="audio/*" style="display: none;">
                                 <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
                             </div>
-                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
-                            <audio class="prompt-audio-preview audio-preview" controls src="/api/default_audio"></audio>
+                            <small class="help-text audio-file-name">
+                                {% if has_default_audio %}
+                                    当前使用：默认参考音频
+                                {% else %}
+                                    未找到默认参考音频，请上传文件
+                                {% endif %}
+                            </small>
+                            <audio class="prompt-audio-preview audio-preview" controls {% if has_default_audio %}src="/api/default_audio"{% endif %}></audio>
                         </div>
 
                         <div class="form-group" id="prompt-text-group">
@@ -136,10 +142,16 @@
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-indextts" accept="audio/*" style="display: none;">
                                 <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
                             </div>
-                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
-                            <audio class="prompt-audio-preview audio-preview" controls src="/api/default_audio"></audio>
+                            <small class="help-text audio-file-name">
+                                {% if has_default_audio %}
+                                    当前使用：默认参考音频
+                                {% else %}
+                                    未找到默认参考音频，请上传文件
+                                {% endif %}
+                            </small>
+                            <audio class="prompt-audio-preview audio-preview" controls {% if has_default_audio %}src="/api/default_audio"{% endif %}></audio>
                         </div>
 
                         <div class="form-group">
@@ -245,10 +257,16 @@
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-voxcpm" accept="audio/*" style="display: none;">
                                 <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary">🔄 使用默认音频</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
                             </div>
-                            <small class="help-text audio-file-name">当前使用：默认参考音频</small>
-                            <audio class="prompt-audio-preview audio-preview" controls src="/api/default_audio"></audio>
+                            <small class="help-text audio-file-name">
+                                {% if has_default_audio %}
+                                    当前使用：默认参考音频
+                                {% else %}
+                                    未找到默认参考音频，请上传文件
+                                {% endif %}
+                            </small>
+                            <audio class="prompt-audio-preview audio-preview" controls {% if has_default_audio %}src="/api/default_audio"{% endif %}></audio>
                         </div>
 
                         <div class="form-group">
