@@ -271,16 +271,18 @@
 
                         <div class="form-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="normalize" checked>
+                                <input type="checkbox" id="normalize">
                                 <span>启用文本标准化</span>
                             </label>
+                            <small class="help-text">首次启用会加载标准化模型（需要一定时间）</small>
                         </div>
 
                         <div class="form-group">
                             <label class="checkbox-label">
-                                <input type="checkbox" id="denoise" checked>
+                                <input type="checkbox" id="denoise">
                                 <span>启用降噪</span>
                             </label>
+                            <small class="help-text">需要已加载 ZipEnhancer 模型</small>
                         </div>
 
                         <details class="advanced-options">

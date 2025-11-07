@@ -142,7 +142,7 @@ class VoxCPM:
                     prompt_text=prompt_text
                 )
             else:
-                fixed_prompt_cache = None  # 将会在第一次生成时构建
+                fixed_prompt_cache = None
             
             if normalize:
                 if self.text_normalizer is None:

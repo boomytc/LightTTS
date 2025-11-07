@@ -64,7 +64,7 @@ current_device = None
 
 
 def clear_model_cache():
-    """清除当前模型并释放内存"""
+    """清除当前模型并释放内存，但保留 VoxCPM 的 TextNormalizer缓存"""
     global model_instance, current_model_type, current_device
     
     if model_instance is not None:
@@ -121,6 +121,24 @@ def load_voxcpm_model(device: str):
         local_files_only=True,
         device=device,
     )
+
+
+def validate_prompt_audio(prompt_audio_path: str) -> str:
+    """验证参考提示音频并返回有效路径。"""
+    if not prompt_audio_path:
+        prompt_audio_path = DEFAULT_PROMPT_WAV
+
+    if not os.path.isfile(prompt_audio_path):
+        raise FileNotFoundError(f"参考音频不存在: {prompt_audio_path}")
+
+    try:
+        info = sf.info(prompt_audio_path)
+        if info.samplerate < 16000:
+            raise ValueError("参考音频采样率需至少 16000Hz。")
+    except Exception as exc:
+        raise RuntimeError(f"无法读取参考音频: {exc}") from exc
+    
+    return prompt_audio_path
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -512,9 +530,22 @@ async def generate_voxcpm(request: Request):
         )
     
     try:
+        validated_path = validate_prompt_audio(prompt_audio_path)
+    except Exception as exc:
+        if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
+            try:
+                os.remove(prompt_audio_path)
+            except:
+                pass
+        return JSONResponse(
+            {"status": "error", "message": str(exc)},
+            status_code=400
+        )
+    
+    try:
         wav = model_instance.generate(
             text=text,
-            prompt_wav_path=prompt_audio_path,
+            prompt_wav_path=validated_path,
             prompt_text=prompt_text or None,
             cfg_value=cfg_value,
             inference_timesteps=inference_timesteps,
