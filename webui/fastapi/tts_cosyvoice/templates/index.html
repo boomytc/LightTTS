@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CosyVoice2 语音合成</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎙️ CosyVoice2 语音合成演示</h1>
+            <p class="subtitle">选择推理模式，上传或使用默认参考音频，输入文本后点击生成即可试听。</p>
+        </header>
+
+        <div class="main-content">
+            <!-- 左侧：控制面板 -->
+            <div class="panel control-panel">
+                <h2>⚙️ 控制面板</h2>
+                
+                <div class="form-group">
+                    <label for="device">运行设备</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cuda" id="device-cuda" checked>
+                            <span>CUDA (GPU)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="device" value="cpu" id="device-cpu">
+                            <span>CPU</span>
+                        </label>
+                    </div>
+                    <small class="help-text">选择模型运行的设备（CUDA 会自动启用 FP16）</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="mode">推理模式</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="mode" value="zero_shot" id="mode-zero" checked>
+                            <span>零样本克隆</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="mode" value="cross_lingual" id="mode-cross">
+                            <span>跨语言克隆</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="mode" value="instruct" id="mode-instruct">
+                            <span>指令控制</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="text">待合成文本</label>
+                    <textarea id="text" rows="4" placeholder="请输入需要合成的文本"></textarea>
+                </div>
+
+                <div class="form-group" id="prompt-audio-group">
+                    <label for="prompt-audio">参考音频</label>
+                    <div class="audio-upload-area">
+                        <input type="file" id="prompt-audio" accept="audio/*" style="display: none;">
+                        <button type="button" id="upload-audio-btn" class="btn-secondary">📁 选择音频文件</button>
+                        <button type="button" id="use-default-audio-btn" class="btn-secondary">🔄 使用默认音频</button>
+                    </div>
+                    <audio id="prompt-audio-preview" controls class="audio-preview" style="display: none;"></audio>
+                    <small class="help-text" id="audio-file-name">当前使用：默认参考音频</small>
+                </div>
+
+                <div class="form-group" id="prompt-text-group">
+                    <label for="prompt-text">参考文本</label>
+                    <textarea id="prompt-text" rows="2">{{ default_prompt_text }}</textarea>
+                    <small class="help-text">零样本克隆模式需要提供参考音频对应的文本</small>
+                </div>
+
+                <div class="form-group hidden" id="instruct-text-group">
+                    <label for="instruct-text">指令文本</label>
+                    <textarea id="instruct-text" rows="2" placeholder="示例: 用四川话说这句话"></textarea>
+                    <small class="help-text">指令控制模式用于控制语音风格、情感、方言等</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="speed">语速: <span id="speed-value">1.00</span></label>
+                    <input type="range" id="speed" min="0.5" max="2.0" step="0.05" value="1.0">
+                </div>
+
+                <div class="form-group">
+                    <label for="seed">随机种子</label>
+                    <input type="number" id="seed" value="0" step="1">
+                </div>
+
+                <div class="button-group">
+                    <button id="load-btn" class="btn btn-primary">加载模型</button>
+                    <button id="generate-btn" class="btn btn-success" disabled>生成语音</button>
+                    <button id="stop-btn" class="btn btn-danger">停止生成</button>
+                </div>
+            </div>
+
+            <!-- 右侧：输出面板 -->
+            <div class="panel output-panel">
+                <h2>📊 输出结果</h2>
+                
+                <div class="form-group">
+                    <label>状态</label>
+                    <div id="status" class="status-box">等待操作...</div>
+                </div>
+
+                <div class="form-group">
+                    <label>生成语音</label>
+                    <audio id="audio-output" controls class="audio-player"></audio>
+                    <div id="audio-placeholder" class="audio-placeholder">
+                        <span>🎵</span>
+                        <p>音频将在生成后显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
