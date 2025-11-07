@@ -5,12 +5,11 @@ import gc
 import json
 import base64
 import time
-from typing import Optional
 
 import torch
 import soundfile as sf
 import torchaudio
-from fastapi import FastAPI, Request, UploadFile, File, Form
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -27,7 +26,7 @@ from indextts.infer_v2 import IndexTTS2
 from voxcpm.core import VoxCPM
 from voxcpm.model.voxcpm import VoxCPMModel
 
-app = FastAPI(title="TTS 模型统一演示平台")
+app = FastAPI(title="合成吧！语音！")
 
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
