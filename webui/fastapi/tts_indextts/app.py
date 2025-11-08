@@ -29,6 +29,10 @@ DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
 USE_FP16 = True
 USE_CUDA_KERNEL = False
 
+# 检测 CUDA 是否可用
+CUDA_AVAILABLE = torch.cuda.is_available()
+DEFAULT_DEVICE = "cuda" if CUDA_AVAILABLE else "cpu"
+
 EMO_LABELS = ["高兴", "愤怒", "悲伤", "恐惧", "反感", "低落", "惊讶", "自然"]
 
 model_instance = None
@@ -57,7 +61,9 @@ async def index(request: Request):
         "index.html",
         {
             "request": request,
-            "has_default_audio": has_default_audio
+            "has_default_audio": has_default_audio,
+            "cuda_available": CUDA_AVAILABLE,
+            "default_device": DEFAULT_DEVICE
         }
     )
 
@@ -68,7 +74,11 @@ async def load_model(request: Request):
     global model_instance, current_device
     
     data = await request.json()
-    device = data.get("device", "cuda")
+    device = data.get("device", DEFAULT_DEVICE)
+    
+    # 强制使用检测到的设备
+    if not CUDA_AVAILABLE:
+        device = "cpu"
     
     if model_instance is not None and current_device == device:
         return JSONResponse({
@@ -81,7 +91,7 @@ async def load_model(request: Request):
         current_device = device
         return JSONResponse({
             "status": "success",
-            "message": "模型加载完成 ✅"
+            "message": f"模型加载完成 ✅ (设备: {device.upper()})"
         })
     except Exception as exc:
         return JSONResponse(

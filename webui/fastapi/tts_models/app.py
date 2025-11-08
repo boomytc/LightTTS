@@ -34,6 +34,10 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "t
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
 DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好哟。"
 
+# 检测 CUDA 是否可用
+CUDA_AVAILABLE = torch.cuda.is_available()
+DEFAULT_DEVICE = "cuda" if CUDA_AVAILABLE else "cpu"
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 if torch.cuda.is_available():
@@ -149,7 +153,9 @@ async def index(request: Request):
         {
             "request": request,
             "default_prompt_text": DEFAULT_PROMPT_TEXT,
-            "has_default_audio": has_default_audio
+            "has_default_audio": has_default_audio,
+            "cuda_available": CUDA_AVAILABLE,
+            "default_device": DEFAULT_DEVICE
         }
     )
 
@@ -161,7 +167,11 @@ async def load_model(request: Request):
     
     data = await request.json()
     model_type = data.get("model_type")
-    device = data.get("device", "cuda")
+    device = data.get("device", DEFAULT_DEVICE)
+    
+    # 强制使用检测到的设备
+    if not CUDA_AVAILABLE:
+        device = "cpu"
     
     if not model_type:
         return JSONResponse(
@@ -201,7 +211,7 @@ async def load_model(request: Request):
         
         return JSONResponse({
             "status": "success",
-            "message": f"{model_type.upper()} 模型加载完成 ✅"
+            "message": f"{model_type.upper()} 模型加载完成 ✅ (设备: {device.upper()})"
         })
     except Exception as exc:
         clear_model_cache()

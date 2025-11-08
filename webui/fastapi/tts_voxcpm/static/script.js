@@ -246,8 +246,4 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.stopBtn.addEventListener('click', stopGeneration);
     
     loadDefaultAudio();
-    
-    if (!navigator.gpu && !navigator.userAgent.includes('CUDA')) {
-        document.getElementById('device-cpu').checked = true;
-    }
 });

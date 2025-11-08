@@ -34,6 +34,10 @@ LOAD_TRT = False
 LOAD_VLLM = False
 TRT_CONCURRENT = 1
 
+# 检测 CUDA 是否可用
+CUDA_AVAILABLE = torch.cuda.is_available()
+DEFAULT_DEVICE = "cuda" if CUDA_AVAILABLE else "cpu"
+
 MODE_MAPPING = {
     "zero_shot": "零样本克隆",
     "cross_lingual": "跨语言克隆",
@@ -105,7 +109,9 @@ async def index(request: Request):
         {
             "request": request,
             "default_prompt_text": DEFAULT_PROMPT_TEXT,
-            "has_default_audio": has_default_audio
+            "has_default_audio": has_default_audio,
+            "cuda_available": CUDA_AVAILABLE,
+            "default_device": DEFAULT_DEVICE
         }
     )
 
@@ -116,7 +122,11 @@ async def load_model(request: Request):
     global model_instance, current_device
     
     data = await request.json()
-    device = data.get("device", "cuda")
+    device = data.get("device", DEFAULT_DEVICE)
+    
+    # 强制使用检测到的设备
+    if not CUDA_AVAILABLE:
+        device = "cpu"
     
     if model_instance is not None and current_device == device:
         return JSONResponse({
@@ -129,7 +139,7 @@ async def load_model(request: Request):
         current_device = device
         return JSONResponse({
             "status": "success",
-            "message": "模型加载完成 ✅"
+            "message": f"模型加载完成 ✅ (设备: {device.upper()})"
         })
     except Exception as exc:
         return JSONResponse(

@@ -574,7 +574,6 @@ window.addEventListener('DOMContentLoaded', () => {
         elements.stopBtn.addEventListener('click', stopGeneration);
     }
 
-    console.log('开始执行 attachModelSelectionHandlers');
     attachModelSelectionHandlers();
     attachCosyvoiceModeHandlers();
     attachEmotionModeHandlers();

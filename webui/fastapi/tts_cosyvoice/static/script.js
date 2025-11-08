@@ -311,11 +311,5 @@ document.addEventListener('DOMContentLoaded', () => {
     // 加载默认参考音频
     loadDefaultAudio();
     
-    // 自动检测 CUDA 可用性
-    if (!navigator.gpu && !navigator.userAgent.includes('CUDA')) {
-        const cpuRadio = document.getElementById('device-cpu');
-        if (cpuRadio) cpuRadio.checked = true;
-    }
-    
     console.log('初始化完成');
 });

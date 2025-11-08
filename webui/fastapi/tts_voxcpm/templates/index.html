@@ -22,15 +22,15 @@
                     <label for="device">运行设备</label>
                     <div class="radio-group">
                         <label class="radio-label">
-                            <input type="radio" name="device" value="cuda" id="device-cuda" checked>
-                            <span>CUDA (GPU)</span>
+                            <input type="radio" name="device" value="cuda" id="device-cuda" {% if default_device == 'cuda' %}checked{% endif %} {% if not cuda_available %}disabled{% endif %}>
+                            <span>CUDA (GPU){% if not cuda_available %} - 不可用{% endif %}</span>
                         </label>
                         <label class="radio-label">
-                            <input type="radio" name="device" value="cpu" id="device-cpu">
+                            <input type="radio" name="device" value="cpu" id="device-cpu" {% if default_device == 'cpu' %}checked{% endif %}>
                             <span>CPU</span>
                         </label>
                     </div>
-                    <small class="help-text">选择模型运行的设备（CPU 或 GPU）</small>
+                    <small class="help-text">当前设备: {{ default_device.upper() }}{% if cuda_available %} (自动检测){% endif %}</small>
                 </div>
 
                 <div class="form-group">
