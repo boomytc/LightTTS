@@ -38,9 +38,12 @@ header h1 {
 }
 
 .main-content {
+    display: -ms-grid;
     display: grid;
+    -ms-grid-columns: 280px 1fr;
     grid-template-columns: 280px 1fr;
     gap: 20px;
+    grid-gap: 20px; /* 带浏览器前缀的兼容写法 */
 }
 
 /* 侧边栏样式 */
@@ -72,6 +75,7 @@ header h1 {
 
 .model-card {
     position: relative;
+    display: block;
     cursor: pointer;
     border-radius: 8px;
     overflow: hidden;
@@ -80,7 +84,10 @@ header h1 {
 .model-card input[type="radio"] {
     position: absolute;
     opacity: 0;
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 1;
 }
 
 .model-card-content {
@@ -124,9 +131,12 @@ header h1 {
 
 /* 内容包装器 */
 .content-wrapper {
+    display: -ms-grid;
     display: grid;
+    -ms-grid-columns: 1.5fr 1fr;
     grid-template-columns: 1.5fr 1fr;
     gap: 20px;
+    grid-gap: 20px; /* 带浏览器前缀的兼容写法 */
 }
 
 .panel {

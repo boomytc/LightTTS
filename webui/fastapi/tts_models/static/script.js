@@ -88,7 +88,9 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         const onChange = (event) => {
-            currentModel = event.target.value;
+            const radio = event.target;
+            currentModel = radio.value;
+            console.log('模型切换:', currentModel);
             setModelLoadedState(false);
             if (elements.loadBtn) {
                 elements.loadBtn.disabled = false;
@@ -102,6 +104,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
         elements.modelRadios.forEach((radio) => {
             radio.addEventListener('change', onChange);
+            
+            // 也给 label 添加点击事件，确保所有浏览器都能正常工作
+            const label = radio.closest('.model-card');
+            if (label) {
+                label.addEventListener('click', () => {
+                    if (!radio.checked) {
+                        radio.checked = true;
+                        onChange({ target: radio });
+                    }
+                });
+            }
         });
 
         const initiallyChecked = elements.modelRadios.find((radio) => radio.checked);
@@ -113,7 +126,11 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             updateStatus(`已选择 ${currentModel.toUpperCase()} 模型，请点击"加载模型"按钮`);
         } else {
-            console.warn('没有默认选中的模型');
+            console.warn('没有默认选中的模型，选中第一个');
+            if (elements.modelRadios.length > 0) {
+                elements.modelRadios[0].checked = true;
+                onChange({ target: elements.modelRadios[0] });
+            }
         }
     }
 
