@@ -3,30 +3,30 @@ let modelLoaded = false;
 let isGenerating = false;
 let currentAbortController = null;
 
-// DOM 元素
+// DOM 元素（使用函数延迟获取，确保 DOM 已加载）
 const elements = {
     device: () => document.querySelector('input[name="device"]:checked'),
     mode: () => document.querySelector('input[name="mode"]:checked'),
-    text: document.getElementById('text'),
-    promptAudio: document.getElementById('prompt-audio'),
-    promptAudioPreview: document.getElementById('prompt-audio-preview'),
-    uploadAudioBtn: document.getElementById('upload-audio-btn'),
-    useDefaultAudioBtn: document.getElementById('use-default-audio-btn'),
-    audioFileName: document.getElementById('audio-file-name'),
-    promptText: document.getElementById('prompt-text'),
-    instructText: document.getElementById('instruct-text'),
-    speed: document.getElementById('speed'),
-    speedValue: document.getElementById('speed-value'),
-    seed: document.getElementById('seed'),
-    loadBtn: document.getElementById('load-btn'),
-    generateBtn: document.getElementById('generate-btn'),
-    stopBtn: document.getElementById('stop-btn'),
-    status: document.getElementById('status'),
-    audioOutput: document.getElementById('audio-output'),
-    audioPlaceholder: document.getElementById('audio-placeholder'),
-    promptAudioGroup: document.getElementById('prompt-audio-group'),
-    promptTextGroup: document.getElementById('prompt-text-group'),
-    instructTextGroup: document.getElementById('instruct-text-group'),
+    get text() { return document.getElementById('text'); },
+    get promptAudio() { return document.getElementById('prompt-audio'); },
+    get promptAudioPreview() { return document.getElementById('prompt-audio-preview'); },
+    get uploadAudioBtn() { return document.getElementById('upload-audio-btn'); },
+    get useDefaultAudioBtn() { return document.getElementById('use-default-audio-btn'); },
+    get audioFileName() { return document.getElementById('audio-file-name'); },
+    get promptText() { return document.getElementById('prompt-text'); },
+    get instructText() { return document.getElementById('instruct-text'); },
+    get speed() { return document.getElementById('speed'); },
+    get speedValue() { return document.getElementById('speed-value'); },
+    get seed() { return document.getElementById('seed'); },
+    get loadBtn() { return document.getElementById('load-btn'); },
+    get generateBtn() { return document.getElementById('generate-btn'); },
+    get stopBtn() { return document.getElementById('stop-btn'); },
+    get status() { return document.getElementById('status'); },
+    get audioOutput() { return document.getElementById('audio-output'); },
+    get audioPlaceholder() { return document.getElementById('audio-placeholder'); },
+    get promptAudioGroup() { return document.getElementById('prompt-audio-group'); },
+    get promptTextGroup() { return document.getElementById('prompt-text-group'); },
+    get instructTextGroup() { return document.getElementById('instruct-text-group'); },
 };
 
 // 更新状态显示
@@ -262,10 +262,20 @@ document.addEventListener('DOMContentLoaded', () => {
     elements.promptAudio.addEventListener('change', handleAudioUpload);
     elements.useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
     
-    // 按钮事件
-    elements.loadBtn.addEventListener('click', loadModel);
-    elements.generateBtn.addEventListener('click', generateSpeech);
-    elements.stopBtn.addEventListener('click', stopGeneration);
+    // 按钮事件 - 确保所有按钮都能正常工作
+    const loadBtn = document.getElementById('load-btn');
+    const generateBtn = document.getElementById('generate-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    
+    if (loadBtn) {
+        loadBtn.addEventListener('click', loadModel);
+    }
+    if (generateBtn) {
+        generateBtn.addEventListener('click', generateSpeech);
+    }
+    if (stopBtn) {
+        stopBtn.addEventListener('click', stopGeneration);
+    }
     
     // 初始化 UI
     updateUIVisibility();
@@ -275,6 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 自动检测 CUDA 可用性
     if (!navigator.gpu && !navigator.userAgent.includes('CUDA')) {
-        document.getElementById('device-cpu').checked = true;
+        const cpuRadio = document.getElementById('device-cpu');
+        if (cpuRadio) cpuRadio.checked = true;
     }
 });
