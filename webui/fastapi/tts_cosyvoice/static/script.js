@@ -3,6 +3,8 @@ let modelLoaded = false;
 let isGenerating = false;
 let currentAbortController = null;
 
+console.log('CosyVoice script.js 已加载');
+
 // DOM 元素（使用函数延迟获取，确保 DOM 已加载）
 const elements = {
     device: () => document.querySelector('input[name="device"]:checked'),
@@ -244,31 +246,57 @@ function useDefaultAudio() {
 
 // 事件监听
 document.addEventListener('DOMContentLoaded', () => {
-    // 语速滑块
-    elements.speed.addEventListener('input', (e) => {
-        elements.speedValue.textContent = parseFloat(e.target.value).toFixed(2);
-    });
+    console.log('DOMContentLoaded 事件触发');
     
-    // 模式切换
-    document.querySelectorAll('input[name="mode"]').forEach(radio => {
-        radio.addEventListener('change', updateUIVisibility);
-    });
-    
-    // 音频上传相关
-    elements.uploadAudioBtn.addEventListener('click', () => {
-        elements.promptAudio.click();
-    });
-    
-    elements.promptAudio.addEventListener('change', handleAudioUpload);
-    elements.useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
-    
-    // 按钮事件 - 确保所有按钮都能正常工作
+    // 获取所有需要的 DOM 元素
+    const speed = document.getElementById('speed');
+    const speedValue = document.getElementById('speed-value');
+    const modeRadios = document.querySelectorAll('input[name="mode"]');
+    const uploadAudioBtn = document.getElementById('upload-audio-btn');
+    const promptAudio = document.getElementById('prompt-audio');
+    const useDefaultAudioBtn = document.getElementById('use-default-audio-btn');
     const loadBtn = document.getElementById('load-btn');
     const generateBtn = document.getElementById('generate-btn');
     const stopBtn = document.getElementById('stop-btn');
     
+    console.log('按钮元素:', { loadBtn, generateBtn, stopBtn });
+    
+    // 语速滑块
+    if (speed && speedValue) {
+        speed.addEventListener('input', (e) => {
+            speedValue.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+    }
+    
+    // 模式切换
+    modeRadios.forEach(radio => {
+        radio.addEventListener('change', updateUIVisibility);
+    });
+    
+    // 音频上传相关
+    if (uploadAudioBtn && promptAudio) {
+        uploadAudioBtn.addEventListener('click', () => {
+            promptAudio.click();
+        });
+    }
+    
+    if (promptAudio) {
+        promptAudio.addEventListener('change', handleAudioUpload);
+    }
+    
+    if (useDefaultAudioBtn) {
+        useDefaultAudioBtn.addEventListener('click', useDefaultAudio);
+    }
+    
+    // 按钮事件
     if (loadBtn) {
-        loadBtn.addEventListener('click', loadModel);
+        console.log('绑定加载模型按钮点击事件');
+        loadBtn.addEventListener('click', () => {
+            console.log('加载模型按钮被点击');
+            loadModel();
+        });
+    } else {
+        console.error('未找到加载模型按钮!');
     }
     if (generateBtn) {
         generateBtn.addEventListener('click', generateSpeech);
@@ -288,4 +316,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const cpuRadio = document.getElementById('device-cpu');
         if (cpuRadio) cpuRadio.checked = true;
     }
+    
+    console.log('初始化完成');
 });

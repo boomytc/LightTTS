@@ -1,4 +1,6 @@
 window.addEventListener('DOMContentLoaded', () => {
+    console.log('tts_models script.js DOMContentLoaded 事件触发');
+    
     let currentModel = null;
     let isModelLoaded = false;
     let isGenerating = false;
@@ -24,6 +26,9 @@ window.addEventListener('DOMContentLoaded', () => {
         configIndextts: document.getElementById('config-indextts'),
         configVoxcpm: document.getElementById('config-voxcpm'),
     };
+    
+    console.log('按钮元素:', { loadBtn: elements.loadBtn, generateBtn: elements.generateBtn });
+    console.log('模型选项:', elements.modelRadios.length);
 
     const promptTextCosyvoice = document.getElementById('prompt-text');
     const promptTextVoxcpm = document.getElementById('prompt-text-voxcpm');
@@ -78,6 +83,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function attachModelSelectionHandlers() {
         if (!elements.modelRadios.length) {
+            console.warn('没有找到模型选择按钮');
             return;
         }
 
@@ -100,7 +106,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         const initiallyChecked = elements.modelRadios.find((radio) => radio.checked);
         if (initiallyChecked) {
-            initiallyChecked.dispatchEvent(new Event('change'));
+            currentModel = initiallyChecked.value;
+            switchModelConfig(currentModel);
+            if (elements.loadBtn) {
+                elements.loadBtn.disabled = false;
+            }
+            updateStatus(`已选择 ${currentModel.toUpperCase()} 模型，请点击"加载模型"按钮`);
+        } else {
+            console.warn('没有默认选中的模型');
         }
     }
 
@@ -529,7 +542,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     if (elements.loadBtn) {
-        elements.loadBtn.addEventListener('click', handleLoadModel);
+        console.log('绑定加载模型按钮点击事件');
+        elements.loadBtn.addEventListener('click', () => {
+            console.log('加载模型按钮被点击, currentModel:', currentModel);
+            handleLoadModel();
+        });
+    } else {
+        console.error('未找到加载模型按钮!');
     }
     if (elements.generateBtn) {
         elements.generateBtn.addEventListener('click', handleGenerate);
@@ -538,6 +557,7 @@ window.addEventListener('DOMContentLoaded', () => {
         elements.stopBtn.addEventListener('click', stopGeneration);
     }
 
+    console.log('开始执行 attachModelSelectionHandlers');
     attachModelSelectionHandlers();
     attachCosyvoiceModeHandlers();
     attachEmotionModeHandlers();
@@ -545,4 +565,5 @@ window.addEventListener('DOMContentLoaded', () => {
     initSliderDisplays();
 
     updateStatus('请选择模型并加载...');
+    console.log('初始化完成');
 });
