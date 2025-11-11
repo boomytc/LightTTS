@@ -1,0 +1,50 @@
+.status-box {
+    padding: 15px;
+    border-radius: 6px;
+    background: var(--color-muted-bg);
+    border: 2px solid var(--color-border);
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: var(--color-text-primary);
+}
+
+.status-box.loading {
+    border-color: var(--color-status-loading-border);
+    color: var(--color-status-loading-text);
+}
+
+.status-box.success {
+    border-color: var(--color-success);
+    color: var(--color-success-dark);
+}
+
+.status-box.error {
+    border-color: var(--color-danger);
+    color: var(--color-danger-dark);
+}
+
+.audio-player {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.audio-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    border: 2px dashed var(--color-border);
+    border-radius: 8px;
+    color: var(--color-placeholder);
+    margin-top: 10px;
+}
+
+.audio-placeholder span {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.audio-placeholder p {
+    font-size: 0.9rem;
+}
