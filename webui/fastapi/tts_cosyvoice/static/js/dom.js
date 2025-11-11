@@ -1,0 +1,26 @@
+const elements = {
+    device: () => document.querySelector('input[name="device"]:checked'),
+    mode: () => document.querySelector('input[name="mode"]:checked'),
+    text: document.getElementById('text'),
+    promptAudio: document.getElementById('prompt-audio'),
+    promptAudioPreview: document.getElementById('prompt-audio-preview'),
+    uploadAudioBtn: document.getElementById('upload-audio-btn'),
+    useDefaultAudioBtn: document.getElementById('use-default-audio-btn'),
+    audioFileName: document.getElementById('audio-file-name'),
+    promptText: document.getElementById('prompt-text'),
+    instructText: document.getElementById('instruct-text'),
+    speed: document.getElementById('speed'),
+    speedValue: document.getElementById('speed-value'),
+    seed: document.getElementById('seed'),
+    loadBtn: document.getElementById('load-btn'),
+    generateBtn: document.getElementById('generate-btn'),
+    stopBtn: document.getElementById('stop-btn'),
+    status: document.getElementById('status'),
+    audioOutput: document.getElementById('audio-output'),
+    audioPlaceholder: document.getElementById('audio-placeholder'),
+    promptAudioGroup: document.getElementById('prompt-audio-group'),
+    promptTextGroup: document.getElementById('prompt-text-group'),
+    instructTextGroup: document.getElementById('instruct-text-group'),
+};
+
+export default elements;
