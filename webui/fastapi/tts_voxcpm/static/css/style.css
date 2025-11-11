@@ -1,7 +1,0 @@
-/* Legacy bundle kept for backward compatibility. New styles live in modular files. */
-@import url("./base.css");
-@import url("./layout.css");
-@import url("./forms.css");
-@import url("./buttons.css");
-@import url("./feedback.css");
-@import url("./utilities.css");
