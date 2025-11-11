@@ -1,0 +1,73 @@
+.button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.button-group .btn-danger {
+    grid-column: 1 / -1;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--color-btn-primary);
+    color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--color-btn-primary-hover);
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: var(--color-success);
+    color: #ffffff;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: var(--color-success-dark);
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: var(--color-danger);
+    color: #ffffff;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--color-danger-dark);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    padding: 8px 16px;
+    border: 2px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: #ffffff;
+    color: var(--color-text-primary);
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    border-color: var(--color-border-strong);
+    background: var(--color-neutral-bg);
+}
