@@ -3,7 +3,7 @@ import sys
 import io
 import json
 import base64
-import time
+import tempfile
 from functools import lru_cache
 
 import torch
@@ -158,24 +158,26 @@ async def generate(
                 status_code=400
             )
         
+        prompt_temp_file = None
+        emo_temp_file = None
         prompt_audio_path = None
         emo_audio_path = None
         
         try:
             if prompt_audio and prompt_audio.filename:
-                temp_path = os.path.join("/tmp", f"prompt_{os.getpid()}_{int(time.time())}.wav")
-                with open(temp_path, "wb") as f:
-                    f.write(await prompt_audio.read())
-                prompt_audio_path = temp_path
+                prompt_temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+                prompt_temp_file.write(await prompt_audio.read())
+                prompt_temp_file.flush()
+                prompt_audio_path = prompt_temp_file.name
             
             if not prompt_audio_path:
                 prompt_audio_path = DEFAULT_PROMPT_WAV
             
             if emo_mode == "audio" and emo_audio and emo_audio.filename:
-                temp_path = os.path.join("/tmp", f"emo_{os.getpid()}_{int(time.time())}.wav")
-                with open(temp_path, "wb") as f:
-                    f.write(await emo_audio.read())
-                emo_audio_path = temp_path
+                emo_temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+                emo_temp_file.write(await emo_audio.read())
+                emo_temp_file.flush()
+                emo_audio_path = emo_temp_file.name
             
             kwargs = {
                 "spk_audio_prompt": prompt_audio_path,
@@ -252,15 +254,17 @@ async def generate(
             })
             
         finally:
-            if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
+            if prompt_temp_file is not None:
                 try:
-                    os.remove(prompt_audio_path)
-                except:
+                    prompt_temp_file.close()
+                    os.unlink(prompt_temp_file.name)
+                except OSError:
                     pass
-            if emo_audio_path:
+            if emo_temp_file is not None:
                 try:
-                    os.remove(emo_audio_path)
-                except:
+                    emo_temp_file.close()
+                    os.unlink(emo_temp_file.name)
+                except OSError:
                     pass
         
     except Exception as exc:
