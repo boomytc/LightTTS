@@ -2,6 +2,7 @@ import os
 import sys
 import io
 import base64
+import tempfile
 
 import torch
 import soundfile as sf
@@ -168,6 +169,8 @@ async def generate(
             status_code=400
         )
     
+    temp_file_obj = None
+    
     try:
         text = text.strip()
         prompt_text = prompt_text.strip()
@@ -183,20 +186,15 @@ async def generate(
         
         prompt_audio_path = None
         if prompt_audio and prompt_audio.filename:
-            temp_path = os.path.join("/tmp", f"prompt_{os.getpid()}.wav")
-            with open(temp_path, "wb") as f:
-                f.write(await prompt_audio.read())
-            prompt_audio_path = temp_path
+            temp_file_obj = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            temp_file_obj.write(await prompt_audio.read())
+            temp_file_obj.flush()
+            prompt_audio_path = temp_file_obj.name
         
         if not prompt_audio_path:
             prompt_audio_path = DEFAULT_PROMPT_WAV
         
         if prompt_audio_path != DEFAULT_PROMPT_WAV and not prompt_text:
-            if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
-                try:
-                    os.remove(prompt_audio_path)
-                except:
-                    pass
             return JSONResponse(
                 {
                     "status": "error",
@@ -205,41 +203,20 @@ async def generate(
                 status_code=400
             )
         
-        try:
-            validated_path = validate_prompt_audio(prompt_audio_path)
-        except Exception as exc:
-            if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
-                try:
-                    os.remove(prompt_audio_path)
-                except:
-                    pass
-            return JSONResponse(
-                {
-                    "status": "error",
-                    "message": str(exc)
-                },
-                status_code=400
-            )
+        validated_path = validate_prompt_audio(prompt_audio_path)
         
-        try:
-            wav = model_instance.generate(
-                text=text,
-                prompt_wav_path=validated_path,
-                prompt_text=prompt_text or None,
-                cfg_value=cfg_value,
-                inference_timesteps=inference_timesteps,
-                normalize=normalize,
-                denoise=denoise,
-                retry_badcase=retry_badcase,
-                retry_badcase_max_times=retry_max_times,
-                retry_badcase_ratio_threshold=retry_ratio_threshold,
-            )
-        finally:
-            if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
-                try:
-                    os.remove(prompt_audio_path)
-                except:
-                    pass
+        wav = model_instance.generate(
+            text=text,
+            prompt_wav_path=validated_path,
+            prompt_text=prompt_text or None,
+            cfg_value=cfg_value,
+            inference_timesteps=inference_timesteps,
+            normalize=normalize,
+            denoise=denoise,
+            retry_badcase=retry_badcase,
+            retry_badcase_max_times=retry_max_times,
+            retry_badcase_ratio_threshold=retry_ratio_threshold,
+        )
         
         if wav.ndim > 1:
             wav = wav.squeeze()
@@ -264,6 +241,13 @@ async def generate(
             },
             status_code=500
         )
+    finally:
+        if temp_file_obj is not None:
+            try:
+                temp_file_obj.close()
+                os.unlink(temp_file_obj.name)
+            except OSError:
+                pass
 
 
 @app.get("/api/default_audio")
