@@ -2,6 +2,7 @@ import os
 import sys
 import io
 import base64
+import tempfile
 from functools import lru_cache
 
 import torch
@@ -205,12 +206,14 @@ async def generate(
                 status_code=400
             )
         
+        temp_file_obj = None
         prompt_audio_path = None
+        
         if prompt_audio and prompt_audio.filename:
-            temp_path = os.path.join("/tmp", f"prompt_{os.getpid()}.wav")
-            with open(temp_path, "wb") as f:
-                f.write(await prompt_audio.read())
-            prompt_audio_path = temp_path
+            temp_file_obj = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            temp_file_obj.write(await prompt_audio.read())
+            temp_file_obj.flush()
+            prompt_audio_path = temp_file_obj.name
         
         if not prompt_audio_path:
             prompt_audio_path = DEFAULT_PROMPT_WAV
@@ -226,10 +229,11 @@ async def generate(
                 status_code=400
             )
         finally:
-            if prompt_audio_path and prompt_audio_path.startswith("/tmp"):
+            if temp_file_obj is not None:
                 try:
-                    os.remove(prompt_audio_path)
-                except:
+                    temp_file_obj.close()
+                    os.unlink(temp_file_obj.name)
+                except OSError:
                     pass
         
         set_all_random_seed(seed)
