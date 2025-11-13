@@ -91,7 +91,7 @@ async def load_model(request: Request):
         current_device = device
         return JSONResponse({
             "status": "success",
-            "message": f"模型加载完成 ✅ (设备: {device.upper()})"
+            "message": f"模型加载完成 (设备: {device.upper()})"
         })
     except Exception as exc:
         return JSONResponse(
@@ -248,7 +248,7 @@ async def generate(
             
             return JSONResponse({
                 "status": "success",
-                "message": "生成完成 ✅",
+                "message": "生成完成",
                 "audio": audio_base64,
                 "sample_rate": sample_rate
             })

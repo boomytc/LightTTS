@@ -211,7 +211,7 @@ async def load_model(request: Request):
         
         return JSONResponse({
             "status": "success",
-            "message": f"{model_type.upper()} 模型加载完成 ✅ (设备: {device.upper()})"
+            "message": f"{model_type.upper()} 模型加载完成 (设备: {device.upper()})"
         })
     except Exception as exc:
         clear_model_cache()
@@ -354,7 +354,7 @@ async def generate_cosyvoice(request: Request):
         
         return JSONResponse({
             "status": "success",
-            "message": "生成完成 ✅",
+            "message": "生成完成",
             "audio": audio_base64,
             "sample_rate": model_instance.sample_rate
         })
@@ -484,7 +484,7 @@ async def generate_indextts(request: Request):
         
         return JSONResponse({
             "status": "success",
-            "message": "生成完成 ✅",
+            "message": "生成完成",
             "audio": audio_base64,
             "sample_rate": sample_rate
         })
@@ -574,7 +574,7 @@ async def generate_voxcpm(request: Request):
         
         return JSONResponse({
             "status": "success",
-            "message": "生成完成 ✅",
+            "message": "生成完成",
             "audio": audio_base64,
             "sample_rate": 16000
         })

@@ -15,19 +15,19 @@
 <body data-default-prompt-text="{{ default_prompt_text }}" data-has-default-audio="{{ 'true' if has_default_audio else 'false' }}">
     <div class="container">
         <header>
-            <h1>🎙️ 合成吧！语音！</h1>
+            <h1>合成吧！语音！</h1>
             <p class="subtitle">支持 CosyVoice2、IndexTTS2、VoxCPM 三种语音合成模型</p>
         </header>
 
         <div class="main-content">
             <!-- 侧边栏：模型选择 -->
             <div class="sidebar">
-                <h2>🔧 模型选择</h2>
+                <h2>模型选择</h2>
                 <div class="model-selector">
                     <label class="model-card" data-model="cosyvoice">
                         <input type="radio" name="model" value="cosyvoice">
                         <div class="model-card-content">
-                            <div class="model-icon">🎵</div>
+                            <div class="model-icon"></div>
                             <h3>CosyVoice2</h3>
                             <p>零样本克隆、跨语言、指令控制</p>
                         </div>
@@ -36,7 +36,7 @@
                     <label class="model-card" data-model="indextts">
                         <input type="radio" name="model" value="indextts">
                         <div class="model-card-content">
-                            <div class="model-icon">🎭</div>
+                            <div class="model-icon"></div>
                             <h3>IndexTTS2</h3>
                             <p>情感控制、多种情感引导方式</p>
                         </div>
@@ -45,7 +45,7 @@
                     <label class="model-card" data-model="voxcpm">
                         <input type="radio" name="model" value="voxcpm">
                         <div class="model-card-content">
-                            <div class="model-icon">🎤</div>
+                            <div class="model-icon"></div>
                             <h3>VoxCPM</h3>
                             <p>高质量语音生成、声音克隆</p>
                         </div>
@@ -74,7 +74,7 @@
             <div class="content-wrapper">
                 <!-- 控制面板 -->
                 <div class="panel control-panel">
-                    <h2>⚙️ 控制面板</h2>
+                    <h2>控制面板</h2>
                     
                     <!-- 通用文本输入 -->
                     <div class="form-group">
@@ -106,8 +106,8 @@
                             <label for="prompt-audio-cosyvoice">参考音频</label>
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-cosyvoice" accept="audio/*" style="display: none;">
-                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
+                                <button type="button" class="upload-audio-btn btn-secondary">选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>使用默认音频</button>
                             </div>
                             <small class="help-text audio-file-name">
                                 {% if has_default_audio %}
@@ -148,8 +148,8 @@
                             <label for="prompt-audio-indextts">说话人参考音频</label>
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-indextts" accept="audio/*" style="display: none;">
-                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
+                                <button type="button" class="upload-audio-btn btn-secondary">选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>使用默认音频</button>
                             </div>
                             <small class="help-text audio-file-name">
                                 {% if has_default_audio %}
@@ -263,8 +263,8 @@
                             <label for="prompt-audio-voxcpm">参考音频</label>
                             <div class="audio-upload-area">
                                 <input type="file" id="prompt-audio-voxcpm" accept="audio/*" style="display: none;">
-                                <button type="button" class="upload-audio-btn btn-secondary">📁 选择音频文件</button>
-                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>🔄 使用默认音频</button>
+                                <button type="button" class="upload-audio-btn btn-secondary">选择音频文件</button>
+                                <button type="button" class="use-default-audio-btn btn-secondary" {% if not has_default_audio %}disabled title="默认参考音频不存在"{% endif %}>使用默认音频</button>
                             </div>
                             <small class="help-text audio-file-name">
                                 {% if has_default_audio %}
@@ -339,7 +339,7 @@
 
                 <!-- 输出面板 -->
                 <div class="panel output-panel">
-                    <h2>📊 输出结果</h2>
+                    <h2>输出结果</h2>
                     
                     <div class="form-group">
                         <label>状态</label>
@@ -350,7 +350,7 @@
                         <label>生成语音</label>
                         <audio id="audio-output" controls class="audio-player" style="display: none;"></audio>
                         <div id="audio-placeholder" class="audio-placeholder">
-                            <span>🎵</span>
+                            <span></span>
                             <p>音频将在生成后显示</p>
                         </div>
                     </div>
