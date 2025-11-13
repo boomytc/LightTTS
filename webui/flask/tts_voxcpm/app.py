@@ -113,7 +113,7 @@ def load_model():
         get_model(device)
         return jsonify({
             'status': 'success',
-            'message': '模型加载完成 ✅'
+            'message': '模型加载完成'
         })
     except Exception as exc:
         return jsonify({
@@ -217,7 +217,7 @@ def generate():
         
         return jsonify({
             'status': 'success',
-            'message': '生成完成 ✅',
+            'message': '生成完成',
             'audio': audio_base64,
             'sample_rate': 16000
         })

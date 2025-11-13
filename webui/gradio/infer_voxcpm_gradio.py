@@ -131,7 +131,7 @@ def generate_speech(
             retry_badcase_max_times=retry_max_times,
             retry_badcase_ratio_threshold=retry_ratio_threshold,
         )
-        return (16000, wav), "生成完成 ✅"
+        return (16000, wav), "生成完成"
     except Exception as exc:
         return None, f"推理失败: {exc}"
 
@@ -143,7 +143,7 @@ def load_model(device: str, model_loaded: bool):
 
     try:
         get_model(device)
-        return "模型加载完成 ✅", True, gr.update(interactive=True)
+        return "模型加载完成", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
 

@@ -88,17 +88,17 @@ async def tts_stream(
                     if data.get("type") == "end":
                         break
                     elif data.get("status") == "error":
-                        return None, f"❌ 出错：{data.get('message')}"
+                        return None, f"出错：{data.get('message')}"
         
         if not audio_segments:
             return None, "生成结果为空。"
         
         # 合并所有音频片段
         full_audio = np.concatenate(audio_segments)
-        return (sample_rate, full_audio), f"✅ 生成完成（{len(audio_segments)} 个片段）"
+        return (sample_rate, full_audio), f"生成完成（{len(audio_segments)} 个片段）"
     
     except Exception as e:
-        return None, f"❌ 连接失败：{str(e)}"
+        return None, f"连接失败：{str(e)}"
 
 
 def generate_speech(
@@ -125,9 +125,9 @@ async def test_connection(server_uri: str):
             # 接收欢迎消息
             welcome = await ws.recv()
             data = json.loads(welcome)
-            return f"✅ 连接成功：{data.get('message', '服务器已就绪')}", gr.update(interactive=True)
+            return f"连接成功：{data.get('message', '服务器已就绪')}", gr.update(interactive=True)
     except Exception as e:
-        return f"❌ 连接失败：{str(e)}", gr.update(interactive=False)
+        return f"连接失败：{str(e)}", gr.update(interactive=False)
 
 
 def test_connection_sync(server_uri: str):

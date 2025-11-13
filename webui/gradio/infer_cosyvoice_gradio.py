@@ -159,7 +159,7 @@ def generate_speech(
 
         audio_tensor = merge_segments(result)
         audio_numpy = audio_tensor.squeeze(0).cpu().numpy()
-        return (cosyvoice.sample_rate, audio_numpy), "生成完成 ✅"
+        return (cosyvoice.sample_rate, audio_numpy), "生成完成"
     except Exception as exc:
         return None, f"推理失败: {exc}"
 
@@ -171,7 +171,7 @@ def load_model(device: str, model_loaded: bool):
 
     try:
         get_model(DEFAULT_MODEL_DIR, device)
-        return "模型加载完成 ✅", True, gr.update(interactive=True)
+        return "模型加载完成", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
 

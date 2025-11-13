@@ -142,7 +142,7 @@ def generate_speech(
             kwargs["emo_alpha"] = emo_alpha
 
         result = indextts.infer(**kwargs)
-        return result, "生成完成 ✅"
+        return result, "生成完成"
     except Exception as exc:
         return None, f"推理失败: {exc}"
 
@@ -154,7 +154,7 @@ def load_model(device: str, model_loaded: bool):
 
     try:
         get_model(device)
-        return "模型加载完成 ✅", True, gr.update(interactive=True)
+        return "模型加载完成", True, gr.update(interactive=True)
     except Exception as exc:
         return f"模型加载失败: {exc}", False, gr.update(interactive=False)
 

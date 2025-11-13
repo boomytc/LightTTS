@@ -9,14 +9,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎙️ VoxCPM 语音合成演示</h1>
+            <h1>VoxCPM 语音合成演示</h1>
             <p class="subtitle">支持零样本声音克隆和高质量语音生成</p>
         </header>
 
         <div class="main-content">
             <!-- 左侧：控制面板 -->
             <div class="panel control-panel">
-                <h2>⚙️ 控制面板</h2>
+                <h2>控制面板</h2>
                 
                 <div class="form-group">
                     <label for="device">运行设备</label>
@@ -42,8 +42,8 @@
                     <label for="prompt-audio">参考音频</label>
                     <div class="audio-upload-area">
                         <input type="file" id="prompt-audio" accept="audio/*" style="display: none;">
-                        <button type="button" id="upload-audio-btn" class="btn-secondary">📁 选择音频文件</button>
-                        <button type="button" id="use-default-audio-btn" class="btn-secondary">🔄 使用默认音频</button>
+                        <button type="button" id="upload-audio-btn" class="btn-secondary">选择音频文件</button>
+                        <button type="button" id="use-default-audio-btn" class="btn-secondary">使用默认音频</button>
                     </div>
                     <audio id="prompt-audio-preview" controls class="audio-preview" style="display: none;"></audio>
                     <small class="help-text" id="audio-file-name">当前使用：默认参考音频</small>
@@ -116,7 +116,7 @@
 
             <!-- 右侧：输出面板 -->
             <div class="panel output-panel">
-                <h2>📊 输出结果</h2>
+                <h2>输出结果</h2>
                 
                 <div class="form-group">
                     <label>状态</label>
@@ -127,7 +127,7 @@
                     <label>生成语音</label>
                     <audio id="audio-output" controls class="audio-player"></audio>
                     <div id="audio-placeholder" class="audio-placeholder">
-                        <span>🎵</span>
+                        <span></span>
                         <p>音频将在生成后显示</p>
                     </div>
                 </div>
