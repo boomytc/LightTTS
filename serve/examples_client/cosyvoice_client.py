@@ -31,7 +31,7 @@ async def play_audio_from_ws(text: str, mode: str = "zero_shot", instruct_text: 
     async with websockets.connect(SERVER_URI, max_size=None) as ws:
         # 接收欢迎消息
         welcome = await ws.recv()
-        print("📡", json.loads(welcome).get("message"))
+        print(json.loads(welcome).get("message"))
         
         # 发送 TTS 请求
         req = {
@@ -47,9 +47,9 @@ async def play_audio_from_ws(text: str, mode: str = "zero_shot", instruct_text: 
             req["instruct_text"] = instruct_text or "用温柔的语气说"
         
         await ws.send(json.dumps(req, ensure_ascii=False))
-        print(f"\n🎯 发送请求 [模式: {mode}]")
-        print(f"📝 文本: {text}")
-        print("\n⏳ 等待流式音频...\n")
+        print(f"发送请求 [模式: {mode}]")
+        print(f"文本: {text}")
+        print("\n等待流式音频...\n")
         
         async for msg in ws:
             if isinstance(msg, bytes):
@@ -57,14 +57,14 @@ async def play_audio_from_ws(text: str, mode: str = "zero_shot", instruct_text: 
                 if first_audio_time is None:
                     first_audio_time = time.time()
                     latency = (first_audio_time - start_time) * 1000
-                    print(f"⚡ 首包延迟: {latency:.0f}ms\n")
+                    print(f"首包延迟: {latency:.0f}ms\n")
                 
                 buffer = io.BytesIO(msg)
                 waveform, sample_rate = torchaudio.load(buffer)
                 total_segments += 1
                 
                 # 实时播放音频片段
-                print(f"🔊 播放片段 #{total_segments}")
+                print(f"播放片段 #{total_segments}")
                 sd.play(waveform.squeeze(0).numpy(), samplerate=sample_rate)
                 sd.wait()
             else:
@@ -73,20 +73,20 @@ async def play_audio_from_ws(text: str, mode: str = "zero_shot", instruct_text: 
                 msg_type = data.get("type")
                 
                 if msg_type == "start":
-                    print("▶️ ", data.get("message"))
+                    print(data.get("message"))
                 elif msg_type == "end":
                     total_time = (time.time() - start_time) * 1000
-                    print(f"\n✅ 合成完成")
-                    print(f"📊 总片段数: {data.get('segments', total_segments)}")
-                    print(f"⏱️  总耗时: {total_time:.0f}ms")
+                    print(f"\n合成完成")
+                    print(f"总片段数: {data.get('segments', total_segments)}")
+                    print(f"总耗时: {total_time:.0f}ms")
                     if first_audio_time:
-                        print(f"⚡ 首包延迟: {(first_audio_time - start_time) * 1000:.0f}ms")
+                        print(f"首包延迟: {(first_audio_time - start_time) * 1000:.0f}ms")
                     break
                 elif data.get("status") == "error":
-                    print("❌ 出错：", data.get("message"))
+                    print("出错：", data.get("message"))
                     break
                 else:
-                    print("📨 服务器消息：", data)
+                    print("服务器消息：", data)
 
 
 if __name__ == "__main__":
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(play_audio_from_ws(args.text, args.mode, args.instruct))
     except KeyboardInterrupt:
-        print("\n\n⏹️  用户中断")
+        print("\n\n用户中断")
     except Exception as e:
-        print(f"\n❌ 错误: {e}")
+        print(f"\n错误: {e}")
         sys.exit(1)

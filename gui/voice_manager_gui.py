@@ -237,11 +237,11 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 标签页1: 音色注册
         register_tab = self.create_register_tab()
-        tab_widget.addTab(register_tab, "🎤 音色注册")
+        tab_widget.addTab(register_tab, "音色注册")
         
         # 标签页2: 音色管理
         manage_tab = self.create_manage_tab()
-        tab_widget.addTab(manage_tab, "📚 音色管理")
+        tab_widget.addTab(manage_tab, "音色管理")
         
         return tab_widget
     
@@ -318,7 +318,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         list_layout = QVBoxLayout(list_group)
         
         # 刷新按钮
-        refresh_btn = QPushButton("🔄 刷新列表")
+        refresh_btn = QPushButton("刷新列表")
         refresh_btn.clicked.connect(self.refresh_voice_list)
         list_layout.addWidget(refresh_btn)
         
@@ -359,17 +359,17 @@ class VoiceRegisterManagerGUI(QMainWindow):
         # 管理按钮
         btn_layout = QHBoxLayout()
         
-        self.play_selected_btn = QPushButton("🔊 播放音频")
+        self.play_selected_btn = QPushButton("播放音频")
         self.play_selected_btn.clicked.connect(self.play_selected_voice)
         self.play_selected_btn.setEnabled(False)
         btn_layout.addWidget(self.play_selected_btn)
         
-        self.rename_btn = QPushButton("✏️ 重命名")
+        self.rename_btn = QPushButton("重命名")
         self.rename_btn.clicked.connect(self.rename_voice)
         self.rename_btn.setEnabled(False)
         btn_layout.addWidget(self.rename_btn)
         
-        self.delete_btn = QPushButton("🗑️ 删除")
+        self.delete_btn = QPushButton("删除")
         self.delete_btn.clicked.connect(self.delete_voice)
         self.delete_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_btn)

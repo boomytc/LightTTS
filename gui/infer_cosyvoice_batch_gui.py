@@ -223,7 +223,7 @@ class VoiceSynthesisWorker(QObject):
                 
                 tts_text = self.read_text_file(input_text_file)
                 if not tts_text:
-                    self.log_updated.emit(f"⚠ 跳过: {filename} (无法读取)")
+                    self.log_updated.emit(f"跳过: {filename} (无法读取)")
                     continue
                 
                 synthesized_audio = self.synthesize_audio(tts_text)
@@ -238,10 +238,10 @@ class VoiceSynthesisWorker(QObject):
                         self.sample_rate
                     )
                     
-                    self.log_updated.emit(f"✓ {filename}")
+                    self.log_updated.emit(f"成功: {filename}")
                     success_count += 1
                 else:
-                    self.log_updated.emit(f"✗ {filename} (合成失败)")
+                    self.log_updated.emit(f"失败: {filename} (合成失败)")
                     success_count += 1
             
             self.progress_updated.emit(100)
@@ -327,11 +327,11 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.voice_combo = QComboBox()
         voice_select_layout.addWidget(self.voice_combo, 0, 1)
         
-        refresh_combo_btn = QPushButton("🔄 刷新")
+        refresh_combo_btn = QPushButton("刷新")
         refresh_combo_btn.clicked.connect(self.refresh_voice_combo)
         voice_select_layout.addWidget(refresh_combo_btn, 0, 2)
         
-        self.play_voice_btn = QPushButton("🔊 播放音色")
+        self.play_voice_btn = QPushButton("播放音色")
         self.play_voice_btn.clicked.connect(self.play_selected_voice)
         self.play_voice_btn.setEnabled(False)
         voice_select_layout.addWidget(self.play_voice_btn, 0, 3)
@@ -394,12 +394,12 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         btn_layout = QHBoxLayout()
         
-        self.start_btn = QPushButton("🚀 开始批量合成")
+        self.start_btn = QPushButton("开始批量合成")
         self.start_btn.clicked.connect(self.start_synthesis)
         self.start_btn.setEnabled(False)
         btn_layout.addWidget(self.start_btn)
         
-        self.stop_btn = QPushButton("⏹️ 停止合成")
+        self.stop_btn = QPushButton("停止合成")
         self.stop_btn.clicked.connect(self.stop_synthesis)
         self.stop_btn.setEnabled(False)
         btn_layout.addWidget(self.stop_btn)

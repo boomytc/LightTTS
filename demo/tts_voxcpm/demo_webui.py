@@ -18,7 +18,7 @@ from voxcpm.core import VoxCPM
 class VoxCPMDemo:
     def __init__(self) -> None:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"🚀 Running on device: {self.device}")
+        print(f"Running on device: {self.device}")
 
         # TTS 模型（延迟初始化）
         self.voxcpm_model: Optional[VoxCPM] = None
@@ -112,7 +112,7 @@ def create_demo_interface(demo: VoxCPMDemo):
     ) as interface:
 
         # 快速入门
-        with gr.Accordion("📋 快速入门", open=False, elem_id="acc_quick"):
+        with gr.Accordion("快速入门", open=False, elem_id="acc_quick"):
             gr.Markdown("""
             ### 使用说明
             1. **（可选）提供参考声音** - 上传或录制一段音频，为声音合成提供音色、语调和情感等个性化特征
@@ -122,7 +122,7 @@ def create_demo_interface(demo: VoxCPMDemo):
             """)
 
         # 使用建议
-        with gr.Accordion("💡 使用建议", open=False, elem_id="acc_tips"):
+        with gr.Accordion("使用建议", open=False, elem_id="acc_tips"):
             gr.Markdown("""
             ### 文本正则化
             - **启用**：使用 WeTextProcessing 组件，可处理常见文本

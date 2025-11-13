@@ -187,7 +187,7 @@ class SingleSynthesisGUI(QMainWindow):
         model_layout.addWidget(QLabel(DEVICE.upper()), 1, 1)
 
         model_layout.addWidget(QLabel("模型状态:"), 2, 0)
-        self.model_status_label = QLabel("已加载 ✓")
+        self.model_status_label = QLabel("已加载")
         self.model_status_label.setStyleSheet("color: #28a745; font-weight: bold;")
         model_layout.addWidget(self.model_status_label, 2, 1)
 

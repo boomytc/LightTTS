@@ -161,7 +161,7 @@ class CosyVoiceWebSocketServer:
         if self.model is None:
             # 设备自适应：如果指定 cuda 但不可用，自动降级到 cpu
             if self.device == "cuda" and not torch.cuda.is_available():
-                print("⚠️  CUDA 不可用，自动切换到 CPU")
+                print("警告: CUDA 不可用，自动切换到 CPU")
                 self.device = "cpu"
             
             is_cuda = self.device == "cuda"
@@ -180,7 +180,7 @@ class CosyVoiceWebSocketServer:
                 trt_concurrent=1,
                 device=self.device,
             )
-            print(f"✅ CosyVoice 模型加载完成 [设备: {self.device}, FP16: {is_cuda}]")
+            print(f"CosyVoice 模型加载完成 [设备: {self.device}, FP16: {is_cuda}]")
         return self.model
 
     def load_prompt_audio(self, prompt_audio_path: str) -> torch.Tensor:
@@ -485,7 +485,7 @@ class CosyVoiceWebSocketServer:
         # 启动后台清理任务
         asyncio.create_task(self.task_manager.start_cleanup_loop())
         
-        print(f"\n🚀 服务器已就绪，等待客户端连接...")
+        print(f"\n服务器已就绪，等待客户端连接...")
         print(f"   - 会话管理: 已启用")
         print(f"   - 任务追踪: 已启用")
         print(f"   - 推理队列: 已启用（同时处理 1 个请求）")

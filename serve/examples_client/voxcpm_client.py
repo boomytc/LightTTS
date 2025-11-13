@@ -44,13 +44,13 @@ async def play_audio_from_ws(text: str):
             else:
                 data = json.loads(msg)
                 if data.get("type") == "end":
-                    print("✅ 合成完成")
+                    print("合成完成")
                     break
                 elif data.get("status") == "error":
-                    print("❌ 出错：", data.get("message"))
+                    print("出错：", data.get("message"))
                     break
                 else:
-                    print("📨 服务器消息：", data)
+                    print("服务器消息：", data)
 
 
 if __name__ == "__main__":
