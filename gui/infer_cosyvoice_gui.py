@@ -263,51 +263,55 @@ class SingleSynthesisGUI(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
-        root_layout.setSpacing(15)
-        root_layout.setContentsMargins(20, 20, 20, 20)
+        root_layout.setSpacing(5)
+        root_layout.setContentsMargins(10, 10, 10, 10)
 
         # 模型设置
         model_group = QGroupBox("模型设置")
         model_layout = QGridLayout()
-        model_layout.setSpacing(10)
-        model_layout.setContentsMargins(15, 20, 15, 15)
+        model_layout.setSpacing(5)
+        model_layout.setContentsMargins(10, 15, 10, 10)
         model_group.setLayout(model_layout)
 
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
         self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
         model_layout.addWidget(self.model_dir_edit, 0, 1)
         self.model_browse_btn = QPushButton("浏览")
-        self.model_browse_btn.setFixedWidth(70)
+        self.model_browse_btn.setFixedWidth(60)
         self.model_browse_btn.clicked.connect(self.select_model_dir)
         model_layout.addWidget(self.model_browse_btn, 0, 2)
 
         model_layout.addWidget(QLabel("运行设备:"), 1, 0)
+        
+        device_row = QHBoxLayout()
+        device_row.setContentsMargins(0, 0, 0, 0)
+        device_row.setSpacing(10)
+        
         self.device_combo = QComboBox()
         self.device_combo.addItems(["cuda", "cpu"])
         self.device_combo.setCurrentText("cuda" if torch.cuda.is_available() else "cpu")
-        device_row = QHBoxLayout()
-        device_row.setContentsMargins(0, 0, 0, 0)
         device_row.addWidget(self.device_combo)
-        device_row.addStretch()
-        model_layout.addLayout(device_row, 1, 1)
-
+        
         self.load_model_btn = QPushButton("加载模型")
-        self.load_model_btn.setFixedWidth(100)
+        self.load_model_btn.setFixedWidth(80)
         self.load_model_btn.clicked.connect(self.load_model)
-        model_layout.addWidget(self.load_model_btn, 1, 2)
-
+        device_row.addWidget(self.load_model_btn)
+        
         self.model_status_label = QLabel("未加载")
         self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
-        model_layout.addWidget(self.model_status_label, 2, 0, 1, 3)
+        device_row.addWidget(self.model_status_label)
+        device_row.addStretch()
+        
+        model_layout.addLayout(device_row, 1, 1, 1, 2)
 
         root_layout.addWidget(model_group)
 
         # 参数输入
         io_group = QGroupBox("参数输入")
         io_layout = QFormLayout()
-        io_layout.setSpacing(12)
+        io_layout.setSpacing(8)
         io_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignTop)
-        io_layout.setContentsMargins(15, 20, 15, 15)
+        io_layout.setContentsMargins(10, 15, 10, 10)
         io_group.setLayout(io_layout)
 
         self.mode_combo = QComboBox()
@@ -365,34 +369,38 @@ class SingleSynthesisGUI(QMainWindow):
 
         self.tts_text_edit = QPlainTextEdit()
         self.tts_text_edit.setPlaceholderText("请输入要合成的文本...")
-        self.tts_text_edit.setMinimumHeight(80)
+        self.tts_text_edit.setMinimumHeight(60)
         io_layout.addRow("合成文本:", self.tts_text_edit)
 
         self.output_name_edit = QLineEdit("single.wav")
-        io_layout.addRow("输出文件:", self.output_name_edit)
-
         self.output_dir_edit = QLineEdit(DEFAULT_OUTPUT_DIR)
         self.output_browse_btn = QPushButton("浏览")
-        self.output_browse_btn.setFixedWidth(70)
+        self.output_browse_btn.setFixedWidth(60)
         self.output_browse_btn.clicked.connect(self.select_output_dir)
-        output_dir_row = QWidget()
-        output_dir_layout = QHBoxLayout(output_dir_row)
-        output_dir_layout.setContentsMargins(0, 0, 0, 0)
-        output_dir_layout.setSpacing(8)
-        output_dir_layout.addWidget(self.output_dir_edit)
-        output_dir_layout.addWidget(self.output_browse_btn)
-        io_layout.addRow("输出目录:", output_dir_row)
+        
+        output_row = QWidget()
+        output_layout = QHBoxLayout(output_row)
+        output_layout.setContentsMargins(0, 0, 0, 0)
+        output_layout.setSpacing(8)
+        output_layout.addWidget(QLabel("文件名:"))
+        output_layout.addWidget(self.output_name_edit)
+        output_layout.addWidget(QLabel("目录:"))
+        output_layout.addWidget(self.output_dir_edit)
+        output_layout.addWidget(self.output_browse_btn)
+        io_layout.addRow("输出设置:", output_row)
 
         root_layout.addWidget(io_group)
 
         # 合成控制
         ctrl_group = QGroupBox("合成控制")
         ctrl_layout = QVBoxLayout()
-        ctrl_layout.setSpacing(15)
-        ctrl_layout.setContentsMargins(15, 20, 15, 15)
+        ctrl_layout.setSpacing(10)
+        ctrl_layout.setContentsMargins(10, 15, 10, 10)
         ctrl_group.setLayout(ctrl_layout)
 
         status_row = QHBoxLayout()
+        status_row.setContentsMargins(0, 0, 0, 0)
+        
         self.status_label = QLabel("就绪")
         self.status_label.setStyleSheet("color: #666;")
         status_row.addWidget(self.status_label)
@@ -401,7 +409,7 @@ class SingleSynthesisGUI(QMainWindow):
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
-        self.progress_bar.setFixedHeight(15)
+        self.progress_bar.setFixedHeight(18)
         status_row.addWidget(self.progress_bar)
         ctrl_layout.addLayout(status_row)
 
@@ -412,7 +420,7 @@ class SingleSynthesisGUI(QMainWindow):
 
         self.start_btn = QPushButton("开始合成")
         self.start_btn.setObjectName("PrimaryButton")
-        self.start_btn.setFixedHeight(45)
+        self.start_btn.setFixedHeight(40)
         self.start_btn.clicked.connect(self.start_synthesis)
         self.start_btn.setEnabled(False)
         button_row.addWidget(self.start_btn, 2)
