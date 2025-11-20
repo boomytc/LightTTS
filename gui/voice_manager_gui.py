@@ -21,10 +21,9 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QGridLayout, QLabel, QLineEdit, 
                                QPushButton, QFileDialog, QTextEdit,
                                QGroupBox, QMessageBox,
-                               QSplitter, QTabWidget, QListWidget, 
-                               QListWidgetItem, QInputDialog)
+                               QInputDialog,
+                               QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView)
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QTimer, QUrl
-from PySide6.QtGui import QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 from cosyvoice.utils.file_utils import load_wav
@@ -294,67 +293,40 @@ class VoiceRegisterManagerGUI(QMainWindow):
     def create_manage_group(self):
         """创建音色管理组"""
         manage_group = QGroupBox("音色管理")
-        manage_layout = QHBoxLayout(manage_group)
+        manage_layout = QVBoxLayout(manage_group)
         manage_layout.setContentsMargins(10, 20, 10, 10)
-        manage_layout.setSpacing(15)
+        manage_layout.setSpacing(10)
         
-        # 左侧：列表
-        list_layout = QVBoxLayout()
-        list_layout.setSpacing(5)
+        # 音色列表 (表格形式)
+        self.voice_table = QTableWidget()
+        self.voice_table.setColumnCount(5)
+        self.voice_table.setHorizontalHeaderLabels(["键名", "音频文件", "文本内容", "时长", "创建时间"])
+        self.voice_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.voice_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.voice_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.voice_table.verticalHeader().setVisible(False)
+        self.voice_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.voice_table.horizontalHeader().setStretchLastSection(True)
         
-        list_header = QHBoxLayout()
-        list_header.addWidget(QLabel("已注册音色:"))
-        list_header.addStretch()
-        refresh_btn = QPushButton("刷新")
-        refresh_btn.setFixedWidth(60)
-        refresh_btn.clicked.connect(self.refresh_voice_list)
-        list_header.addWidget(refresh_btn)
-        list_layout.addLayout(list_header)
+        # 设置初始列宽
+        self.voice_table.setColumnWidth(0, 150) # 键名
+        self.voice_table.setColumnWidth(1, 150) # 音频
+        self.voice_table.setColumnWidth(2, 300) # 文本
+        self.voice_table.setColumnWidth(3, 80)  # 时长
+        self.voice_table.setColumnWidth(4, 150) # 时间
         
-        self.voice_list_widget = QListWidget()
-        self.voice_list_widget.itemSelectionChanged.connect(self.on_voice_selection_changed)
-        list_layout.addWidget(self.voice_list_widget)
+        self.voice_table.itemSelectionChanged.connect(self.on_voice_selection_changed)
+        manage_layout.addWidget(self.voice_table)
         
-        manage_layout.addLayout(list_layout, 1)
-        
-        # 右侧：信息和操作
-        right_layout = QVBoxLayout()
-        right_layout.setSpacing(10)
-        
-        info_group = QGroupBox("详细信息")
-        info_layout = QGridLayout(info_group)
-        info_layout.setContentsMargins(10, 15, 10, 10)
-        info_layout.setSpacing(8)
-        
-        info_layout.addWidget(QLabel("键名:"), 0, 0)
-        self.selected_key_label = QLabel("-")
-        info_layout.addWidget(self.selected_key_label, 0, 1)
-        
-        info_layout.addWidget(QLabel("音频:"), 1, 0)
-        self.selected_source_label = QLabel("-")
-        info_layout.addWidget(self.selected_source_label, 1, 1)
-        
-        info_layout.addWidget(QLabel("文本:"), 2, 0)
-        self.selected_target_label = QLabel("-")
-        self.selected_target_label.setWordWrap(True)
-        self.selected_target_label.setMaximumHeight(60)
-        info_layout.addWidget(self.selected_target_label, 2, 1)
-        
-        info_layout.addWidget(QLabel("时长:"), 3, 0)
-        self.selected_length_label = QLabel("-")
-        info_layout.addWidget(self.selected_length_label, 3, 1)
-        
-        info_layout.addWidget(QLabel("时间:"), 4, 0)
-        self.selected_time_label = QLabel("-")
-        info_layout.addWidget(self.selected_time_label, 4, 1)
-        
-        right_layout.addWidget(info_group)
-        
-        # 操作按钮
-        btn_group = QGroupBox("操作")
-        btn_layout = QHBoxLayout(btn_group)
-        btn_layout.setContentsMargins(10, 15, 10, 10)
+        # 操作按钮行
+        btn_layout = QHBoxLayout()
         btn_layout.setSpacing(10)
+        
+        refresh_btn = QPushButton("刷新列表")
+        refresh_btn.clicked.connect(self.refresh_voice_list)
+        btn_layout.addWidget(refresh_btn)
+        
+        btn_layout.addStretch()
         
         self.play_selected_btn = QPushButton("播放")
         self.play_selected_btn.clicked.connect(self.play_selected_voice)
@@ -371,10 +343,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         self.delete_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_btn)
         
-        right_layout.addWidget(btn_group)
-        right_layout.addStretch()
-        
-        manage_layout.addLayout(right_layout, 1)
+        manage_layout.addLayout(btn_layout)
         
         return manage_group
     
@@ -484,7 +453,11 @@ class VoiceRegisterManagerGUI(QMainWindow):
     # === 音色管理相关方法 ===
     def refresh_voice_list(self):
         """刷新音色列表"""
-        self.voice_list_widget.clear()
+        self.voice_table.setRowCount(0)
+        self.selected_voice_data = None
+        self.play_selected_btn.setEnabled(False)
+        self.rename_btn.setEnabled(False)
+        self.delete_btn.setEnabled(False)
         
         db_clone_dir = gui_dir / DB_CLONE_DIR_NAME
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
@@ -501,10 +474,45 @@ class VoiceRegisterManagerGUI(QMainWindow):
                         entry = json.loads(line.strip())
                         voices.append(entry)
             
-            for voice in voices:
-                item = QListWidgetItem(voice.get('key', 'Unknown'))
-                item.setData(Qt.UserRole, voice)  # 存储完整数据
-                self.voice_list_widget.addItem(item)
+            self.voice_table.setRowCount(len(voices))
+            for row, voice in enumerate(voices):
+                # 键名
+                key_item = QTableWidgetItem(voice.get('key', 'Unknown'))
+                key_item.setData(Qt.UserRole, voice) # 存储完整数据
+                self.voice_table.setItem(row, 0, key_item)
+                
+                # 音频文件
+                source_path = voice.get('source', 'N/A')
+                source_name = Path(source_path).name if source_path != 'N/A' else 'N/A'
+                source_item = QTableWidgetItem(source_name)
+                source_item.setToolTip(source_path)
+                self.voice_table.setItem(row, 1, source_item)
+                
+                # 文本内容
+                text = voice.get('target', 'N/A')
+                text_item = QTableWidgetItem(text)
+                text_item.setToolTip(text)
+                self.voice_table.setItem(row, 2, text_item)
+                
+                # 时长
+                source_len_ms = voice.get('source_len', 0)
+                try:
+                    total_seconds = int(source_len_ms) // 1000
+                    m, s = divmod(total_seconds, 60)
+                    h, m = divmod(m, 60)
+                    duration = f"{h:02d}:{m:02d}:{s:02d}"
+                except:
+                    duration = f"{source_len_ms}ms"
+                self.voice_table.setItem(row, 3, QTableWidgetItem(duration))
+                
+                # 创建时间
+                time_str = voice.get('created_time', 'N/A')
+                try:
+                    dt = datetime.fromisoformat(time_str)
+                    time_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+                except:
+                    pass
+                self.voice_table.setItem(row, 4, QTableWidgetItem(time_str))
                 
             print(f"刷新音色列表完成，共 {len(voices)} 个音色")
             
@@ -513,35 +521,25 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def on_voice_selection_changed(self):
         """音色选择改变"""
-        current_item = self.voice_list_widget.currentItem()
-        if current_item:
-            voice_data = current_item.data(Qt.UserRole)
-            self.selected_voice_data = voice_data
-            
-            # 更新显示信息
-            self.selected_key_label.setText(voice_data.get('key', 'N/A'))
-            source_path = voice_data.get('source', 'N/A')
-            self.selected_source_label.setText(Path(source_path).name if source_path != 'N/A' else 'N/A')
-            self.selected_target_label.setText(voice_data.get('target', 'N/A'))
-            self.selected_length_label.setText(f"{voice_data.get('source_len', 0)}ms")
-            self.selected_time_label.setText(voice_data.get('created_time', 'N/A'))
-            
-            # 启用按钮
-            self.play_selected_btn.setEnabled(True)
-            self.rename_btn.setEnabled(True)
-            self.delete_btn.setEnabled(True)
-        else:
-            self.selected_voice_data = None
-            self.selected_key_label.setText("-")
-            self.selected_source_label.setText("-")
-            self.selected_target_label.setText("-")
-            self.selected_length_label.setText("-")
-            self.selected_time_label.setText("-")
-            
-            # 禁用按钮
-            self.play_selected_btn.setEnabled(False)
-            self.rename_btn.setEnabled(False)
-            self.delete_btn.setEnabled(False)
+        selected_items = self.voice_table.selectedItems()
+        if selected_items:
+            # 获取选中行的第一列item
+            row = self.voice_table.currentRow()
+            key_item = self.voice_table.item(row, 0)
+            if key_item:
+                self.selected_voice_data = key_item.data(Qt.UserRole)
+                
+                # 启用按钮
+                self.play_selected_btn.setEnabled(True)
+                self.rename_btn.setEnabled(True)
+                self.delete_btn.setEnabled(True)
+                return
+        
+        # 未选中或无效
+        self.selected_voice_data = None
+        self.play_selected_btn.setEnabled(False)
+        self.rename_btn.setEnabled(False)
+        self.delete_btn.setEnabled(False)
     
     def play_selected_voice(self):
         """播放选择的音色"""
