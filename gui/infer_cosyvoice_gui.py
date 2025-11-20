@@ -25,7 +25,6 @@ from PySide6.QtWidgets import (
     QFormLayout, QHBoxLayout, QPlainTextEdit
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QUrl
-from PySide6.QtGui import QFont
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 from cosyvoice.cli.cosyvoice import CosyVoice2
@@ -49,7 +48,7 @@ TRT_CONCURRENT = 1
 
 # 默认参考音频与文本
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呀。"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好哟。"
 
 # 模式映射
 MODE_MAPPING = {

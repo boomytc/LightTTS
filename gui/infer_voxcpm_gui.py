@@ -12,15 +12,13 @@ warnings.filterwarnings('ignore', category=UserWarning)
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import torch
-import torchaudio
-import numpy as np
 import soundfile as sf
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QGridLayout,
     QLabel, QLineEdit, QPushButton, QFileDialog, QProgressBar,
     QGroupBox, QMessageBox, QDoubleSpinBox, QSpinBox, QComboBox,
-    QFormLayout, QHBoxLayout, QCheckBox
+    QFormLayout, QHBoxLayout, QCheckBox, QPlainTextEdit
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal, QUrl
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -191,18 +189,25 @@ class SingleSynthesisGUI(QMainWindow):
 
     def init_ui(self):
         self.setWindowTitle("LightTTS VoxCPM 语音合成")
-        self.setGeometry(120, 120, 900, 550)
+        self.setGeometry(120, 120, 900, 600)
+
+        # 加载样式表
+        style_path = os.path.join(os.path.dirname(__file__), 'style', 'style.qss')
+        if os.path.exists(style_path):
+            with open(style_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
 
         central = QWidget()
         self.setCentralWidget(central)
         root_layout = QVBoxLayout(central)
-        root_layout.setSpacing(10)
-        root_layout.setContentsMargins(15, 15, 15, 15)
+        root_layout.setSpacing(15)
+        root_layout.setContentsMargins(20, 20, 20, 20)
 
         # 模型设置
         model_group = QGroupBox("模型设置")
         model_layout = QGridLayout()
-        model_layout.setSpacing(8)
+        model_layout.setSpacing(10)
+        model_layout.setContentsMargins(15, 20, 15, 15)
         model_layout.setColumnStretch(1, 1)
         model_group.setLayout(model_layout)
 
@@ -230,7 +235,7 @@ class SingleSynthesisGUI(QMainWindow):
         model_layout.addWidget(self.load_model_btn, 1, 2)
 
         self.model_status_label = QLabel("未加载")
-        self.model_status_label.setStyleSheet("color: #dc3545;")
+        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
         model_layout.addWidget(self.model_status_label, 2, 0, 1, 3)
 
         root_layout.addWidget(model_group)
@@ -239,13 +244,13 @@ class SingleSynthesisGUI(QMainWindow):
         io_group = QGroupBox("参数输入")
         io_layout = QFormLayout()
         io_layout.setSpacing(12)
-        io_layout.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        io_layout.setFormAlignment(Qt.AlignLeft | Qt.AlignTop)
-        io_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
-        io_layout.setContentsMargins(12, 12, 12, 12)
+        io_layout.setLabelAlignment(Qt.AlignLeft | Qt.AlignTop)
+        io_layout.setContentsMargins(15, 20, 15, 15)
         io_group.setLayout(io_layout)
 
-        self.tts_text_edit = QLineEdit()
+        self.tts_text_edit = QPlainTextEdit()
+        self.tts_text_edit.setPlaceholderText("请输入要合成的文本...")
+        self.tts_text_edit.setMinimumHeight(80)
         io_layout.addRow("合成文本:", self.tts_text_edit)
 
         self.prompt_audio_edit = QLineEdit()
@@ -357,8 +362,8 @@ class SingleSynthesisGUI(QMainWindow):
         # 合成控制
         ctrl_group = QGroupBox("合成控制")
         ctrl_layout = QVBoxLayout()
-        ctrl_layout.setSpacing(8)
-        ctrl_layout.setContentsMargins(12, 12, 12, 12)
+        ctrl_layout.setSpacing(15)
+        ctrl_layout.setContentsMargins(15, 20, 15, 15)
         ctrl_group.setLayout(ctrl_layout)
 
         self.status_label = QLabel("就绪")
@@ -375,16 +380,17 @@ class SingleSynthesisGUI(QMainWindow):
 
         button_row = QHBoxLayout()
         button_row.setContentsMargins(0, 0, 0, 0)
-        button_row.setSpacing(12)
+        button_row.setSpacing(15)
 
         self.start_btn = QPushButton("开始合成")
-        self.start_btn.setFixedHeight(35)
+        self.start_btn.setObjectName("PrimaryButton")
+        self.start_btn.setFixedHeight(45)
         self.start_btn.clicked.connect(self.start_synthesis)
         self.start_btn.setEnabled(False)
         button_row.addWidget(self.start_btn)
 
         self.play_btn = QPushButton("播放输出")
-        self.play_btn.setFixedHeight(35)
+        self.play_btn.setFixedHeight(45)
         self.play_btn.clicked.connect(self.play_output)
         self.play_btn.setEnabled(False)
         button_row.addWidget(self.play_btn)
@@ -458,7 +464,7 @@ class SingleSynthesisGUI(QMainWindow):
             QMessageBox.warning(self, "错误", "请先加载模型！")
             return
 
-        tts_text = self.tts_text_edit.text().strip()
+        tts_text = self.tts_text_edit.toPlainText().strip()
         prompt_audio = self.prompt_audio_edit.text().strip()
         prompt_text = self.prompt_text_edit.text().strip()
         output_dir = self.output_dir_edit.text().strip() or DEFAULT_OUTPUT_DIR
