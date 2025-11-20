@@ -205,7 +205,13 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 音色注册与管理系统")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1000, 650)
+        
+        # 加载样式表
+        style_path = gui_dir / 'style' / 'style.qss'
+        if style_path.exists():
+            with open(style_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
         
         # 创建中央控件
         central_widget = QWidget()
@@ -213,6 +219,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 创建主布局
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        main_layout.setSpacing(5)
         
         # 创建分割器
         splitter = QSplitter(Qt.Horizontal)
@@ -227,7 +235,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         splitter.addWidget(log_panel)
         
         # 设置分割器比例
-        splitter.setSizes([700, 500])
+        splitter.setSizes([750, 250])
         
         # 初始化音色列表
         QTimer.singleShot(100, self.refresh_voice_list)
@@ -250,43 +258,45 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """创建音色注册标签页"""
         tab_widget = QWidget()
         layout = QVBoxLayout(tab_widget)
-        
-        # 标题
-        title_label = QLabel("音色注册")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title_label)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
         # 音色注册组
         voice_group = QGroupBox("音色注册")
         voice_layout = QGridLayout(voice_group)
+        voice_layout.setContentsMargins(5, 10, 5, 5)
+        voice_layout.setSpacing(5)
         
         # 音频文件选择
         voice_layout.addWidget(QLabel("音频文件:"), 0, 0)
         self.audio_file_edit = QLineEdit()
         voice_layout.addWidget(self.audio_file_edit, 0, 1)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(5)
         audio_file_btn = QPushButton("选择")
         audio_file_btn.clicked.connect(self.select_audio_file)
-        voice_layout.addWidget(audio_file_btn, 0, 2)
+        btn_layout.addWidget(audio_file_btn)
         
-        # 音频播放按钮
-        self.play_audio_btn = QPushButton("播放音频")
+        self.play_audio_btn = QPushButton("播放")
         self.play_audio_btn.clicked.connect(self.play_audio)
         self.play_audio_btn.setEnabled(False)
-        voice_layout.addWidget(self.play_audio_btn, 0, 3)
+        btn_layout.addWidget(self.play_audio_btn)
+        
+        voice_layout.addLayout(btn_layout, 0, 2)
         
         # 音色键名
         voice_layout.addWidget(QLabel("音色键名:"), 1, 0)
         self.voice_key_edit = QLineEdit()
         self.voice_key_edit.setPlaceholderText("输入音色名称，如：周杰伦voice（可选，留空自动生成）")
-        voice_layout.addWidget(self.voice_key_edit, 1, 1, 1, 3)
+        voice_layout.addWidget(self.voice_key_edit, 1, 1, 1, 2)
         
         # Prompt文本
         voice_layout.addWidget(QLabel("Prompt文本:"), 2, 0)
         self.prompt_text_edit = QTextEdit()
-        self.prompt_text_edit.setMaximumHeight(80)
+        self.prompt_text_edit.setMaximumHeight(60)
         self.prompt_text_edit.setPlaceholderText("请输入音频内容的文本描述...")
-        voice_layout.addWidget(self.prompt_text_edit, 2, 1, 1, 3)
+        voice_layout.addWidget(self.prompt_text_edit, 2, 1, 1, 2)
         
         layout.addWidget(voice_group)
         
@@ -297,6 +307,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 注册按钮
         self.register_btn = QPushButton("注册音色")
+        self.register_btn.setObjectName("PrimaryButton")
+        self.register_btn.setFixedHeight(35)
         self.register_btn.clicked.connect(self.register_voice_only)
         layout.addWidget(self.register_btn)
         
@@ -307,16 +319,14 @@ class VoiceRegisterManagerGUI(QMainWindow):
         """创建音色管理标签页"""
         tab_widget = QWidget()
         layout = QVBoxLayout(tab_widget)
-        
-        # 标题
-        title_label = QLabel("音色管理")
-        title_label.setFont(QFont("Arial", 16, QFont.Bold))
-        title_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title_label)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
         # 音色列表组
         list_group = QGroupBox("已注册音色列表")
         list_layout = QVBoxLayout(list_group)
+        list_layout.setContentsMargins(5, 10, 5, 5)
+        list_layout.setSpacing(5)
         
         # 刷新按钮
         refresh_btn = QPushButton("刷新列表")
@@ -333,6 +343,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         # 选择的音色信息
         info_group = QGroupBox("选择的音色信息")
         info_layout = QGridLayout(info_group)
+        info_layout.setContentsMargins(5, 10, 5, 5)
+        info_layout.setSpacing(5)
         
         info_layout.addWidget(QLabel("键名:"), 0, 0)
         self.selected_key_label = QLabel("未选择")
@@ -359,6 +371,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 管理按钮
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(5)
         
         self.play_selected_btn = QPushButton("播放音频")
         self.play_selected_btn.clicked.connect(self.play_selected_voice)
@@ -377,16 +390,17 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         layout.addLayout(btn_layout)
         
-        layout.addStretch()
         return tab_widget
     
     def create_log_panel(self):
         """创建日志面板"""
         log_widget = QWidget()
         layout = QVBoxLayout(log_widget)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(5)
         
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 12, QFont.Bold))
+        log_label.setFont(QFont("Arial", 10, QFont.Bold))
         layout.addWidget(log_label)
         
         self.log_text = QTextEdit()
@@ -396,6 +410,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         # 按钮布局
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(5)
         
         # 清除日志按钮
         clear_btn = QPushButton("清除日志")
