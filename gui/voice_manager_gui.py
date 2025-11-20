@@ -6,8 +6,9 @@ gui_dir = current_script_path.parent
 project_root = gui_dir.parent
 
 project_root_str = str(project_root)
-if project_root_str not in sys.path:
-    sys.path.insert(0, project_root_str)
+if project_root_str in sys.path:
+    sys.path.remove(project_root_str)
+sys.path.insert(0, project_root_str)
 
 import torch
 import torchaudio
