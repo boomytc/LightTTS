@@ -43,7 +43,7 @@ DEFAULT_INPUT_DIR = "playground/tts_cosyvoice/texts"
 DEFAULT_OUTPUT_DIR = "playground/tts_cosyvoice/voice_output"
 DB_CLONE_DIR_NAME = "DB_clone"
 DB_CLONE_JSONL_NAME = "db_clone.jsonl"
-VOICE_MANAGER_SCRIPT = "playground/voice_manager_gui.py"
+VOICE_MANAGER_SCRIPT = "gui/voice_manager_gui.py"
 
 # 根据 project_root 设置 playground_dir
 project_root_path = Path(project_root)
@@ -278,12 +278,20 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 音色选择与批量语音合成系统")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1080, 720)
+
+        # 加载样式表
+        style_path = os.path.join(os.path.dirname(__file__), 'style', 'style.qss')
+        if os.path.exists(style_path):
+            with open(style_path, 'r', encoding='utf-8') as f:
+                self.setStyleSheet(f.read())
         
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
         
         splitter = QSplitter(Qt.Horizontal) 
         main_layout.addWidget(splitter)
@@ -294,7 +302,7 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         log_panel = self.create_log_panel()
         splitter.addWidget(log_panel)
         
-        splitter.setSizes([900, 300])
+        splitter.setSizes([780, 300])
         
         QTimer.singleShot(100, self.refresh_voice_combo)
     
@@ -302,14 +310,20 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         """创建主面板"""
         main_widget = QWidget()
         layout = QVBoxLayout(main_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 0, 10, 0)
         
         title_label = QLabel("音色选择与批量语音合成")
         title_label.setFont(QFont("Arial", 16, QFont.Bold)) 
-        title_label.setAlignment(Qt.AlignCenter)   
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setStyleSheet("color: #333; margin-bottom: 5px;")
         layout.addWidget(title_label)
         
+        # === 模型设置 (合并了状态显示) ===
         model_group = QGroupBox("模型设置")
         model_layout = QGridLayout(model_group)
+        model_layout.setSpacing(10)
+        model_layout.setContentsMargins(15, 15, 15, 15)
         
         model_layout.addWidget(QLabel("模型路径:"), 0, 0)
         self.model_dir_edit = QLineEdit(DEFAULT_MODEL_DIR)
@@ -317,11 +331,24 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         model_dir_btn = QPushButton("浏览")
         model_dir_btn.clicked.connect(self.select_model_dir)
         model_layout.addWidget(model_dir_btn, 0, 2)
+
+        self.model_status_label = QLabel("模型状态: 未加载")
+        self.model_status_label.setFont(QFont("Arial", 10))
+        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        model_layout.addWidget(self.model_status_label, 1, 0, 1, 2)
+
+        self.load_model_btn = QPushButton("加载模型")
+        self.load_model_btn.clicked.connect(self.load_model)
+        self.load_model_btn.setFixedSize(100, 30)
+        model_layout.addWidget(self.load_model_btn, 1, 2)
         
         layout.addWidget(model_group)
         
+        # === 音色选择 ===
         voice_select_group = QGroupBox("音色选择")
         voice_select_layout = QGridLayout(voice_select_group)
+        voice_select_layout.setSpacing(10)
+        voice_select_layout.setContentsMargins(15, 15, 15, 15)
         
         voice_select_layout.addWidget(QLabel("选择音色:"), 0, 0)
         self.voice_combo = QComboBox()
@@ -339,15 +366,19 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         voice_select_layout.addWidget(QLabel("音色信息:"), 1, 0)
         self.combo_voice_info_label = QLabel("请选择音色")
         self.combo_voice_info_label.setWordWrap(True)
-        self.combo_voice_info_label.setStyleSheet("border: 1px solid gray; padding: 5px;")
+        self.combo_voice_info_label.setStyleSheet("border: 1px solid #c0c0c0; border-radius: 4px; padding: 5px; background-color: #f9f9f9; color: #555;")
+        self.combo_voice_info_label.setMaximumHeight(60) # 限制高度
         voice_select_layout.addWidget(self.combo_voice_info_label, 1, 1, 1, 3)
         
         layout.addWidget(voice_select_group)
         
+        # === 批量合成设置 ===
         batch_group = QGroupBox("批量合成设置")
         batch_layout = QGridLayout(batch_group)
+        batch_layout.setSpacing(10)
+        batch_layout.setContentsMargins(15, 15, 15, 15)
         
-        batch_layout.addWidget(QLabel("输入文本文件夹:"), 0, 0)
+        batch_layout.addWidget(QLabel("输入文件夹:"), 0, 0)
         self.input_dir_edit = QLineEdit(DEFAULT_INPUT_DIR)
         batch_layout.addWidget(self.input_dir_edit, 0, 1)
         input_dir_btn = QPushButton("浏览")
@@ -363,130 +394,109 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         
         layout.addWidget(batch_group)
         
+        # === 参数设置 (紧凑布局) ===
         params_group = QGroupBox("参数设置")
-        params_layout = QGridLayout(params_group)
+        params_layout = QHBoxLayout(params_group) # 改为水平布局
+        params_layout.setSpacing(15)
+        params_layout.setContentsMargins(15, 15, 15, 15)
         
-        params_layout.addWidget(QLabel("语音速度:"), 0, 0)
+        params_layout.addWidget(QLabel("语速:"))
         self.speed_spinbox = QDoubleSpinBox()
         self.speed_spinbox.setRange(0.5, 2.0)
         self.speed_spinbox.setSingleStep(0.1)
         self.speed_spinbox.setValue(DEFAULT_SPEED)
-        params_layout.addWidget(self.speed_spinbox, 0, 1)
+        self.speed_spinbox.setFixedWidth(70)
+        params_layout.addWidget(self.speed_spinbox)
         
-        params_layout.addWidget(QLabel("随机种子:"), 1, 0)
+        params_layout.addWidget(QLabel("种子:"))
         self.seed_spinbox = QSpinBox()
         self.seed_spinbox.setRange(DEFAULT_SEED, 999999999)
         self.seed_spinbox.setValue(DEFAULT_SEED)
         self.seed_spinbox.setSpecialValueText("随机")
-        params_layout.addWidget(self.seed_spinbox, 1, 1)
+        self.seed_spinbox.setFixedWidth(90)
+        params_layout.addWidget(self.seed_spinbox)
         
-        params_layout.addWidget(QLabel("采样率:"), 2, 0)
+        params_layout.addWidget(QLabel("采样率:"))
         self.sample_rate_spinbox = QSpinBox()
         self.sample_rate_spinbox.setRange(16000, 48000)
         self.sample_rate_spinbox.setSingleStep(1000)
         self.sample_rate_spinbox.setValue(DEFAULT_OUTPUT_SAMPLE_RATE)
-        params_layout.addWidget(self.sample_rate_spinbox, 2, 1)
+        self.sample_rate_spinbox.setFixedWidth(80)
+        params_layout.addWidget(self.sample_rate_spinbox)
         
+        params_layout.addStretch()
         layout.addWidget(params_group)
         
-        model_status_panel = self.create_model_status_panel()
-        layout.addWidget(model_status_panel)
-        
+        # === 按钮 ===
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(15)
         
         self.start_btn = QPushButton("开始批量合成")
+        self.start_btn.setObjectName("PrimaryButton")
+        self.start_btn.setFixedHeight(40)
         self.start_btn.clicked.connect(self.start_synthesis)
         self.start_btn.setEnabled(False)
         btn_layout.addWidget(self.start_btn)
         
         self.stop_btn = QPushButton("停止合成")
+        self.stop_btn.setFixedHeight(40)
         self.stop_btn.clicked.connect(self.stop_synthesis)
         self.stop_btn.setEnabled(False)
         btn_layout.addWidget(self.stop_btn)
         
         layout.addLayout(btn_layout)
         
+        # === 合成进度 ===
         progress_group = QGroupBox("合成进度")
         progress_layout = QVBoxLayout(progress_group)
+        progress_layout.setSpacing(8)
+        progress_layout.setContentsMargins(15, 15, 15, 15)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setFormat("%p%")
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid grey;
-                border-radius: 5px;
-                text-align: center;
-                font-size: 14px;
-                font-weight: bold;
-            }
-            QProgressBar::chunk {
-                background-color: #28a745;
-            }
-        """)
+        self.progress_bar.setFixedHeight(18)
         progress_layout.addWidget(self.progress_bar)
         
+        info_layout = QHBoxLayout()
         self.current_file_label = QLabel("当前文件: -")
         self.current_file_label.setFont(QFont("Arial", 10))
-        progress_layout.addWidget(self.current_file_label)
-        
-        self.progress_count_label = QLabel("进度: 0/0")
-        self.progress_count_label.setFont(QFont("Arial", 10))
-        progress_layout.addWidget(self.progress_count_label)
+        info_layout.addWidget(self.current_file_label, 1)
         
         self.status_label = QLabel("就绪")
         self.status_label.setFont(QFont("Arial", 10))
-        progress_layout.addWidget(self.status_label)
+        self.status_label.setStyleSheet("color: #666;")
+        self.status_label.setAlignment(Qt.AlignCenter)
+        info_layout.addWidget(self.status_label, 1)
+
+        self.progress_count_label = QLabel("进度: 0/0")
+        self.progress_count_label.setFont(QFont("Arial", 10))
+        self.progress_count_label.setAlignment(Qt.AlignRight)
+        info_layout.addWidget(self.progress_count_label, 1)
+        
+        progress_layout.addLayout(info_layout)
         
         layout.addWidget(progress_group)
         
         layout.addStretch()
         return main_widget
     
-    def create_model_status_panel(self):
-        """创建模型状态面板"""
-        model_widget = QGroupBox("模型状态")
-        layout = QHBoxLayout(model_widget)
-        layout.setSpacing(15)
-        
-        self.model_status_label = QLabel("模型状态: 未加载")
-        self.model_status_label.setFont(QFont("Arial", 11))
-        self.model_status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
-        layout.addWidget(self.model_status_label)
-        
-        layout.addStretch()
-        
-        self.load_model_btn = QPushButton("加载模型")
-        self.load_model_btn.clicked.connect(self.load_model)
-        self.load_model_btn.setFixedSize(120, 35)
-        self.load_model_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #28a745;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """)
-        layout.addWidget(self.load_model_btn)
-        
-        return model_widget
+    # def create_model_status_panel(self):
+    #     """创建模型状态面板"""
+    #     # ...existing code...
+    #     return model_widget
     
     def create_log_panel(self):
         """创建日志面板"""
         log_widget = QWidget()
         layout = QVBoxLayout(log_widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 0, 0, 0)
         
         log_header = QHBoxLayout()
         log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 11, QFont.Bold)) 
+        log_label.setFont(QFont("Arial", 12, QFont.Bold)) 
         log_header.addWidget(log_label)
         log_header.addStretch()
         layout.addLayout(log_header)
@@ -494,19 +504,21 @@ class VoiceBatchSynthesisGUI(QMainWindow):
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setFont(QFont("Consolas", 9))
+        self.log_text.setStyleSheet("border: 1px solid #c0c0c0; border-radius: 4px; background-color: #fff;")
         layout.addWidget(self.log_text)
         
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
         
         clear_btn = QPushButton("清除日志")
         clear_btn.clicked.connect(self.clear_log)
         btn_layout.addWidget(clear_btn)
         
-        view_db_btn = QPushButton("查看音色数据库")
+        view_db_btn = QPushButton("查看音色库")
         view_db_btn.clicked.connect(self.view_voice_database)
         btn_layout.addWidget(view_db_btn)
         
-        manage_btn = QPushButton("打开音色管理器")
+        manage_btn = QPushButton("音色管理器")
         manage_btn.clicked.connect(self.open_voice_manager)
         btn_layout.addWidget(manage_btn)
         
