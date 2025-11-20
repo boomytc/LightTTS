@@ -205,7 +205,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
     def init_ui(self):
         self.setWindowTitle("LightTTS 音色注册与管理系统")
-        self.setGeometry(100, 100, 1000, 650)
+        self.setGeometry(100, 100, 900, 750)
         
         # 加载样式表
         style_path = gui_dir / 'style' / 'style.qss'
@@ -217,55 +217,28 @@ class VoiceRegisterManagerGUI(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        # 创建主布局
-        main_layout = QHBoxLayout(central_widget)
-        main_layout.setContentsMargins(5, 5, 5, 5)
-        main_layout.setSpacing(5)
+        # 创建主布局 (垂直布局: 上注册，下管理)
+        main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setSpacing(15)
         
-        # 创建分割器
-        splitter = QSplitter(Qt.Horizontal)
-        main_layout.addWidget(splitter)
+        # 1. 音色注册区域
+        register_group = self.create_register_group()
+        main_layout.addWidget(register_group)
         
-        # 左侧标签页面板
-        tab_panel = self.create_tab_panel()
-        splitter.addWidget(tab_panel)
-        
-        # 右侧日志面板
-        log_panel = self.create_log_panel()
-        splitter.addWidget(log_panel)
-        
-        # 设置分割器比例
-        splitter.setSizes([750, 250])
+        # 2. 音色管理区域
+        manage_group = self.create_manage_group()
+        main_layout.addWidget(manage_group, 1)
         
         # 初始化音色列表
         QTimer.singleShot(100, self.refresh_voice_list)
     
-    def create_tab_panel(self):
-        """创建标签页面板"""
-        tab_widget = QTabWidget()
-        
-        # 标签页1: 音色注册
-        register_tab = self.create_register_tab()
-        tab_widget.addTab(register_tab, "音色注册")
-        
-        # 标签页2: 音色管理
-        manage_tab = self.create_manage_tab()
-        tab_widget.addTab(manage_tab, "音色管理")
-        
-        return tab_widget
-    
-    def create_register_tab(self):
-        """创建音色注册标签页"""
-        tab_widget = QWidget()
-        layout = QVBoxLayout(tab_widget)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
-        
-        # 音色注册组
+    def create_register_group(self):
+        """创建音色注册组"""
         voice_group = QGroupBox("音色注册")
         voice_layout = QGridLayout(voice_group)
-        voice_layout.setContentsMargins(5, 10, 5, 5)
-        voice_layout.setSpacing(5)
+        voice_layout.setContentsMargins(10, 20, 10, 10)
+        voice_layout.setSpacing(10)
         
         # 音频文件选择
         voice_layout.addWidget(QLabel("音频文件:"), 0, 0)
@@ -298,82 +271,92 @@ class VoiceRegisterManagerGUI(QMainWindow):
         self.prompt_text_edit.setPlaceholderText("请输入音频内容的文本描述...")
         voice_layout.addWidget(self.prompt_text_edit, 2, 1, 1, 2)
         
-        layout.addWidget(voice_group)
+        # 状态和按钮行
+        status_btn_layout = QHBoxLayout()
         
-        # 音色注册状态
-        self.voice_status_label = QLabel("音色状态: 未注册")
-        self.voice_status_label.setStyleSheet("color: red; font-weight: bold;")
-        layout.addWidget(self.voice_status_label)
+        self.voice_status_label = QLabel("未注册")
+        self.voice_status_label.setStyleSheet("color: #666;")
+        status_btn_layout.addWidget(QLabel("状态:"))
+        status_btn_layout.addWidget(self.voice_status_label)
+        status_btn_layout.addStretch()
         
-        # 注册按钮
         self.register_btn = QPushButton("注册音色")
         self.register_btn.setObjectName("PrimaryButton")
+        self.register_btn.setFixedWidth(120)
         self.register_btn.setFixedHeight(35)
         self.register_btn.clicked.connect(self.register_voice_only)
-        layout.addWidget(self.register_btn)
+        status_btn_layout.addWidget(self.register_btn)
         
-        layout.addStretch()
-        return tab_widget
+        voice_layout.addLayout(status_btn_layout, 3, 0, 1, 3)
+        
+        return voice_group
     
-    def create_manage_tab(self):
-        """创建音色管理标签页"""
-        tab_widget = QWidget()
-        layout = QVBoxLayout(tab_widget)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+    def create_manage_group(self):
+        """创建音色管理组"""
+        manage_group = QGroupBox("音色管理")
+        manage_layout = QHBoxLayout(manage_group)
+        manage_layout.setContentsMargins(10, 20, 10, 10)
+        manage_layout.setSpacing(15)
         
-        # 音色列表组
-        list_group = QGroupBox("已注册音色列表")
-        list_layout = QVBoxLayout(list_group)
-        list_layout.setContentsMargins(5, 10, 5, 5)
+        # 左侧：列表
+        list_layout = QVBoxLayout()
         list_layout.setSpacing(5)
         
-        # 刷新按钮
-        refresh_btn = QPushButton("刷新列表")
+        list_header = QHBoxLayout()
+        list_header.addWidget(QLabel("已注册音色:"))
+        list_header.addStretch()
+        refresh_btn = QPushButton("刷新")
+        refresh_btn.setFixedWidth(60)
         refresh_btn.clicked.connect(self.refresh_voice_list)
-        list_layout.addWidget(refresh_btn)
+        list_header.addWidget(refresh_btn)
+        list_layout.addLayout(list_header)
         
-        # 音色列表
         self.voice_list_widget = QListWidget()
         self.voice_list_widget.itemSelectionChanged.connect(self.on_voice_selection_changed)
         list_layout.addWidget(self.voice_list_widget)
         
-        layout.addWidget(list_group)
+        manage_layout.addLayout(list_layout, 1)
         
-        # 选择的音色信息
-        info_group = QGroupBox("选择的音色信息")
+        # 右侧：信息和操作
+        right_layout = QVBoxLayout()
+        right_layout.setSpacing(10)
+        
+        info_group = QGroupBox("详细信息")
         info_layout = QGridLayout(info_group)
-        info_layout.setContentsMargins(5, 10, 5, 5)
-        info_layout.setSpacing(5)
+        info_layout.setContentsMargins(10, 15, 10, 10)
+        info_layout.setSpacing(8)
         
         info_layout.addWidget(QLabel("键名:"), 0, 0)
-        self.selected_key_label = QLabel("未选择")
+        self.selected_key_label = QLabel("-")
         info_layout.addWidget(self.selected_key_label, 0, 1)
         
-        info_layout.addWidget(QLabel("音频文件:"), 1, 0)
-        self.selected_source_label = QLabel("未选择")
+        info_layout.addWidget(QLabel("音频:"), 1, 0)
+        self.selected_source_label = QLabel("-")
         info_layout.addWidget(self.selected_source_label, 1, 1)
         
-        info_layout.addWidget(QLabel("文本内容:"), 2, 0)
-        self.selected_target_label = QLabel("未选择")
+        info_layout.addWidget(QLabel("文本:"), 2, 0)
+        self.selected_target_label = QLabel("-")
         self.selected_target_label.setWordWrap(True)
+        self.selected_target_label.setMaximumHeight(60)
         info_layout.addWidget(self.selected_target_label, 2, 1)
         
         info_layout.addWidget(QLabel("时长:"), 3, 0)
-        self.selected_length_label = QLabel("未选择")
+        self.selected_length_label = QLabel("-")
         info_layout.addWidget(self.selected_length_label, 3, 1)
         
-        info_layout.addWidget(QLabel("创建时间:"), 4, 0)
-        self.selected_time_label = QLabel("未选择")
+        info_layout.addWidget(QLabel("时间:"), 4, 0)
+        self.selected_time_label = QLabel("-")
         info_layout.addWidget(self.selected_time_label, 4, 1)
         
-        layout.addWidget(info_group)
+        right_layout.addWidget(info_group)
         
-        # 管理按钮
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(5)
+        # 操作按钮
+        btn_group = QGroupBox("操作")
+        btn_layout = QHBoxLayout(btn_group)
+        btn_layout.setContentsMargins(10, 15, 10, 10)
+        btn_layout.setSpacing(10)
         
-        self.play_selected_btn = QPushButton("播放音频")
+        self.play_selected_btn = QPushButton("播放")
         self.play_selected_btn.clicked.connect(self.play_selected_voice)
         self.play_selected_btn.setEnabled(False)
         btn_layout.addWidget(self.play_selected_btn)
@@ -388,43 +371,12 @@ class VoiceRegisterManagerGUI(QMainWindow):
         self.delete_btn.setEnabled(False)
         btn_layout.addWidget(self.delete_btn)
         
-        layout.addLayout(btn_layout)
+        right_layout.addWidget(btn_group)
+        right_layout.addStretch()
         
-        return tab_widget
-    
-    def create_log_panel(self):
-        """创建日志面板"""
-        log_widget = QWidget()
-        layout = QVBoxLayout(log_widget)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(5)
+        manage_layout.addLayout(right_layout, 1)
         
-        log_label = QLabel("运行日志")
-        log_label.setFont(QFont("Arial", 10, QFont.Bold))
-        layout.addWidget(log_label)
-        
-        self.log_text = QTextEdit()
-        self.log_text.setReadOnly(True)
-        self.log_text.setFont(QFont("Consolas", 9))
-        layout.addWidget(self.log_text)
-        
-        # 按钮布局
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(5)
-        
-        # 清除日志按钮
-        clear_btn = QPushButton("清除日志")
-        clear_btn.clicked.connect(self.clear_log)
-        btn_layout.addWidget(clear_btn)
-        
-        # 查看音色数据库按钮
-        view_db_btn = QPushButton("查看音色数据库")
-        view_db_btn.clicked.connect(self.view_voice_database)
-        btn_layout.addWidget(view_db_btn)
-        
-        layout.addLayout(btn_layout)
-        
-        return log_widget
+        return manage_group
     
     def select_audio_file(self):
         """选择音频文件"""
@@ -452,48 +404,17 @@ class VoiceRegisterManagerGUI(QMainWindow):
             self.media_player.stop()
             self.media_player.setSource(QUrl.fromLocalFile(audio_path))
             self.media_player.play()
-            self.log_text.append(f"正在播放: {Path(audio_path).name}")
+            print(f"正在播放: {Path(audio_path).name}")
         else:
             QMessageBox.warning(self, "错误", "音频文件不存在！")
     
     def clear_log(self):
         """清除日志"""
-        self.log_text.clear()
+        pass
     
     def view_voice_database(self):
         """查看音色数据库"""
-        db_clone_dir = gui_dir / DB_CLONE_DIR_NAME
-        db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
-        
-        self.log_text.append("=== 音色数据库内容 ===")
-        
-        if not db_clone_jsonl.exists():
-            self.log_text.append("数据库文件不存在，还没有注册任何音色")
-            return
-        
-        try:
-            count = 0
-            with open(db_clone_jsonl, 'r', encoding='utf-8') as f:
-                for line in f:
-                    if line.strip():
-                        entry = json.loads(line.strip())
-                        count += 1
-                        self.log_text.append(f"{count}. 键名: {entry.get('key', 'N/A')}")
-                        self.log_text.append(f"   音频: {entry.get('source', 'N/A')}")
-                        self.log_text.append(f"   文本: {entry.get('target', 'N/A')}")
-                        self.log_text.append(f"   时长: {entry.get('source_len', 0)}ms")
-                        self.log_text.append(f"   创建时间: {entry.get('created_time', 'N/A')}")
-                        self.log_text.append("")
-            
-            if count == 0:
-                self.log_text.append("数据库为空")
-            else:
-                self.log_text.append(f"共找到 {count} 个注册的音色")
-                
-        except Exception as e:
-            self.log_text.append(f"读取数据库失败: {str(e)}")
-        
-        self.log_text.append("=== 数据库查看完毕 ===\n")
+        pass
     
     def register_voice_only(self):
         """仅注册音色"""
@@ -514,8 +435,8 @@ class VoiceRegisterManagerGUI(QMainWindow):
         )
         
         # 连接信号
-        self.worker.status_updated.connect(self.log_text.append)
-        self.worker.log_updated.connect(self.log_text.append)
+        self.worker.status_updated.connect(print)
+        self.worker.log_updated.connect(print)
         self.worker.voice_registered.connect(self.voice_registered)
         self.worker.finished.connect(self.worker_thread.quit)
         
@@ -527,10 +448,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
     
     def voice_registered(self, audio_name):
         """音色注册完成"""
-        self.voice_status_label.setText(f"音色状态: 已注册 ({audio_name})")
+        self.voice_status_label.setText(f"已注册: {audio_name}")
         self.voice_status_label.setStyleSheet("color: green; font-weight: bold;")
         self.register_btn.setEnabled(True)
-        self.log_text.append("音色注册完成")
+        print("音色注册完成")
         
         # 刷新音色列表
         self.refresh_voice_list()
@@ -569,7 +490,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         db_clone_jsonl = db_clone_dir / DB_CLONE_JSONL_NAME
         
         if not db_clone_jsonl.exists():
-            self.log_text.append("数据库文件不存在")
+            print("数据库文件不存在")
             return
         
         try:
@@ -585,10 +506,10 @@ class VoiceRegisterManagerGUI(QMainWindow):
                 item.setData(Qt.UserRole, voice)  # 存储完整数据
                 self.voice_list_widget.addItem(item)
                 
-            self.log_text.append(f"刷新音色列表完成，共 {len(voices)} 个音色")
+            print(f"刷新音色列表完成，共 {len(voices)} 个音色")
             
         except Exception as e:
-            self.log_text.append(f"刷新音色列表失败: {str(e)}")
+            print(f"刷新音色列表失败: {str(e)}")
     
     def on_voice_selection_changed(self):
         """音色选择改变"""
@@ -611,11 +532,11 @@ class VoiceRegisterManagerGUI(QMainWindow):
             self.delete_btn.setEnabled(True)
         else:
             self.selected_voice_data = None
-            self.selected_key_label.setText("未选择")
-            self.selected_source_label.setText("未选择")
-            self.selected_target_label.setText("未选择")
-            self.selected_length_label.setText("未选择")
-            self.selected_time_label.setText("未选择")
+            self.selected_key_label.setText("-")
+            self.selected_source_label.setText("-")
+            self.selected_target_label.setText("-")
+            self.selected_length_label.setText("-")
+            self.selected_time_label.setText("-")
             
             # 禁用按钮
             self.play_selected_btn.setEnabled(False)
@@ -630,7 +551,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
                 self.media_player.stop()
                 self.media_player.setSource(QUrl.fromLocalFile(source_path))
                 self.media_player.play()
-                self.log_text.append(f"播放: {self.selected_voice_data.get('key', '')}")
+                print(f"播放: {self.selected_voice_data.get('key', '')}")
             else:
                 QMessageBox.warning(self, "错误", "音频文件不存在！")
     
@@ -652,7 +573,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
             
             # 更新数据库
             if self.update_voice_key_in_db(old_key, new_key):
-                self.log_text.append(f"音色重命名成功: '{old_key}' -> '{new_key}'")
+                print(f"音色重命名成功: '{old_key}' -> '{new_key}'")
                 self.refresh_voice_list()
             else:
                 QMessageBox.warning(self, "错误", "重命名失败！")
@@ -671,7 +592,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
         
         if reply == QMessageBox.Yes:
             if self.delete_voice_from_db(voice_key):
-                self.log_text.append(f"音色删除成功: '{voice_key}'")
+                print(f"音色删除成功: '{voice_key}'")
                 self.refresh_voice_list()
             else:
                 QMessageBox.warning(self, "错误", "删除失败！")
@@ -723,7 +644,7 @@ class VoiceRegisterManagerGUI(QMainWindow):
             return True
             
         except Exception as e:
-            self.log_text.append(f"更新数据库失败: {str(e)}")
+            print(f"更新数据库失败: {str(e)}")
             return False
     
     def delete_voice_from_db(self, voice_key):
@@ -757,19 +678,19 @@ class VoiceRegisterManagerGUI(QMainWindow):
             if deleted_source_path and Path(deleted_source_path).exists():
                 try:
                     Path(deleted_source_path).unlink()
-                    self.log_text.append(f"删除音频文件: {deleted_source_path}")
+                    print(f"删除音频文件: {deleted_source_path}")
                 except Exception as e:
-                    self.log_text.append(f"删除音频文件失败: {str(e)}")
+                    print(f"删除音频文件失败: {str(e)}")
             
             return True
             
         except Exception as e:
-            self.log_text.append(f"删除音色失败: {str(e)}")
+            print(f"删除音色失败: {str(e)}")
             return False
     
     def on_player_error(self, error):
         """处理播放器错误"""
-        self.log_text.append(f"播放器错误: {self.media_player.errorString()}")
+        print(f"播放器错误: {self.media_player.errorString()}")
     
     def closeEvent(self, event):
         """窗口关闭事件"""
