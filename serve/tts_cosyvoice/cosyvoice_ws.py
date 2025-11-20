@@ -273,7 +273,7 @@ class CosyVoiceWebSocketServer:
                 text = data.get("text")
                 mode = data.get("mode", "zero_shot")  # zero_shot / cross_lingual / instruct
                 prompt_audio_path = data.get("prompt_audio", os.path.join(project_root, "asset", "zero_shot_prompt.wav"))
-                prompt_text = data.get("prompt_text", "希望你以后能够做的比我还好呀。")
+                prompt_text = data.get("prompt_text", "希望你以后能够做的比我还好哟。")
                 instruct_text = data.get("instruct_text", "")
                 speed = data.get("speed", 1.0)
                 seed = data.get("seed", 0)

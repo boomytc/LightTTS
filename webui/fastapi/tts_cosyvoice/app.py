@@ -28,7 +28,7 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "t
 
 DEFAULT_MODEL_DIR = os.path.join(project_root, "models", "CosyVoice2-0.5B")
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呀。"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好哟。"
 USE_FP16 = True
 LOAD_JIT = False
 LOAD_TRT = False

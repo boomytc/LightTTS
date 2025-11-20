@@ -15,7 +15,7 @@ if project_root not in sys.path:
 
 SERVER_URI = "ws://127.0.0.1:8769"
 DEFAULT_PROMPT_WAV = os.path.join(project_root, "asset", "zero_shot_prompt.wav")
-DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好呀。"
+DEFAULT_PROMPT_TEXT = "希望你以后能够做的比我还好哟。"
 
 MODE_MAPPING = {
     "零样本克隆": "zero_shot",

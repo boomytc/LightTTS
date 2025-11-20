@@ -42,7 +42,7 @@ async def play_audio_from_ws(text: str, mode: str = "zero_shot", instruct_text: 
         }
         
         if mode == "zero_shot":
-            req["prompt_text"] = "希望你以后能够做的比我还好呀。"
+            req["prompt_text"] = "希望你以后能够做的比我还好哟。"
         elif mode == "instruct":
             req["instruct_text"] = instruct_text or "用温柔的语气说"
         
