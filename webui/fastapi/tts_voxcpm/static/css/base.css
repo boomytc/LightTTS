@@ -1,27 +1,27 @@
 :root {
-    --color-bg: #ffffff;
-    --color-text-primary: #333333;
-    --color-text-secondary: #666666;
-    --color-border: #e0e0e0;
-    --color-border-strong: #999999;
-    --color-accent: #667eea;
-    --color-neutral-bg: #f5f5f5;
-    --color-placeholder: #999999;
-    --color-btn-primary: #333333;
-    --color-btn-primary-hover: #555555;
-    --color-success: #48bb78;
-    --color-success-dark: #38a169;
-    --color-danger: #f56565;
-    --color-danger-dark: #e53e3e;
-    --color-muted-bg: #f7fafc;
-    --color-status-success-bg: #f0fff4;
-    --color-status-success-text: #22543d;
-    --color-status-error-bg: #fff5f5;
-    --color-status-error-text: #742a2a;
-    --color-status-loading-bg: #fffaf0;
-    --color-status-loading-border: #ed8936;
-    --color-status-loading-text: #7c2d12;
-    --color-slider-thumb: #666666;
+    --color-bg: #f5f5f7;
+    --color-text-primary: #1d1d1f;
+    --color-text-secondary: #86868b;
+    --color-border: #d2d2d7;
+    --color-border-strong: #86868b;
+    --color-accent: #007aff;
+    --color-muted-bg: #f5f5f7;
+    --color-neutral-bg: #e8e8ed;
+    --color-placeholder: #86868b;
+    --color-btn-primary: #007aff;
+    --color-btn-primary-hover: #0071e3;
+    --color-success: #34c759;
+    --color-success-dark: #248a3d;
+    --color-danger: #ff3b30;
+    --color-danger-dark: #d70015;
+    --color-status-success-bg: #e8fce8;
+    --color-status-success-text: #1d6f42;
+    --color-status-error-bg: #ffe5e5;
+    --color-status-error-text: #cd2b31;
+    --color-status-loading-bg: #fff4e5;
+    --color-status-loading-border: #f5a623;
+    --color-status-loading-text: #7a4f01;
+    --color-slider-thumb: #007aff;
 }
 
 * {
@@ -31,9 +31,10 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     min-height: 100vh;
     padding: 20px;
     color: var(--color-text-primary);
     background-color: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
 }
