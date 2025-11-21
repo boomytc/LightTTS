@@ -1,11 +1,12 @@
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
 }
 
 .form-group label {
     display: block;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 6px;
     color: var(--color-text-primary);
 }
 
@@ -14,11 +15,14 @@
 .form-group textarea,
 .form-group input[type="file"] {
     width: 100%;
-    padding: 10px;
-    border: 2px solid var(--color-border);
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
-    font-size: 1rem;
-    transition: border-color 0.3s;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--color-text-primary);
+    background-color: #ffffff;
+    transition: all 0.2s ease;
 }
 
 .form-group input[type="text"]:focus,
@@ -26,16 +30,18 @@
 .form-group textarea:focus {
     outline: none;
     border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
 .form-group textarea {
     resize: vertical;
-    font-family: inherit;
+    min-height: 80px;
+    line-height: 1.4;
 }
 
 .radio-group {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
@@ -43,10 +49,12 @@
     display: flex;
     align-items: center;
     cursor: pointer;
-    padding: 8px 15px;
-    border: 2px solid var(--color-border);
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
-    transition: all 0.3s;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    font-size: 0.85rem;
 }
 
 .radio-label:hover {
@@ -57,44 +65,53 @@
 .radio-label input[type="radio"] {
     margin-right: 8px;
     cursor: pointer;
+    accent-color: var(--color-accent);
 }
 
 .radio-label input[type="radio"]:checked + span {
     color: var(--color-text-primary);
-    font-weight: 600;
+    font-weight: 500;
+}
+
+.radio-label:has(input[type="radio"]:checked) {
+    border-color: var(--color-accent);
+    background-color: rgba(0, 122, 255, 0.05);
+    color: var(--color-accent);
 }
 
 .form-group input[type="range"] {
     width: 100%;
-    height: 6px;
-    border-radius: 3px;
+    height: 4px;
+    border-radius: 2px;
     background: var(--color-border);
     outline: none;
+    -webkit-appearance: none;
 }
 
 .form-group input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
-    background: var(--color-slider-thumb);
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.04);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16), 0 3px 1px rgba(0,0,0,0.1);
     cursor: pointer;
+    margin-top: -8px; /* Adjust for height difference */
 }
 
-.form-group input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--color-slider-thumb);
-    cursor: pointer;
-    border: none;
+.form-group input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--color-border);
+    border-radius: 2px;
 }
 
 .help-text {
     display: block;
-    margin-top: 5px;
+    margin-top: 6px;
     color: var(--color-text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.8rem;
 }
 
 .audio-upload-area {
@@ -104,54 +121,69 @@
 }
 
 .audio-preview {
-    margin-top: 10px;
+    margin-top: 12px;
     width: 100%;
+    height: 40px;
+    border-radius: 20px;
 }
 
 .checkbox-label {
     display: flex;
     align-items: center;
     cursor: pointer;
-    font-weight: normal;
+    font-weight: 500;
+    font-size: 0.9rem;
 }
 
 .checkbox-label input[type="checkbox"] {
     margin-right: 8px;
     cursor: pointer;
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-accent);
 }
 
 .advanced-options {
-    margin-top: 20px;
+    margin-top: 16px;
     border: 1px solid var(--color-border);
-    border-radius: 6px;
-    padding: 15px;
+    border-radius: 8px;
+    padding: 12px;
+    background-color: #ffffff;
 }
 
 .advanced-options summary {
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--color-text-primary);
     user-select: none;
+    font-size: 0.9rem;
 }
 
 .advanced-options[open] summary {
-    margin-bottom: 15px;
+    margin-bottom: 12px;
+}
+
+.advanced-options summary:hover {
+    color: var(--color-accent);
 }
 
 .emo-sliders {
     display: grid;
-    gap: 15px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 10px;
+    background: var(--color-neutral-bg);
+    border-radius: 8px;
 }
 
 .slider-item {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 }
 
 .slider-item label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 500;
+    color: var(--color-text-secondary);
 }

@@ -1,31 +1,36 @@
 .status-box {
-    padding: 15px;
+    padding: 12px;
     border-radius: 6px;
-    background: var(--color-muted-bg);
-    border: 2px solid var(--color-border);
-    font-family: 'Courier New', monospace;
-    font-size: 0.95rem;
+    background: var(--color-neutral-bg);
+    border: 1px solid var(--color-border);
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
     color: var(--color-text-primary);
+    line-height: 1.4;
 }
 
 .status-box.loading {
-    border-color: var(--color-status-loading-border);
-    color: var(--color-status-loading-text);
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+    background-color: rgba(0, 122, 255, 0.05);
 }
 
 .status-box.success {
     border-color: var(--color-success);
     color: var(--color-success-dark);
+    background-color: rgba(52, 199, 89, 0.05);
 }
 
 .status-box.error {
     border-color: var(--color-danger);
     color: var(--color-danger-dark);
+    background-color: rgba(255, 59, 48, 0.05);
 }
 
 .audio-player {
     width: 100%;
-    margin-top: 10px;
+    margin-top: 12px;
+    height: 36px;
 }
 
 .audio-placeholder {
@@ -33,18 +38,21 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px 20px;
-    border: 2px dashed var(--color-border);
+    padding: 40px 20px;
+    border: 1px dashed var(--color-border);
     border-radius: 8px;
-    color: var(--color-placeholder);
-    margin-top: 10px;
+    color: var(--color-text-secondary);
+    margin-top: 12px;
+    background-color: var(--color-neutral-bg);
 }
 
 .audio-placeholder span {
-    font-size: 3rem;
-    margin-bottom: 10px;
+    font-size: 2rem;
+    margin-bottom: 8px;
+    opacity: 0.5;
 }
 
 .audio-placeholder p {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
+    margin: 0;
 }
