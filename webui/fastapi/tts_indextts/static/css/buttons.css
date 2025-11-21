@@ -10,23 +10,18 @@
 }
 
 .btn {
-    padding: 12px 24px;
+    padding: 8px 16px;
     border: none;
     border-radius: 6px;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.9rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-}
-
-.btn:active:not(:disabled) {
-    transform: translateY(0);
+    transition: all 0.2s ease;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
 }
 
 .btn:disabled {
@@ -41,7 +36,10 @@
 
 .btn-primary:hover:not(:disabled) {
     background: var(--color-btn-primary-hover);
-    transform: translateY(-2px);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn-success {
@@ -51,7 +49,10 @@
 
 .btn-success:hover:not(:disabled) {
     background: var(--color-success-dark);
-    transform: translateY(-2px);
+}
+
+.btn-success:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn-danger {
@@ -61,19 +62,22 @@
 
 .btn-danger:hover:not(:disabled) {
     background: var(--color-danger-dark);
-    transform: translateY(-2px);
+}
+
+.btn-danger:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn-secondary {
     padding: 8px 16px;
-    border: 2px solid var(--color-border);
-    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
     font-size: 0.9rem;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     background: #ffffff;
     color: var(--color-text-primary);
-    transition: all 0.3s;
+    transition: all 0.2s ease;
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -81,8 +85,6 @@
     background: var(--color-neutral-bg);
 }
 
-@media (max-width: 768px) {
-    .button-group {
-        grid-template-columns: 1fr;
-    }
+.btn-secondary:active:not(:disabled) {
+    background: #e5e5ea;
 }
