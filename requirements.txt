@@ -60,3 +60,5 @@ onnxruntime
 pyarrow
 
 # deepspeed==0.17.1
+
+git+https://github.com/TEN-framework/ten-vad.git
